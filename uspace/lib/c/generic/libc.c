@@ -80,6 +80,7 @@ void __libc_main(void *pcb_ptr)
 
 		main_fibril.tcb = tls_make_initial(__progsymbols.elfstart);
 	}
+	main_fibril.is_freeable = false;
 
 	assert(main_fibril.tcb);
 
@@ -171,6 +172,8 @@ void __libc_fini(void)
 
 void __libc_exit(int status)
 {
+	fibril_run_exit_hooks(&main_fibril);
+
 	/*
 	 * GCC extension __attribute__((destructor)),
 	 * C++ destructors are added to __cxa_finalize call

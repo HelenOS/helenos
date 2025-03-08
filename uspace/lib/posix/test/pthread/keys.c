@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2025 Matej Volf
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,59 +26,59 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
- * @{
- */
-/** @file
- */
+#include <fibril.h>
+#include <posix/pthread.h>
+#include <pcut/pcut.h>
 
-#ifndef _LIBC_FIBRIL_H_
-#define _LIBC_FIBRIL_H_
+PCUT_INIT;
 
-#include <time.h>
-#include <_bits/errno.h>
-#include <_bits/__noreturn.h>
-#include <_bits/decls.h>
+PCUT_TEST_SUITE(pthread_keys);
 
-__HELENOS_DECLS_BEGIN;
+pthread_key_t key;
+int destructors_executed;
 
-typedef struct fibril fibril_t;
+static void destructor(void *_data)
+{
+	destructors_executed++;
+}
 
-typedef struct {
-	fibril_t *owned_by;
-} fibril_owner_info_t;
+static errno_t simple_fibril(void *_arg)
+{
+	PCUT_ASSERT_INT_EQUALS(0, pthread_setspecific(key, (void *) 0x0d9e));
+	PCUT_ASSERT_PTR_EQUALS((void *) 0x0d9e, pthread_getspecific(key));
 
-typedef fibril_t *fid_t;
+	for (int i = 0; i < 10; i++) {
+		fibril_yield();
+	}
 
-#ifndef __cplusplus
-/** Fibril-local variable specifier */
-#define fibril_local __thread
-#endif
+	return EOK;
+}
 
-extern fid_t fibril_create_generic(errno_t (*)(void *), void *, size_t);
-extern fid_t fibril_create(errno_t (*)(void *), void *);
-extern void fibril_destroy(fid_t);
-extern void fibril_add_ready(fid_t);
-extern fid_t fibril_get_id(void);
-extern void fibril_yield(void);
+PCUT_TEST(pthread_keys_basic)
+{
+	destructors_executed = 0;
+	PCUT_ASSERT_INT_EQUALS(0, pthread_key_create(&key, destructor));
+	PCUT_ASSERT_PTR_EQUALS(NULL, pthread_getspecific(key));
 
-extern void fibril_usleep(usec_t);
-extern void fibril_sleep(sec_t);
+	PCUT_ASSERT_INT_EQUALS(0, pthread_setspecific(key, (void *) 0x42));
+	PCUT_ASSERT_PTR_EQUALS((void *) 0x42, pthread_getspecific(key));
 
-extern void fibril_enable_multithreaded(void);
-extern int fibril_test_spawn_runners(int);
+	fid_t other = fibril_create(simple_fibril, NULL);
+	fibril_start(other);
 
-extern void fibril_detach(fid_t fid);
+	for (int i = 0; i < 5; i++) {
+		fibril_yield();
+	}
 
-extern void fibril_start(fid_t);
-extern __noreturn void fibril_exit(long);
+	PCUT_ASSERT_INT_EQUALS(0, destructors_executed);
+	PCUT_ASSERT_PTR_EQUALS((void *) 0x42, pthread_getspecific(key));
 
-/** Add a function to be called after fibril exits, just before it is destroyed */
-extern errno_t fibril_add_exit_hook(void (*)(void));
+	for (int i = 0; i < 10; i++) {
+		fibril_yield();
+	}
 
-__HELENOS_DECLS_END;
+	PCUT_ASSERT_INT_EQUALS(1, destructors_executed);
+	PCUT_ASSERT_PTR_EQUALS((void *) 0x42, pthread_getspecific(key));
+}
 
-#endif
-
-/** @}
- */
+PCUT_EXPORT(pthread_keys);

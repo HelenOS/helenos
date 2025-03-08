@@ -60,6 +60,7 @@ test_src = files(
 	'test/stdio.c',
 	'test/stdlib.c',
 	'test/unistd.c',
+	'test/pthread/keys.c',
 )
 
 _sdir = meson.current_source_dir() / 'include' / 'posix'

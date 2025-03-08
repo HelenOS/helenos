@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2025 Matej Volf
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,59 +26,77 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
- * @{
- */
-/** @file
- */
+#include <fibril.h>
+#include <pcut/pcut.h>
 
-#ifndef _LIBC_FIBRIL_H_
-#define _LIBC_FIBRIL_H_
+PCUT_INIT;
 
-#include <time.h>
-#include <_bits/errno.h>
-#include <_bits/__noreturn.h>
-#include <_bits/decls.h>
+PCUT_TEST_SUITE(fibril_exit_hook);
 
-__HELENOS_DECLS_BEGIN;
+static int value;
 
-typedef struct fibril fibril_t;
+static void exit_hook(void)
+{
+	value = 5;
+}
 
-typedef struct {
-	fibril_t *owned_by;
-} fibril_owner_info_t;
+static errno_t fibril_basic(void *_arg)
+{
+	fibril_add_exit_hook(exit_hook);
+	return EOK;
+}
 
-typedef fibril_t *fid_t;
+PCUT_TEST(exit_hook_basic)
+{
+	value = 0;
+	fid_t other = fibril_create(fibril_basic, NULL);
+	fibril_start(other);
 
-#ifndef __cplusplus
-/** Fibril-local variable specifier */
-#define fibril_local __thread
-#endif
+	fibril_yield();
 
-extern fid_t fibril_create_generic(errno_t (*)(void *), void *, size_t);
-extern fid_t fibril_create(errno_t (*)(void *), void *);
-extern void fibril_destroy(fid_t);
-extern void fibril_add_ready(fid_t);
-extern fid_t fibril_get_id(void);
-extern void fibril_yield(void);
+	PCUT_ASSERT_INT_EQUALS(5, value);
+}
 
-extern void fibril_usleep(usec_t);
-extern void fibril_sleep(sec_t);
+static errno_t fibril_explicit_exit(void *_arg)
+{
+	fibril_add_exit_hook(exit_hook);
+	fibril_exit(ETIMEOUT);
+}
 
-extern void fibril_enable_multithreaded(void);
-extern int fibril_test_spawn_runners(int);
+PCUT_TEST(exit_hook_explicit_exit)
+{
+	value = 0;
+	fid_t other = fibril_create(fibril_explicit_exit, NULL);
+	fibril_start(other);
 
-extern void fibril_detach(fid_t fid);
+	fibril_yield();
 
-extern void fibril_start(fid_t);
-extern __noreturn void fibril_exit(long);
+	PCUT_ASSERT_INT_EQUALS(5, value);
+}
 
-/** Add a function to be called after fibril exits, just before it is destroyed */
-extern errno_t fibril_add_exit_hook(void (*)(void));
+#ifdef FIBRIL_KILL_HAS_BEEN_IMPLEMENTED
+static errno_t fibril_to_be_killed(void *_arg)
+{
+	fibril_add_exit_hook(exit_hook);
 
-__HELENOS_DECLS_END;
+	while (true)
+		firbil_yield();
 
-#endif
+	assert(0 && "unreachable");
+}
 
-/** @}
- */
+PCUT_TEST(exit_hook_kill)
+{
+	value = 0;
+	fid_t other = fibril_create(fibril_to_be_killed, NULL);
+	fibril_start(other);
+
+	fibril_yield();
+
+	fibril_kill(other); // anything like this doesn't exist yet
+
+	PCUT_ASSERT_INT_EQUALS(5, value);
+}
+#endif // FIBRIL_KILL_HAS_BEEN_IMPLEMENTED
+
+PCUT_EXPORT(fibril_exit_hook);

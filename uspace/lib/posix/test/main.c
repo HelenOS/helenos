@@ -33,5 +33,6 @@ PCUT_INIT;
 PCUT_IMPORT(stdio);
 PCUT_IMPORT(stdlib);
 PCUT_IMPORT(unistd);
+PCUT_IMPORT(pthread_keys);
 
 PCUT_MAIN();
