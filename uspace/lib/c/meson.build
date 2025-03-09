@@ -176,7 +176,6 @@ test_src = files(
 	'test/casting.c',
 	'test/double_to_str.c',
 	'test/fibril/timer.c',
-	'test/fibril/exit_hook.c',
 	'test/getopt.c',
 	'test/gsort.c',
 	'test/ieee_double.c',

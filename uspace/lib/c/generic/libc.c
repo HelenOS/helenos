@@ -172,8 +172,6 @@ void __libc_fini(void)
 
 void __libc_exit(int status)
 {
-	fibril_run_exit_hooks(&main_fibril);
-
 	/*
 	 * GCC extension __attribute__((destructor)),
 	 * C++ destructors are added to __cxa_finalize call

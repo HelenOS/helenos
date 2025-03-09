@@ -184,7 +184,6 @@ fibril_t *fibril_alloc(void)
  */
 void fibril_setup(fibril_t *f)
 {
-	list_initialize(&f->exit_hooks);
 	futex_lock(&fibril_futex);
 	list_append(&f->all_link, &fibril_list);
 	futex_unlock(&fibril_futex);
@@ -845,16 +844,6 @@ void fibril_detach(fid_t f)
 	//       limited lifetime should call this function.
 }
 
-void fibril_run_exit_hooks(fibril_t *f)
-{
-	list_foreach_safe(f->exit_hooks, cur, _next) {
-		fibril_hook_t *hook = list_get_instance(cur, fibril_hook_t, link);
-		list_remove(cur);
-		hook->func();
-		free(hook);
-	}
-}
-
 /**
  * Exit a fibril. Never returns.
  *
@@ -864,8 +853,6 @@ _Noreturn void fibril_exit(long retval)
 {
 	// TODO: implement fibril_join() and remember retval
 	(void) retval;
-
-	fibril_run_exit_hooks(fibril_self());
 
 	fibril_t *f = _ready_list_pop_nonblocking(false);
 	if (!f)
@@ -928,19 +915,6 @@ void fibril_ipc_poke(void)
 	DPRINTF("Poking.\n");
 	/* Wakeup one thread sleeping in SYS_IPC_WAIT. */
 	ipc_poke();
-}
-
-errno_t fibril_add_exit_hook(void (*hook)(void))
-{
-	fibril_hook_t *h = malloc(sizeof(fibril_hook_t));
-	if (!h)
-		return ENOMEM;
-
-	DPRINTF("adding exit hook: function %p (fibril_hook_t structure at %p)\n", hook, h);
-
-	h->func = hook;
-	list_append(&h->link, &fibril_self()->exit_hooks);
-	return EOK;
 }
 
 errno_t fibril_ipc_wait(ipc_call_t *call, const struct timespec *expires)

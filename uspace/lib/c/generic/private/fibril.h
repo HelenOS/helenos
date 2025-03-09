@@ -69,14 +69,7 @@ struct fibril {
 	int rmutex_locks;
 	fibril_owner_info_t *waits_for;
 	fibril_event_t *sleep_event;
-
-	list_t exit_hooks;
 };
-
-typedef struct {
-	link_t link;
-	void (*func)(void);
-} fibril_hook_t;
 
 extern fibril_t *fibril_alloc(void);
 extern void fibril_setup(fibril_t *);
@@ -92,8 +85,6 @@ extern void fibril_notify(fibril_event_t *);
 
 extern errno_t fibril_ipc_wait(ipc_call_t *, const struct timespec *);
 extern void fibril_ipc_poke(void);
-
-extern void fibril_run_exit_hooks(fibril_t *);
 
 /**
  * "Restricted" fibril mutex.

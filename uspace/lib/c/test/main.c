@@ -37,7 +37,6 @@ PCUT_IMPORT(casting);
 PCUT_IMPORT(circ_buf);
 PCUT_IMPORT(double_to_str);
 PCUT_IMPORT(fibril_timer);
-PCUT_IMPORT(fibril_exit_hook);
 PCUT_IMPORT(getopt);
 PCUT_IMPORT(gsort);
 PCUT_IMPORT(ieee_double);

@@ -35,12 +35,6 @@ PCUT_INIT;
 PCUT_TEST_SUITE(pthread_keys);
 
 pthread_key_t key;
-int destructors_executed;
-
-static void destructor(void *_data)
-{
-	destructors_executed++;
-}
 
 static errno_t simple_fibril(void *_arg)
 {
@@ -56,8 +50,7 @@ static errno_t simple_fibril(void *_arg)
 
 PCUT_TEST(pthread_keys_basic)
 {
-	destructors_executed = 0;
-	PCUT_ASSERT_INT_EQUALS(0, pthread_key_create(&key, destructor));
+	PCUT_ASSERT_INT_EQUALS(0, pthread_key_create(&key, NULL));
 	PCUT_ASSERT_PTR_EQUALS(NULL, pthread_getspecific(key));
 
 	PCUT_ASSERT_INT_EQUALS(0, pthread_setspecific(key, (void *) 0x42));
@@ -70,14 +63,12 @@ PCUT_TEST(pthread_keys_basic)
 		fibril_yield();
 	}
 
-	PCUT_ASSERT_INT_EQUALS(0, destructors_executed);
 	PCUT_ASSERT_PTR_EQUALS((void *) 0x42, pthread_getspecific(key));
 
 	for (int i = 0; i < 10; i++) {
 		fibril_yield();
 	}
 
-	PCUT_ASSERT_INT_EQUALS(1, destructors_executed);
 	PCUT_ASSERT_PTR_EQUALS((void *) 0x42, pthread_getspecific(key));
 }
 
