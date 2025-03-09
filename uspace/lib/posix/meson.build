@@ -29,6 +29,7 @@
 
 includes += include_directories('include/posix', 'include')
 c_args += [ '-fno-builtin', '-D_XOPEN_SOURCE' ]
+allow_shared = true
 
 # TODO
 
@@ -60,6 +61,7 @@ test_src = files(
 	'test/stdio.c',
 	'test/stdlib.c',
 	'test/unistd.c',
+	'test/pthread/keys.c',
 )
 
 _sdir = meson.current_source_dir() / 'include' / 'posix'
