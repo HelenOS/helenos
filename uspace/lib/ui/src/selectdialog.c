@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -113,6 +113,11 @@ errno_t ui_select_dialog_create(ui_t *ui, ui_select_dialog_params_t *params,
 
 	ui_wnd_params_init(&wparams);
 	wparams.caption = params->caption;
+
+	if ((params->flags & usdf_topmost) != 0)
+		wparams.flags |= wndf_topmost;
+	if ((params->flags & usdf_center) != 0)
+		wparams.placement = ui_wnd_place_center;
 
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {

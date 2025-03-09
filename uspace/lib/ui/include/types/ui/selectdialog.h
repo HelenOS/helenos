@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,12 +43,22 @@
 struct ui_select_dialog;
 typedef struct ui_select_dialog ui_select_dialog_t;
 
+/** Select dialog flags */
+typedef enum {
+	/** Topmost window */
+	usdf_topmost = 0x1,
+	/** Place to the center of the screen */
+	usdf_center = 0x2
+} ui_select_dialog_flags_t;
+
 /** Select dialog parameters */
 typedef struct {
 	/** Window caption */
 	const char *caption;
 	/** Prompt text */
 	const char *prompt;
+	/** Flags */
+	ui_select_dialog_flags_t flags;
 } ui_select_dialog_params_t;
 
 /** Select dialog callback */

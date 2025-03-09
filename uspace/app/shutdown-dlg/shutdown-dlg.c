@@ -40,8 +40,10 @@
 #include <system.h>
 #include <ui/fixed.h>
 #include <ui/label.h>
+#include <ui/list.h>
 #include <ui/msgdialog.h>
 #include <ui/resource.h>
+#include <ui/selectdialog.h>
 #include <ui/ui.h>
 #include <ui/window.h>
 #include "shutdown-dlg.h"
@@ -49,9 +51,9 @@
 static void wnd_close(ui_window_t *, void *);
 static errno_t bg_wnd_paint(ui_window_t *, void *);
 static void shutdown_progress_destroy(shutdown_progress_t *);
-static errno_t shutdown_confirm_msg_create(shutdown_dlg_t *);
+static errno_t shutdown_confirm_create(shutdown_dlg_t *);
 static errno_t shutdown_failed_msg_create(shutdown_dlg_t *);
-static errno_t shutdown_start(shutdown_dlg_t *);
+static errno_t shutdown_start(shutdown_dlg_t *, sd_action_t);
 
 static ui_window_cb_t bg_window_cb = {
 	.close = wnd_close,
@@ -70,12 +72,14 @@ static system_cb_t sd_system_cb = {
 	.shutdown_failed = sd_shutdown_failed
 };
 
-static void shutdown_confirm_msg_button(ui_msg_dialog_t *, void *, unsigned);
-static void shutdown_confirm_msg_close(ui_msg_dialog_t *, void *);
+static void shutdown_confirm_bok(ui_select_dialog_t *, void *, void *);
+static void shutdown_confirm_bcancel(ui_select_dialog_t *, void *);
+static void shutdown_confirm_close(ui_select_dialog_t *, void *);
 
-static ui_msg_dialog_cb_t shutdown_confirm_msg_cb = {
-	.button = shutdown_confirm_msg_button,
-	.close = shutdown_confirm_msg_close
+static ui_select_dialog_cb_t shutdown_confirm_cb = {
+	.bok = shutdown_confirm_bok,
+	.bcancel = shutdown_confirm_bcancel,
+	.close = shutdown_confirm_close
 };
 
 static void shutdown_failed_msg_button(ui_msg_dialog_t *, void *, unsigned);
@@ -165,25 +169,45 @@ static errno_t bg_wnd_paint(ui_window_t *window, void *arg)
  * @param sddlg Shutdown dialog
  * @return EOK on success or an error code
  */
-static errno_t shutdown_confirm_msg_create(shutdown_dlg_t *sddlg)
+static errno_t shutdown_confirm_create(shutdown_dlg_t *sddlg)
 {
-	ui_msg_dialog_params_t params;
-	ui_msg_dialog_t *dialog;
+	ui_select_dialog_params_t params;
+	ui_select_dialog_t *dialog;
+	ui_list_entry_attr_t attr;
 	errno_t rc;
 
-	ui_msg_dialog_params_init(&params);
+	ui_select_dialog_params_init(&params);
 	params.caption = "Shutdown";
-	params.text = "Do you want to shut the system down?";
-	params.choice = umdc_ok_cancel;
-	params.flags |= umdf_topmost | umdf_center;
+	params.prompt = "Do you want to shut the system down?";
+	params.flags |= usdf_topmost | usdf_center;
 
-	rc = ui_msg_dialog_create(sddlg->ui, &params, &dialog);
+	rc = ui_select_dialog_create(sddlg->ui, &params, &dialog);
 	if (rc != EOK)
 		return rc;
 
-	ui_msg_dialog_set_cb(dialog, &shutdown_confirm_msg_cb, sddlg);
+	/* Need an entry to select */
+	ui_list_entry_attr_init(&attr);
+
+	attr.caption = "Power off";
+	attr.arg = (void *)sd_poweroff;
+	rc = ui_select_dialog_append(dialog, &attr);
+	if (rc != EOK)
+		goto error;
+
+	attr.caption = "Restart";
+	attr.arg = (void *)sd_restart;
+	rc = ui_select_dialog_append(dialog, &attr);
+	if (rc != EOK)
+		goto error;
+
+	ui_select_dialog_set_cb(dialog, &shutdown_confirm_cb, sddlg);
+
+	(void)ui_select_dialog_paint(dialog);
 
 	return EOK;
+error:
+	ui_select_dialog_destroy(dialog);
+	return rc;
 }
 
 /** Create 'shutdown failed' message dialog.
@@ -210,23 +234,33 @@ static errno_t shutdown_failed_msg_create(shutdown_dlg_t *sddlg)
 	return EOK;
 }
 
-/** Shutdown confirm message dialog button press.
+/** Shutdown confirm dialog OK button press.
  *
  * @param dialog Message dialog
  * @param arg Argument (ui_demo_t *)
- * @param bnum Button number
+ * @param earg Entry argument
  */
-static void shutdown_confirm_msg_button(ui_msg_dialog_t *dialog,
-    void *arg, unsigned bnum)
+static void shutdown_confirm_bok(ui_select_dialog_t *dialog, void *arg,
+    void *earg)
 {
 	shutdown_dlg_t *sddlg = (shutdown_dlg_t *) arg;
 
-	ui_msg_dialog_destroy(dialog);
+	ui_select_dialog_destroy(dialog);
 
-	if (bnum == 0)
-		shutdown_start(sddlg);
-	else
-		ui_quit(sddlg->ui);
+	shutdown_start(sddlg, (sd_action_t)earg);
+}
+
+/** Shutdown confirm dialog Cancel button press.
+ *
+ * @param dialog Message dialog
+ * @param arg Argument (ui_demo_t *)
+ */
+static void shutdown_confirm_bcancel(ui_select_dialog_t *dialog, void *arg)
+{
+	shutdown_dlg_t *sddlg = (shutdown_dlg_t *) arg;
+
+	ui_select_dialog_destroy(dialog);
+	ui_quit(sddlg->ui);
 }
 
 /** Shutdown confirm message dialog close request.
@@ -234,11 +268,11 @@ static void shutdown_confirm_msg_button(ui_msg_dialog_t *dialog,
  * @param dialog Message dialog
  * @param arg Argument (ui_demo_t *)
  */
-static void shutdown_confirm_msg_close(ui_msg_dialog_t *dialog, void *arg)
+static void shutdown_confirm_close(ui_select_dialog_t *dialog, void *arg)
 {
 	shutdown_dlg_t *sddlg = (shutdown_dlg_t *) arg;
 
-	ui_msg_dialog_destroy(dialog);
+	ui_select_dialog_destroy(dialog);
 	ui_quit(sddlg->ui);
 }
 
@@ -385,7 +419,13 @@ static void shutdown_progress_destroy(shutdown_progress_t *progress)
 	free(progress);
 }
 
-static errno_t shutdown_start(shutdown_dlg_t *sddlg)
+/** Start shutdown.
+ *
+ * @param sddlg Shutdown dialog
+ * @param action Shutdown actin
+ * @return EOK on success or an error code
+ */
+static errno_t shutdown_start(shutdown_dlg_t *sddlg, sd_action_t action)
 {
 	errno_t rc;
 
@@ -399,7 +439,17 @@ static errno_t shutdown_start(shutdown_dlg_t *sddlg)
 		goto error;
 	}
 
-	rc = system_poweroff(sddlg->system);
+	rc = EINVAL;
+
+	switch (action) {
+	case sd_poweroff:
+		rc = system_poweroff(sddlg->system);
+		break;
+	case sd_restart:
+		rc = system_restart(sddlg->system);
+		break;
+	}
+
 	if (rc != EOK) {
 		printf("Failed requesting system shutdown.\n");
 		goto error;
@@ -468,7 +518,7 @@ static errno_t shutdown_dlg(const char *display_spec)
 		goto error;
 	}
 
-	(void)shutdown_confirm_msg_create(&sddlg);
+	(void)shutdown_confirm_create(&sddlg);
 
 	ui_run(ui);
 
