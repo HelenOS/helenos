@@ -40,7 +40,7 @@
 #include "../internal/common.h"
 
 #include <stdio.h>
-#define DPRINTF(format, ...) printf("pthread_keys: " format, ##__VA_ARGS__)
+#define DPRINTF(format, ...) ((void) 0);
 
 static fibril_local bool fibril_initialized = false;
 static atomic_ushort next_key = 1; // skip the key 'zero'
