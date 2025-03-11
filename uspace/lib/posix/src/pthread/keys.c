@@ -42,7 +42,6 @@
 #include <stdio.h>
 #define DPRINTF(format, ...) ((void) 0);
 
-static fibril_local bool fibril_initialized = false;
 static atomic_ushort next_key = 1; // skip the key 'zero'
 
 /*
@@ -56,12 +55,6 @@ static fibril_local void *key_data[PTHREAD_KEYS_MAX];
 
 void *pthread_getspecific(pthread_key_t key)
 {
-	// initialization is done in setspecific -> if not initialized, nothing was set yet
-	if (!fibril_initialized) {
-		DPRINTF("pthread_getspecific(%d) = NULL (uninitialized)\n", key);
-		return NULL;
-	}
-
 	assert(key < PTHREAD_KEYS_MAX);
 	assert(key < next_key);
 	assert(key > 0);
@@ -73,13 +66,6 @@ void *pthread_getspecific(pthread_key_t key)
 int pthread_setspecific(pthread_key_t key, const void *data)
 {
 	DPRINTF("pthread_setspecific(%d, %p)\n", key, data);
-	if (!fibril_initialized) {
-		DPRINTF("initializing pthread keys\n");
-		for (unsigned i = 0; i < PTHREAD_KEYS_MAX; i++) {
-			key_data[i] = NULL;
-		}
-		fibril_initialized = true;
-	}
 	assert(key < PTHREAD_KEYS_MAX);
 	assert(key < next_key);
 	assert(key > 0);
@@ -90,7 +76,7 @@ int pthread_setspecific(pthread_key_t key, const void *data)
 
 int pthread_key_delete(pthread_key_t key)
 {
-	// see https://github.com/HelenOS/helenos/pull/245#issuecomment-2706795848
+	/* see https://github.com/HelenOS/helenos/pull/245#issuecomment-2706795848 */
 	not_implemented();
 	return EOK;
 }
@@ -104,11 +90,12 @@ int pthread_key_create(pthread_key_t *key, void (*destructor)(void *))
 		return ELIMIT;
 	}
 	if (destructor != NULL) {
-		static int __counter = 0;
-		if (__counter == 0) {
+		/* Inlined not_implemented() macro to add custom message */
+		static int __not_implemented_counter = 0;
+		if (__not_implemented_counter == 0) {
 			fprintf(stderr, "pthread_key_create: destructors not supported\n");
 		}
-		__counter++;
+		__not_implemented_counter++;
 	}
 
 	*key = k;

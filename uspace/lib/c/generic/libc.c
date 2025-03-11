@@ -80,7 +80,6 @@ void __libc_main(void *pcb_ptr)
 
 		main_fibril.tcb = tls_make_initial(__progsymbols.elfstart);
 	}
-	main_fibril.is_freeable = false;
 
 	assert(main_fibril.tcb);
 
