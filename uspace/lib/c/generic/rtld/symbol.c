@@ -64,6 +64,11 @@ static elf_word elf_hash(const unsigned char *name)
 
 static elf_symbol_t *def_find_in_module(const char *name, module_t *m)
 {
+	if (m->dyn.hash == NULL) {
+		/* No hash table */
+		return NULL;
+	}
+
 	elf_symbol_t *sym_table;
 	elf_symbol_t *s, *sym;
 	elf_word nbucket;

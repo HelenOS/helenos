@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jiri Svoboda
+ * Copyright (c) 2025 Matej Volf
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,13 +26,50 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <fibril.h>
+#include <posix/pthread.h>
 #include <pcut/pcut.h>
 
 PCUT_INIT;
 
-PCUT_IMPORT(stdio);
-PCUT_IMPORT(stdlib);
-PCUT_IMPORT(unistd);
-PCUT_IMPORT(pthread_keys);
+PCUT_TEST_SUITE(pthread_keys);
 
-PCUT_MAIN();
+pthread_key_t key;
+
+static errno_t simple_fibril(void *_arg)
+{
+	PCUT_ASSERT_INT_EQUALS(0, pthread_setspecific(key, (void *) 0x0d9e));
+	PCUT_ASSERT_PTR_EQUALS((void *) 0x0d9e, pthread_getspecific(key));
+
+	for (int i = 0; i < 10; i++) {
+		fibril_yield();
+	}
+
+	return EOK;
+}
+
+PCUT_TEST(pthread_keys_basic)
+{
+	PCUT_ASSERT_INT_EQUALS(0, pthread_key_create(&key, NULL));
+	PCUT_ASSERT_PTR_EQUALS(NULL, pthread_getspecific(key));
+
+	PCUT_ASSERT_INT_EQUALS(0, pthread_setspecific(key, (void *) 0x42));
+	PCUT_ASSERT_PTR_EQUALS((void *) 0x42, pthread_getspecific(key));
+
+	fid_t other = fibril_create(simple_fibril, NULL);
+	fibril_start(other);
+
+	for (int i = 0; i < 5; i++) {
+		fibril_yield();
+	}
+
+	PCUT_ASSERT_PTR_EQUALS((void *) 0x42, pthread_getspecific(key));
+
+	for (int i = 0; i < 10; i++) {
+		fibril_yield();
+	}
+
+	PCUT_ASSERT_PTR_EQUALS((void *) 0x42, pthread_getspecific(key));
+}
+
+PCUT_EXPORT(pthread_keys);
