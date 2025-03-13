@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2007 Martin Decky
  * All rights reserved.
  *
@@ -36,13 +37,20 @@
  */
 
 #include <arch.h>
-#include <proc/task.h>
+#include <errno.h>
 #include <halt.h>
 #include <log.h>
+#include <main/main.h>
+#include <main/shutdown.h>
+#include <proc/task.h>
+#include <proc/thread.h>
+
+static thread_t *reboot_thrd = NULL;
+SPINLOCK_INITIALIZE(reboot_lock);
 
 void reboot(void)
 {
-	task_done();
+	task_done(kernel_task);
 
 #ifdef CONFIG_DEBUG
 	log(LF_OTHER, LVL_DEBUG, "Rebooting the system");
@@ -50,6 +58,49 @@ void reboot(void)
 
 	arch_reboot();
 	halt();
+}
+
+/** Thread procedure for rebooting the system.
+ *
+ * @param arg Argument (unused)
+ */
+static void reboot_thrd_proc(void *arg)
+{
+	(void)arg;
+
+	reboot();
+}
+
+/** Reboot the system.
+ *
+ * @return EOK if reboot started successfully. EBUSY if reboot already
+ *         started, ENOMEM if out of memory.
+ */
+sys_errno_t sys_reboot(void)
+{
+	thread_t *thread;
+
+	thread = thread_create(reboot_thrd_proc, NULL, kernel_task,
+	    THREAD_FLAG_NONE, "reboot");
+	if (thread == NULL)
+		return ENOMEM;
+
+	spinlock_lock(&reboot_lock);
+
+	if (reboot_thrd != NULL) {
+		spinlock_unlock(&reboot_lock);
+		thread_put(thread);
+		return EBUSY;
+	}
+
+	reboot_thrd = thread;
+
+	spinlock_unlock(&reboot_lock);
+
+	thread_start(thread);
+	thread_detach(thread);
+
+	return EOK;
 }
 
 /** @}

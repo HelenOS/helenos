@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,7 @@
 const sc_desc_t syscall_desc[] = {
 	/* System management syscalls. */
 	[SYS_KIO] = { "kio", 3, V_INT_ERRNO },
+	[SYS_REBOOT] = { "reboot", 0, V_ERRNO },
 
 	/* Thread and task related syscalls. */
 	[SYS_THREAD_CREATE] = { "thread_create", 3, V_ERRNO },

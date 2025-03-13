@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -188,6 +188,28 @@ static errno_t fun_offline(const char *path)
 	}
 
 	rc = devman_fun_offline(funh);
+	if (rc != EOK) {
+		printf(NAME ": Failed to offline function '%s' (%s)\n", path,
+		    str_error(rc));
+		return rc;
+	}
+
+	return EOK;
+}
+
+static errno_t fun_quiesce(const char *path)
+{
+	devman_handle_t funh;
+	errno_t rc;
+
+	rc = devman_fun_get_handle(path, &funh, 0);
+	if (rc != EOK) {
+		printf(NAME ": Error resolving device function '%s' (%s)\n",
+		    path, str_error(rc));
+		return rc;
+	}
+
+	rc = devman_fun_quiesce(funh);
 	if (rc != EOK) {
 		printf(NAME ": Failed to offline function '%s' (%s)\n", path,
 		    str_error(rc));
@@ -405,6 +427,17 @@ int main(int argc, char *argv[])
 		}
 
 		rc = fun_offline(argv[2]);
+		if (rc != EOK) {
+			return 2;
+		}
+	} else if (str_cmp(argv[1], "quiesce") == 0) {
+		if (argc < 3) {
+			printf(NAME ": Argument missing.\n");
+			print_syntax();
+			return 1;
+		}
+
+		rc = fun_quiesce(argv[2]);
 		if (rc != EOK) {
 			return 2;
 		}

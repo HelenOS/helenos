@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,7 +42,8 @@
 
 extern errno_t system_open(const char *, system_cb_t *, void *, system_t **);
 extern void system_close(system_t *);
-extern errno_t system_shutdown(system_t *);
+extern errno_t system_poweroff(system_t *);
+extern errno_t system_restart(system_t *);
 
 #endif
 

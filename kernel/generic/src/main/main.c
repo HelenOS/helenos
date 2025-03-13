@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2001-2004 Jakub Jermar
  * All rights reserved.
  *
@@ -108,6 +109,8 @@ CHECK_INT_TYPE(8);
 CHECK_INT_TYPE(16);
 CHECK_INT_TYPE(32);
 CHECK_INT_TYPE(64);
+
+task_t *kernel_task;
 
 /** Global configuration structure. */
 config_t config = {
@@ -271,6 +274,8 @@ void main_bsp_separated_stack(void)
 	task_t *kernel = task_create(AS_KERNEL, "kernel");
 	if (!kernel)
 		panic("Cannot create kernel task.");
+
+	kernel_task = kernel;
 
 	/*
 	 * Create the first thread.

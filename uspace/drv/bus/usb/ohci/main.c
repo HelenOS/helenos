@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2011 Jan Vesely
  * Copyright (c) 2011 Vojtech Horky
  * Copyright (c) 2018 Ondrej Hlavaty, Petr Manek
@@ -59,6 +60,7 @@ static const hc_driver_t ohci_driver = {
 	.start = hc_start,
 	.setup_root_hub = hc_setup_roothub,
 	.hc_gone = hc_gone,
+	.hc_quiesce = hc_quiesce
 };
 
 /** Initializes global driver structures (NONE).

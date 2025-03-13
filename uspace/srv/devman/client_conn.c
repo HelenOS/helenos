@@ -1,6 +1,6 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2010 Lenka Trochtova
- * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -478,6 +478,41 @@ static void devman_fun_offline(ipc_call_t *icall)
 	async_answer_0(icall, rc);
 }
 
+/** Quiesce function.
+ *
+ * Send a request to quiesce a function to the responsible driver.
+ */
+static void devman_fun_quiesce(ipc_call_t *icall)
+{
+	fun_node_t *fun;
+	dev_node_t *child;
+	errno_t rc;
+
+	fun = find_fun_node(&device_tree, ipc_get_arg1(icall));
+	if (fun == NULL) {
+		async_answer_0(icall, ENOENT);
+		return;
+	}
+
+	fibril_rwlock_read_lock(&device_tree.rwlock);
+
+	/* Check function state */
+	if (fun->state == FUN_REMOVED) {
+		fibril_rwlock_read_unlock(&device_tree.rwlock);
+		async_answer_0(icall, ENOENT);
+		return;
+	}
+
+	child = fun->child;
+	dev_add_ref(child);
+	fibril_rwlock_read_unlock(&device_tree.rwlock);
+
+	rc = driver_dev_quiesce(&device_tree, child);
+	fun_del_ref(fun);
+
+	async_answer_0(icall, rc);
+}
+
 /** Find handle for the function instance identified by its service ID. */
 static void devman_fun_sid_to_handle(ipc_call_t *icall)
 {
@@ -788,6 +823,9 @@ void devman_connection_client(ipc_call_t *icall, void *arg)
 			break;
 		case DEVMAN_FUN_OFFLINE:
 			devman_fun_offline(&call);
+			break;
+		case DEVMAN_FUN_QUIESCE:
+			devman_fun_quiesce(&call);
 			break;
 		case DEVMAN_FUN_SID_TO_HANDLE:
 			devman_fun_sid_to_handle(&call);

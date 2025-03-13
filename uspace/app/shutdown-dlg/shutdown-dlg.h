@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -58,6 +58,12 @@ typedef struct {
 	shutdown_progress_t *progress;
 	system_t *system;
 } shutdown_dlg_t;
+
+/** Shutdown action */
+typedef enum {
+	sd_poweroff = 1,
+	sd_restart
+} sd_action_t;
 
 #endif
 

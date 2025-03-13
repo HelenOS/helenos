@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2025 Matej Volf
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,56 +26,50 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup uspace_drv_pc_lpt
- * @{
- */
-/** @file
- */
+#include <fibril.h>
+#include <posix/pthread.h>
+#include <pcut/pcut.h>
 
-#ifndef PC_LPT_H
-#define PC_LPT_H
+PCUT_INIT;
 
-#include <async.h>
-#include <ddf/driver.h>
-#include <ddi.h>
-#include <fibril_synch.h>
-#include <io/chardev_srv.h>
-#include <stdint.h>
+PCUT_TEST_SUITE(pthread_keys);
 
-#include "pc-lpt_hw.h"
+pthread_key_t key;
 
-/** PC parallel port resources */
-typedef struct {
-	uintptr_t base;
-	int irq;
-} pc_lpt_res_t;
+static errno_t simple_fibril(void *_arg)
+{
+	PCUT_ASSERT_INT_EQUALS(0, pthread_setspecific(key, (void *) 0x0d9e));
+	PCUT_ASSERT_PTR_EQUALS((void *) 0x0d9e, pthread_getspecific(key));
 
-/** PC parallel port */
-typedef struct {
-	/** DDF device */
-	ddf_dev_t *dev;
-	/** Character device service structure */
-	chardev_srvs_t cds;
-	/** Hardware resources */
-	pc_lpt_res_t res;
-	/** PIO range */
-	irq_pio_range_t irq_range[1];
-	/** IRQ code */
-	irq_code_t irq_code;
-	/** Hardware access lock */
-	fibril_mutex_t hw_lock;
-	/** Hardware registers */
-	pc_lpt_regs_t *regs;
-	/** IRQ handle */
-	cap_irq_handle_t irq_handle;
-} pc_lpt_t;
+	for (int i = 0; i < 10; i++) {
+		fibril_yield();
+	}
 
-extern errno_t pc_lpt_add(pc_lpt_t *, pc_lpt_res_t *);
-extern errno_t pc_lpt_remove(pc_lpt_t *);
-extern errno_t pc_lpt_gone(pc_lpt_t *);
-extern void pc_lpt_quiesce(pc_lpt_t *);
+	return EOK;
+}
 
-#endif
+PCUT_TEST(pthread_keys_basic)
+{
+	PCUT_ASSERT_INT_EQUALS(0, pthread_key_create(&key, NULL));
+	PCUT_ASSERT_PTR_EQUALS(NULL, pthread_getspecific(key));
 
-/** @}
- */
+	PCUT_ASSERT_INT_EQUALS(0, pthread_setspecific(key, (void *) 0x42));
+	PCUT_ASSERT_PTR_EQUALS((void *) 0x42, pthread_getspecific(key));
+
+	fid_t other = fibril_create(simple_fibril, NULL);
+	fibril_start(other);
+
+	for (int i = 0; i < 5; i++) {
+		fibril_yield();
+	}
+
+	PCUT_ASSERT_PTR_EQUALS((void *) 0x42, pthread_getspecific(key));
+
+	for (int i = 0; i < 10; i++) {
+		fibril_yield();
+	}
+
+	PCUT_ASSERT_PTR_EQUALS((void *) 0x42, pthread_getspecific(key));
+}
+
+PCUT_EXPORT(pthread_keys);

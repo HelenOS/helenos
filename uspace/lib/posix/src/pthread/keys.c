@@ -35,30 +35,71 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <errno.h>
+#include <fibril.h>
+#include <stdatomic.h>
 #include "../internal/common.h"
+
+#include <stdio.h>
+#define DPRINTF(format, ...) ((void) 0);
+
+static atomic_ushort next_key = 1; // skip the key 'zero'
+
+/*
+ * For now, we just support maximum of 100 keys. This can be improved
+ * in the future by implementing a dynamically growing array with
+ * reallocations, but that will require more synchronization.
+ */
+#define PTHREAD_KEYS_MAX 100
+
+static fibril_local void *key_data[PTHREAD_KEYS_MAX];
 
 void *pthread_getspecific(pthread_key_t key)
 {
-	not_implemented();
-	return NULL;
+	assert(key < PTHREAD_KEYS_MAX);
+	assert(key < next_key);
+	assert(key > 0);
+
+	DPRINTF("pthread_getspecific(%d) = %p\n", key, key_data[key]);
+	return key_data[key];
 }
 
 int pthread_setspecific(pthread_key_t key, const void *data)
 {
-	not_implemented();
-	return ENOTSUP;
+	DPRINTF("pthread_setspecific(%d, %p)\n", key, data);
+	assert(key < PTHREAD_KEYS_MAX);
+	assert(key < next_key);
+	assert(key > 0);
+
+	key_data[key] = (void *) data;
+	return EOK;
 }
 
 int pthread_key_delete(pthread_key_t key)
 {
+	/* see https://github.com/HelenOS/helenos/pull/245#issuecomment-2706795848 */
 	not_implemented();
-	return ENOTSUP;
+	return EOK;
 }
 
 int pthread_key_create(pthread_key_t *key, void (*destructor)(void *))
 {
-	not_implemented();
-	return ENOTSUP;
+	unsigned short k = atomic_fetch_add(&next_key, 1);
+	DPRINTF("pthread_key_create(%p, %p) = %d\n", key, destructor, k);
+	if (k >= PTHREAD_KEYS_MAX) {
+		atomic_store(&next_key, PTHREAD_KEYS_MAX + 1);
+		return ELIMIT;
+	}
+	if (destructor != NULL) {
+		/* Inlined not_implemented() macro to add custom message */
+		static int __not_implemented_counter = 0;
+		if (__not_implemented_counter == 0) {
+			fprintf(stderr, "pthread_key_create: destructors not supported\n");
+		}
+		__not_implemented_counter++;
+	}
+
+	*key = k;
+	return EOK;
 }
 
 /** @}

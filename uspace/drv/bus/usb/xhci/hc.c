@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2018 Ondrej Hlavaty, Petr Manek, Jaroslav Jindrak, Jan Hrach, Michal Staruch
  * All rights reserved.
  *
@@ -743,6 +744,16 @@ void hc_fini(xhci_hc_t *hc)
 	xhci_rh_fini(&hc->rh);
 	pio_disable(hc->reg_base, RNGSZ(hc->mmio_range));
 	usb_log_info("Finalized.");
+}
+
+/**
+ * Quiesce host controller.
+ */
+errno_t hc_quiesce(xhci_hc_t *hc)
+{
+	hc_stop(hc);
+	usb_log_info("HC quiesced.");
+	return EOK;
 }
 
 unsigned hc_speed_to_psiv(usb_speed_t speed)

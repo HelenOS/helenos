@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
@@ -73,6 +74,7 @@ static inline const char *dsp_state_to_str(dsp_state_t state)
 		[DSP_CAPTURE_TERMINATE] = "CAPTURE TERMINATE",
 		[DSP_READY] = "READY",
 		[DSP_NO_BUFFER] = "NO BUFFER",
+		[DSP_QUIESCED] = "QUIESCED"
 	};
 	if ((size_t)state < ARRAY_SIZE(state_names))
 		return state_names[state];
@@ -82,6 +84,9 @@ static inline const char *dsp_state_to_str(dsp_state_t state)
 static inline void dsp_change_state(sb_dsp_t *dsp, dsp_state_t state)
 {
 	assert(dsp);
+	if (dsp->state == DSP_QUIESCED)
+		return;
+
 	ddf_log_verbose("Changing state from %s to %s",
 	    dsp_state_to_str(dsp->state), dsp_state_to_str(state));
 	dsp->state = state;
@@ -229,6 +234,12 @@ errno_t sb_dsp_init(sb_dsp_t *dsp, sb16_regs_t *regs, ddf_dev_t *dev,
 	dsp_read(dsp, &dsp->version.minor);
 
 	return ret;
+}
+
+void sb_dsp_quiesce(sb_dsp_t *dsp)
+{
+	dsp->state = DSP_QUIESCED;
+	dsp_reset(dsp);
 }
 
 void sb_dsp_interrupt(sb_dsp_t *dsp)

@@ -100,7 +100,7 @@ errno_t isa_ide_channel_init(isa_ide_ctrl_t *ctrl, isa_ide_channel_t *chan,
 	bool irq_inited = false;
 	ata_params_t params;
 
-	ddf_msg(LVL_DEBUG, "isa_ide_ctrl_init()");
+	ddf_msg(LVL_DEBUG, "isa_ide_channel_init()");
 
 	memset(&params, 0, sizeof(params));
 
@@ -134,7 +134,7 @@ errno_t isa_ide_channel_init(isa_ide_ctrl_t *ctrl, isa_ide_channel_t *chan,
 
 	irq_inited = true;
 
-	ddf_msg(LVL_DEBUG, "isa_ide_ctrl_init(): Initialize IDE channel");
+	ddf_msg(LVL_DEBUG, "isa_ide_channel_init(): Initialize IDE channel");
 
 	params.arg = (void *)chan;
 	params.use_dma = false;
@@ -162,7 +162,7 @@ errno_t isa_ide_channel_init(isa_ide_ctrl_t *ctrl, isa_ide_channel_t *chan,
 	if (rc != EOK)
 		goto error;
 
-	ddf_msg(LVL_DEBUG, "isa_ide_ctrl_init: DONE");
+	ddf_msg(LVL_DEBUG, "isa_ide_channel_init: DONE");
 	return EOK;
 error:
 	if (chan->channel != NULL) {
@@ -180,7 +180,7 @@ errno_t isa_ide_channel_fini(isa_ide_channel_t *chan)
 {
 	errno_t rc;
 
-	ddf_msg(LVL_DEBUG, ": isa_ide_ctrl_remove()");
+	ddf_msg(LVL_DEBUG, ": isa_ide_channel_fini()");
 
 	fibril_mutex_lock(&chan->lock);
 
@@ -195,6 +195,16 @@ errno_t isa_ide_channel_fini(isa_ide_channel_t *chan)
 	fibril_mutex_unlock(&chan->lock);
 
 	return EOK;
+}
+
+/** Quiesce ISA IDE channel. */
+void isa_ide_channel_quiesce(isa_ide_channel_t *chan)
+{
+	ddf_msg(LVL_DEBUG, ": isa_ide_channel_quiesce()");
+
+	fibril_mutex_lock(&chan->lock);
+	ata_channel_quiesce(chan->channel);
+	fibril_mutex_unlock(&chan->lock);
 }
 
 /** Enable device I/O. */

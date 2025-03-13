@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2011 Jan Vesely
  * Copyright (c) 2018 Ondrej Hlavaty
  * All rights reserved.
@@ -208,6 +209,45 @@ int hc_gone(hc_device_t *hcd)
 	endpoint_list_fini(&hc->async_list);
 	endpoint_list_fini(&hc->int_list);
 	dma_buffer_free(&hc->dma_buffer);
+	return EOK;
+}
+
+/** Quiesce host controller
+ *
+ * @param hcd Host controller device
+ */
+int hc_quiesce(hc_device_t *hcd)
+{
+	hc_t *instance = hcd_to_hc(hcd);
+
+	/*
+	 * Turn off the HC if it's running, Reseting a running device is
+	 * undefined
+	 */
+	if (!(EHCI_RD(instance->registers->usbsts) & USB_STS_HC_HALTED_FLAG)) {
+		/* disable all interrupts */
+		EHCI_WR(instance->registers->usbintr, 0);
+		/* ack all interrupts */
+		EHCI_WR(instance->registers->usbsts, 0x3f);
+		/* Stop HC hw */
+		EHCI_WR(instance->registers->usbcmd, 0);
+		/* Wait until hc is halted */
+		while ((EHCI_RD(instance->registers->usbsts) & USB_STS_HC_HALTED_FLAG) == 0) {
+			fibril_usleep(1);
+		}
+		usb_log_info("HC(%p): EHCI turned off.", instance);
+	} else {
+		usb_log_info("HC(%p): EHCI was not running.", instance);
+	}
+
+	/* Hw initialization sequence, see page 53 (pdf 63) */
+	EHCI_SET(instance->registers->usbcmd, USB_CMD_HC_RESET_FLAG);
+	usb_log_info("HC(%p): Waiting for HW reset.", instance);
+	while (EHCI_RD(instance->registers->usbcmd) & USB_CMD_HC_RESET_FLAG) {
+		fibril_usleep(1);
+	}
+	usb_log_debug("HC(%p): HW reset OK.", instance);
+
 	return EOK;
 }
 

@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2011 Jan Vesely
  * Copyright (c) 2018 Ondrej Hlavaty
  * All rights reserved.
@@ -193,6 +194,30 @@ int hc_gone(hc_device_t *instance)
 	assert(instance);
 	/* TODO: implement */
 	return ENOTSUP;
+}
+
+/** Quiesce host controller
+ *
+ * @param hcd Host controller device
+ */
+int hc_quiesce(hc_device_t *hcd)
+{
+	hc_t *instance = hcd_to_hc(hcd);
+
+	/* OHCI guide page 42 */
+	usb_log_debug2("Started hc initialization routine.");
+
+	/* Reset hc */
+	usb_log_debug2("HC reset.");
+	size_t time = 0;
+	OHCI_WR(instance->registers->command_status, CS_HCR);
+	while (OHCI_RD(instance->registers->command_status) & CS_HCR) {
+		fibril_usleep(10);
+		time += 10;
+	}
+	usb_log_debug2("HC reset complete in %zu us.", time);
+
+	return EOK;
 }
 
 void hc_enqueue_endpoint(hc_t *instance, const endpoint_t *ep)

@@ -34,6 +34,7 @@
  * @file
  */
 
+#include <devman.h>
 #include <fibril.h>
 #include <futil.h>
 #include <io/log.h>
@@ -47,6 +48,7 @@
 #include <macros.h>
 #include <str.h>
 #include <loc.h>
+#include <shutdown.h>
 #include <str_error.h>
 #include <config.h>
 #include <io/logctl.h>
@@ -83,10 +85,12 @@ static const char *sys_dirs[] = {
 };
 
 static void system_srv_conn(ipc_call_t *, void *);
-static errno_t system_srv_shutdown(void *);
+static errno_t system_srv_poweroff(void *);
+static errno_t system_srv_restart(void *);
 
 system_ops_t system_srv_ops = {
-	.shutdown = system_srv_shutdown
+	.poweroff = system_srv_poweroff,
+	.restart = system_srv_restart
 };
 
 /** Print banner */
@@ -519,6 +523,8 @@ static errno_t system_sys_shutdown(void)
 
 	/* Eject all volumes. */
 
+	log_msg(LOG_DEFAULT, LVL_NOTE, "Ejecting volumes.");
+
 	rc = vol_create(&vol);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Error contacting volume "
@@ -543,6 +549,7 @@ static errno_t system_sys_shutdown(void)
 
 	free(part_ids);
 	vol_destroy(vol);
+
 	return EOK;
 error:
 	if (part_ids != NULL)
@@ -609,24 +616,59 @@ static void system_srv_conn(ipc_call_t *icall, void *arg)
 	system_conn(icall, &syssrv->srv);
 }
 
-/** System shutdown request.
+/** System poweroff request.
  *
  * @param arg Argument (sys_srv_t *)
  */
-static errno_t system_srv_shutdown(void *arg)
+static errno_t system_srv_poweroff(void *arg)
 {
 	sys_srv_t *syssrv = (sys_srv_t *)arg;
 	errno_t rc;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "system_srv_shutdown");
+	log_msg(LOG_DEFAULT, LVL_NOTE, "system_srv_poweroff");
 
 	rc = system_sys_shutdown();
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "system_srv_shutdown failed");
+		log_msg(LOG_DEFAULT, LVL_NOTE, "system_srv_poweroff failed");
 		system_srv_shutdown_failed(&syssrv->srv);
 	}
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "system_srv_shutdown complete");
+	log_msg(LOG_DEFAULT, LVL_NOTE, "system_srv_poweroff complete");
+	system_srv_shutdown_complete(&syssrv->srv);
+	return EOK;
+}
+
+/** System restart request.
+ *
+ * @param arg Argument (sys_srv_t *)
+ */
+static errno_t system_srv_restart(void *arg)
+{
+	sys_srv_t *syssrv = (sys_srv_t *)arg;
+	errno_t rc;
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "system_srv_restart");
+
+	rc = system_sys_shutdown();
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_NOTE, "system_srv_restart failed");
+		system_srv_shutdown_failed(&syssrv->srv);
+	}
+
+	/* Quiesce the device tree. */
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "Quiescing devices.");
+
+	rc = devman_quiesce_devices("/hw");
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR,
+		    "Failed to quiesce device tree.");
+		return rc;
+	}
+
+	sys_reboot();
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "system_srv_restart complete");
 	system_srv_shutdown_complete(&syssrv->srv);
 	return EOK;
 }

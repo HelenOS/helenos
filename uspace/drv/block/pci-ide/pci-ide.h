@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -128,6 +128,7 @@ extern errno_t pci_ide_ctrl_fini(pci_ide_ctrl_t *);
 extern errno_t pci_ide_channel_init(pci_ide_ctrl_t *, pci_ide_channel_t *,
     unsigned, pci_ide_hwres_t *);
 extern errno_t pci_ide_channel_fini(pci_ide_channel_t *);
+extern void pci_ide_channel_quiesce(pci_ide_channel_t *);
 
 #endif
 

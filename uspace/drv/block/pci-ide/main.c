@@ -48,17 +48,19 @@
 static errno_t pci_ide_dev_add(ddf_dev_t *dev);
 static errno_t pci_ide_dev_remove(ddf_dev_t *dev);
 static errno_t pci_ide_dev_gone(ddf_dev_t *dev);
+static errno_t pci_ide_dev_quiesce(ddf_dev_t *dev);
 static errno_t pci_ide_fun_online(ddf_fun_t *fun);
 static errno_t pci_ide_fun_offline(ddf_fun_t *fun);
 
 static void pci_ide_connection(ipc_call_t *, void *);
 
 static driver_ops_t driver_ops = {
-	.dev_add = &pci_ide_dev_add,
-	.dev_remove = &pci_ide_dev_remove,
-	.dev_gone = &pci_ide_dev_gone,
-	.fun_online = &pci_ide_fun_online,
-	.fun_offline = &pci_ide_fun_offline
+	.dev_add = pci_ide_dev_add,
+	.dev_remove = pci_ide_dev_remove,
+	.dev_gone = pci_ide_dev_gone,
+	.dev_quiesce = pci_ide_dev_quiesce,
+	.fun_online = pci_ide_fun_online,
+	.fun_offline = pci_ide_fun_offline
 };
 
 static driver_t pci_ide_driver = {
@@ -362,6 +364,18 @@ static errno_t pci_ide_dev_gone(ddf_dev_t *dev)
 	rc = pci_ide_channel_fini(&ctrl->channel[1]);
 	if (rc != EOK)
 		return rc;
+
+	return EOK;
+}
+
+static errno_t pci_ide_dev_quiesce(ddf_dev_t *dev)
+{
+	pci_ide_ctrl_t *ctrl = (pci_ide_ctrl_t *)ddf_dev_data_get(dev);
+
+	ddf_msg(LVL_DEBUG, "pci_ide_dev_quiesce(%p)", dev);
+
+	pci_ide_channel_quiesce(&ctrl->channel[0]);
+	pci_ide_channel_quiesce(&ctrl->channel[1]);
 
 	return EOK;
 }

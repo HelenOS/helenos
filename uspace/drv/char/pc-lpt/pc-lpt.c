@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -193,6 +193,15 @@ errno_t pc_lpt_remove(pc_lpt_t *lpt)
 errno_t pc_lpt_gone(pc_lpt_t *lpt)
 {
 	return ENOTSUP;
+}
+
+/** Quiesce pc-lpt device */
+void pc_lpt_quiesce(pc_lpt_t *lpt)
+{
+	uint8_t control;
+
+	control = 0; /* nINIT=0, IRQ_ENABLE=0 */
+	pio_write_8(&lpt->regs->control, control);
 }
 
 /** Write a single byte to the parallel port.

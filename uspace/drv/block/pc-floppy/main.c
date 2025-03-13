@@ -46,15 +46,17 @@
 static errno_t pc_fdc_dev_add(ddf_dev_t *dev);
 static errno_t pc_fdc_dev_remove(ddf_dev_t *dev);
 static errno_t pc_fdc_dev_gone(ddf_dev_t *dev);
+static errno_t pc_fdc_dev_quiesce(ddf_dev_t *dev);
 static errno_t pc_fdc_fun_online(ddf_fun_t *fun);
 static errno_t pc_fdc_fun_offline(ddf_fun_t *fun);
 
 static driver_ops_t driver_ops = {
-	.dev_add = &pc_fdc_dev_add,
-	.dev_remove = &pc_fdc_dev_remove,
-	.dev_gone = &pc_fdc_dev_gone,
-	.fun_online = &pc_fdc_fun_online,
-	.fun_offline = &pc_fdc_fun_offline
+	.dev_add = pc_fdc_dev_add,
+	.dev_remove = pc_fdc_dev_remove,
+	.dev_gone = pc_fdc_dev_gone,
+	.dev_quiesce = pc_fdc_dev_quiesce,
+	.fun_online = pc_fdc_fun_online,
+	.fun_offline = pc_fdc_fun_offline
 };
 
 static driver_t pc_fdc_driver = {
@@ -180,6 +182,18 @@ static errno_t pc_fdc_dev_gone(ddf_dev_t *dev)
 {
 	(void)dev;
 	return ENOTSUP;
+}
+
+/** Quiesce FDC device.
+ *
+ * @param dev Device
+ * @return EOK on success or an error code
+ */
+static errno_t pc_fdc_dev_quiesce(ddf_dev_t *dev)
+{
+	pc_fdc_t *fdc = (pc_fdc_t *)ddf_dev_data_get(dev);
+	pc_fdc_quiesce(fdc);
+	return EOK;
 }
 
 /** Online FDC function.

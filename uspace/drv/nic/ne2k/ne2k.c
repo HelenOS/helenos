@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2011 Martin Decky
  * Copyright (c) 2011 Radim Vansa
  * All rights reserved.
@@ -458,6 +459,19 @@ static errno_t ne2k_dev_add(ddf_dev_t *dev)
 	return EOK;
 }
 
+static errno_t ne2k_dev_quiesce(ddf_dev_t *dev)
+{
+	nic_t *nic;
+	ne2k_t *ne2k;
+
+	nic = nic_get_from_ddf_dev(dev);
+
+	ne2k = (ne2k_t *)nic_get_specific(nic);
+	ne2k_quiesce(ne2k);
+
+	return EOK;
+}
+
 static nic_iface_t ne2k_nic_iface = {
 	.set_address = ne2k_set_address,
 	.get_device_info = ne2k_get_device_info,
@@ -466,7 +480,8 @@ static nic_iface_t ne2k_nic_iface = {
 };
 
 static driver_ops_t ne2k_driver_ops = {
-	.dev_add = ne2k_dev_add
+	.dev_add = ne2k_dev_add,
+	.dev_quiesce = ne2k_dev_quiesce
 };
 
 static driver_t ne2k_driver = {

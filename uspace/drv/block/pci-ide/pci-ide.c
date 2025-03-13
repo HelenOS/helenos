@@ -330,6 +330,16 @@ errno_t pci_ide_channel_fini(pci_ide_channel_t *chan)
 	return EOK;
 }
 
+/** Quiesce PCI IDE channel. */
+void pci_ide_channel_quiesce(pci_ide_channel_t *chan)
+{
+	ddf_msg(LVL_DEBUG, ": pci_ide_channel_quiesce()");
+
+	fibril_mutex_lock(&chan->lock);
+	ata_channel_quiesce(chan->channel);
+	fibril_mutex_unlock(&chan->lock);
+}
+
 /** Enable device I/O. */
 static errno_t pci_ide_init_io(pci_ide_channel_t *chan)
 {

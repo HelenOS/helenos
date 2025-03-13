@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -105,6 +105,7 @@ typedef union {
 #define REG_STATUS offsetof(ata_cmd_t, status)
 #define REG_COMMAND offsetof(ata_cmd_t, command)
 #define REG_FEATURES offsetof(ata_cmd_t, features)
+#define REG_DEVCTL offsetof(ata_ctl_t, device_control)
 
 enum devctl_bits {
 	DCR_SRST	= 0x04, /**< Software Reset */

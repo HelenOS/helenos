@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2011 Jiri Michalec
  * All rights reserved.
  *
@@ -73,7 +74,7 @@ FIBRIL_MUTEX_INITIALIZE(irq_reg_lock);
  * @param rtl8139 RTL8139 private data
  *
  */
-inline static void rtl8139_lock_all(rtl8139_t *rtl8139)
+static void rtl8139_lock_all(rtl8139_t *rtl8139)
 {
 	assert(rtl8139);
 	fibril_mutex_lock(&rtl8139->tx_lock);
@@ -85,7 +86,7 @@ inline static void rtl8139_lock_all(rtl8139_t *rtl8139)
  * @param rtl8139 RTL8139 private data
  *
  */
-inline static void rtl8139_unlock_all(rtl8139_t *rtl8139)
+static void rtl8139_unlock_all(rtl8139_t *rtl8139)
 {
 	assert(rtl8139);
 	fibril_mutex_unlock(&rtl8139->rx_lock);
@@ -126,7 +127,7 @@ inline static void rtl8139_unlock_all(rtl8139_t *rtl8139)
  *
  *  @param rtl8139  The card private structure
  */
-inline static void rtl8139_hw_int_set(rtl8139_t *rtl8139)
+static void rtl8139_hw_int_set(rtl8139_t *rtl8139)
 {
 	pio_write_16(rtl8139->io_port + IMR, rtl8139->int_mask);
 }
@@ -137,7 +138,7 @@ inline static void rtl8139_hw_int_set(rtl8139_t *rtl8139)
  *
  *  @return Nonzero if empty, zero otherwise
  */
-inline static int rtl8139_hw_buffer_empty(rtl8139_t *rtl8139)
+static int rtl8139_hw_buffer_empty(rtl8139_t *rtl8139)
 {
 	return pio_read_16(rtl8139->io_port + CR) & CR_BUFE;
 }
@@ -165,7 +166,7 @@ static void rtl8139_hw_update_rcr(rtl8139_t *rtl8139)
  *  @param rtl8139  The rtl8139 private data
  *  @param mask     The mask to set
  */
-inline static void rtl8139_hw_set_mcast_mask(rtl8139_t *rtl8139,
+static void rtl8139_hw_set_mcast_mask(rtl8139_t *rtl8139,
     uint64_t mask)
 {
 	pio_write_32(rtl8139->io_port + MAR0, (uint32_t) mask);
@@ -179,7 +180,7 @@ inline static void rtl8139_hw_set_mcast_mask(rtl8139_t *rtl8139,
  *  @param rtl8139  rtl8139 card data
  *  @param bit_val  If bit_val is zero pmen is set to 0, otherwise pmen is set to 1
  */
-inline static void rtl8139_hw_pmen_set(rtl8139_t *rtl8139, uint8_t bit_val)
+static void rtl8139_hw_pmen_set(rtl8139_t *rtl8139, uint8_t bit_val)
 {
 	uint8_t config1 = pio_read_8(rtl8139->io_port + CONFIG1);
 	uint8_t config1_new;
@@ -221,7 +222,7 @@ inline static void rtl8139_hw_pmen_set(rtl8139_t *rtl8139, uint8_t bit_val)
  *
  *  @return EOK if succeed, error code otherwise
  */
-inline static void rtl8139_hw_get_addr(rtl8139_t *rtl8139,
+static void rtl8139_hw_get_addr(rtl8139_t *rtl8139,
     nic_address_t *addr)
 {
 	assert(rtl8139);
@@ -260,7 +261,7 @@ static void rtl8139_hw_set_addr(rtl8139_t *rtl8139, const nic_address_t *addr)
  *   @param reg_offset  Register offset in the device IO space
  *   @param bits_add    The value to or
  */
-inline static void rtl8139_hw_reg_add_8(rtl8139_t *rtl8139, size_t reg_offset,
+static void rtl8139_hw_reg_add_8(rtl8139_t *rtl8139, size_t reg_offset,
     uint8_t bits_add)
 {
 	uint8_t value = pio_read_8(rtl8139->io_port + reg_offset);
@@ -274,7 +275,7 @@ inline static void rtl8139_hw_reg_add_8(rtl8139_t *rtl8139, size_t reg_offset,
  *   @param reg_offset  Register offset in the device IO space
  *   @param bits_add    The mask of bits to remove
  */
-inline static void rtl8139_hw_reg_rem_8(rtl8139_t *rtl8139, size_t reg_offset,
+static void rtl8139_hw_reg_rem_8(rtl8139_t *rtl8139, size_t reg_offset,
     uint8_t bits_add)
 {
 	uint8_t value = pio_read_8(rtl8139->io_port + reg_offset);
@@ -337,10 +338,12 @@ static nic_iface_t rtl8139_nic_iface = {
 static ddf_dev_ops_t rtl8139_dev_ops;
 
 static errno_t rtl8139_dev_add(ddf_dev_t *dev);
+static errno_t rtl8139_dev_quiesce(ddf_dev_t *dev);
 
 /** Basic driver operations for RTL8139 driver */
 static driver_ops_t rtl8139_driver_ops = {
 	.dev_add = &rtl8139_dev_add,
+	.dev_quiesce = &rtl8139_dev_quiesce
 };
 
 /** Driver structure for RTL8139 driver */
@@ -431,7 +434,7 @@ err_size:
  *
  *  @param io_base  The address of the i/o port mapping start
  */
-inline static void rtl8139_hw_soft_reset(void *io_base)
+static void rtl8139_hw_soft_reset(void *io_base)
 {
 	pio_write_8(io_base + CR, CR_RST);
 	memory_barrier();
@@ -844,7 +847,7 @@ static void rtl8139_interrupt_handler(ipc_call_t *icall, void *arg)
  *
  *  @return An error code otherwise.
  */
-inline static errno_t rtl8139_register_int_handler(nic_t *nic_data,
+static errno_t rtl8139_register_int_handler(nic_t *nic_data,
     cap_irq_handle_t *handle)
 {
 	rtl8139_t *rtl8139 = nic_get_specific(nic_data);
@@ -871,7 +874,7 @@ inline static errno_t rtl8139_register_int_handler(nic_t *nic_data,
  *
  * @param rtl8139  The card private data
  */
-inline static void rtl8139_card_up(rtl8139_t *rtl8139)
+static void rtl8139_card_up(rtl8139_t *rtl8139)
 {
 	void *io_base = rtl8139->io_port;
 	size_t i;
@@ -1246,6 +1249,11 @@ static void rtl8139_data_init(rtl8139_t *rtl8139)
 	}
 }
 
+static void rtl8139_quiesce(rtl8139_t *rtl8139)
+{
+	rtl8139_hw_soft_reset(rtl8139->io_port);
+}
+
 /** The add_device callback of RTL8139 callback
  *
  * Probe and initialize the newly added device.
@@ -1327,6 +1335,26 @@ err_pio:
 err_destroy:
 	rtl8139_dev_cleanup(dev);
 	return rc;
+}
+
+/** Quiesce RTL8139.
+ *
+ * @param dev RTL8139 device.
+ * @return EOK on sucess, or an error code.
+ */
+errno_t rtl8139_dev_quiesce(ddf_dev_t *dev)
+{
+	nic_t *nic;
+	rtl8139_t *rtl8139;
+
+	ddf_msg(LVL_NOTE, "RTL8139_dev_quiesce %s (handle = %zu)",
+	    ddf_dev_get_name(dev), ddf_dev_get_handle(dev));
+
+	nic = nic_get_from_ddf_dev(dev);
+	rtl8139 = nic_get_specific(nic);
+
+	rtl8139_quiesce(rtl8139);
+	return EOK;
 }
 
 /** Set card MAC address
@@ -1765,7 +1793,7 @@ static errno_t rtl8139_autoneg_restart(ddf_fun_t *fun)
  *  @param mcast_mode   Current multicast mode
  *  @param was_promisc  Sign if the promiscuous mode was active before disabling
  */
-inline static void rtl8139_rcx_promics_rem(nic_t *nic_data,
+static void rtl8139_rcx_promics_rem(nic_t *nic_data,
     nic_multicast_mode_t mcast_mode, uint8_t was_promisc)
 {
 	assert(nic_data);

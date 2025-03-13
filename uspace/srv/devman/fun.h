@@ -1,6 +1,6 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2010 Lenka Trochtova
- * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -50,6 +50,7 @@ extern fun_node_t *find_fun_node_in_device(dev_tree_t *tree, dev_node_t *,
 extern bool set_fun_path(dev_tree_t *, fun_node_t *, fun_node_t *);
 extern errno_t fun_online(fun_node_t *);
 extern errno_t fun_offline(fun_node_t *);
+extern errno_t fun_quiesce(fun_node_t *);
 
 #endif
 

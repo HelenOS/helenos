@@ -48,17 +48,19 @@
 static errno_t isa_ide_dev_add(ddf_dev_t *dev);
 static errno_t isa_ide_dev_remove(ddf_dev_t *dev);
 static errno_t isa_ide_dev_gone(ddf_dev_t *dev);
+static errno_t isa_ide_dev_quiesce(ddf_dev_t *dev);
 static errno_t isa_ide_fun_online(ddf_fun_t *fun);
 static errno_t isa_ide_fun_offline(ddf_fun_t *fun);
 
 static void isa_ide_connection(ipc_call_t *, void *);
 
 static driver_ops_t driver_ops = {
-	.dev_add = &isa_ide_dev_add,
-	.dev_remove = &isa_ide_dev_remove,
-	.dev_gone = &isa_ide_dev_gone,
-	.fun_online = &isa_ide_fun_online,
-	.fun_offline = &isa_ide_fun_offline
+	.dev_add = isa_ide_dev_add,
+	.dev_remove = isa_ide_dev_remove,
+	.dev_gone = isa_ide_dev_gone,
+	.dev_quiesce = isa_ide_dev_quiesce,
+	.fun_online = isa_ide_fun_online,
+	.fun_offline = isa_ide_fun_offline
 };
 
 static driver_t isa_ide_driver = {
@@ -375,6 +377,17 @@ static errno_t isa_ide_dev_gone(ddf_dev_t *dev)
 	if (rc != EOK)
 		return rc;
 
+	return EOK;
+}
+
+static errno_t isa_ide_dev_quiesce(ddf_dev_t *dev)
+{
+	isa_ide_ctrl_t *ctrl = (isa_ide_ctrl_t *)ddf_dev_data_get(dev);
+
+	ddf_msg(LVL_DEBUG, "isa_ide_dev_quiesce(%p)", dev);
+
+	isa_ide_channel_quiesce(&ctrl->channel[0]);
+	isa_ide_channel_quiesce(&ctrl->channel[1]);
 	return EOK;
 }
 

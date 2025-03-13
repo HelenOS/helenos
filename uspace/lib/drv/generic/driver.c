@@ -236,6 +236,48 @@ static void driver_dev_gone(ipc_call_t *icall)
 	async_answer_0(icall, rc);
 }
 
+static void driver_dev_quiesce(ipc_call_t *icall)
+{
+	devman_handle_t devh = ipc_get_arg1(icall);
+	ddf_fun_t *fun;
+	link_t *link;
+
+	fibril_mutex_lock(&devices_mutex);
+	ddf_dev_t *dev = driver_get_device(devh);
+	if (dev != NULL)
+		dev_add_ref(dev);
+	fibril_mutex_unlock(&devices_mutex);
+
+	if (dev == NULL) {
+		async_answer_0(icall, ENOENT);
+		return;
+	}
+
+	errno_t rc;
+
+	if (driver->driver_ops->dev_quiesce != NULL) {
+		rc = driver->driver_ops->dev_quiesce(dev);
+	} else {
+		/*
+		 * If the driver does not implement quiesce, we will
+		 * simply request all subordinate functions to quiesce.
+		 */
+		fibril_mutex_lock(&functions_mutex);
+		link = list_first(&functions);
+		while (link != NULL) {
+			fun = list_get_instance(link, ddf_fun_t, link);
+			if (fun->dev == dev)
+				ddf_fun_quiesce(fun);
+			link = list_next(link, &functions);
+		}
+		fibril_mutex_unlock(&functions_mutex);
+		rc = EOK;
+	}
+
+	dev_del_ref(dev);
+	async_answer_0(icall, rc);
+}
+
 static void driver_fun_online(ipc_call_t *icall)
 {
 	devman_handle_t funh = ipc_get_arg1(icall);
@@ -356,6 +398,9 @@ static void driver_connection_devman(ipc_call_t *icall, void *arg)
 			break;
 		case DRIVER_DEV_GONE:
 			driver_dev_gone(&call);
+			break;
+		case DRIVER_DEV_QUIESCE:
+			driver_dev_quiesce(&call);
 			break;
 		case DRIVER_FUN_ONLINE:
 			driver_fun_online(&call);
@@ -896,6 +941,24 @@ errno_t ddf_fun_offline(ddf_fun_t *fun)
 	assert(fun->bound == true);
 
 	errno_t res = devman_drv_fun_offline(fun->handle);
+	if (res != EOK)
+		return res;
+
+	return EOK;
+}
+
+/** Quiesce function.
+ *
+ * @param fun Function to quiesce
+ *
+ * @return EOK on success or an error code
+ *
+ */
+errno_t ddf_fun_quiesce(ddf_fun_t *fun)
+{
+	assert(fun->bound == true);
+
+	errno_t res = devman_drv_fun_quiesce(fun->handle);
 	if (res != EOK)
 		return res;
 

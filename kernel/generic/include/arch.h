@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2001-2004 Jakub Jermar
  * All rights reserved.
  *
@@ -105,7 +106,6 @@ extern void current_copy(current_t *, current_t *);
 
 extern void calibrate_delay_loop(void);
 
-extern void reboot(void);
 extern void arch_reboot(void);
 extern void *arch_construct_function(fncptr_t *, void *, void *);
 

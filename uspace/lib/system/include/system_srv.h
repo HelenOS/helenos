@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,7 +48,8 @@ typedef struct {
 } system_srv_t;
 
 struct system_ops {
-	errno_t (*shutdown)(void *);
+	errno_t (*poweroff)(void *);
+	errno_t (*restart)(void *);
 };
 
 extern void system_conn(ipc_call_t *, system_srv_t *);

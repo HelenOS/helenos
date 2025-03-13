@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -54,16 +54,29 @@ static void system_callback_create_srv(system_srv_t *srv, ipc_call_t *call)
 	async_answer_0(call, EOK);
 }
 
-static void system_shutdown_srv(system_srv_t *srv, ipc_call_t *icall)
+static void system_poweroff_srv(system_srv_t *srv, ipc_call_t *icall)
 {
 	errno_t rc;
 
-	if (srv->ops->shutdown == NULL) {
+	if (srv->ops->poweroff == NULL) {
 		async_answer_0(icall, ENOTSUP);
 		return;
 	}
 
-	rc = srv->ops->shutdown(srv->arg);
+	rc = srv->ops->poweroff(srv->arg);
+	async_answer_0(icall, rc);
+}
+
+static void system_restart_srv(system_srv_t *srv, ipc_call_t *icall)
+{
+	errno_t rc;
+
+	if (srv->ops->restart == NULL) {
+		async_answer_0(icall, ENOTSUP);
+		return;
+	}
+
+	rc = srv->ops->restart(srv->arg);
 	async_answer_0(icall, rc);
 }
 
@@ -88,8 +101,11 @@ void system_conn(ipc_call_t *icall, system_srv_t *srv)
 		case SYSTEM_CALLBACK_CREATE:
 			system_callback_create_srv(srv, &call);
 			break;
-		case SYSTEM_SHUTDOWN:
-			system_shutdown_srv(srv, &call);
+		case SYSTEM_POWEROFF:
+			system_poweroff_srv(srv, &call);
+			break;
+		case SYSTEM_RESTART:
+			system_restart_srv(srv, &call);
 			break;
 		default:
 			async_answer_0(&call, ENOTSUP);

@@ -740,6 +740,29 @@ errno_t driver_dev_remove(dev_tree_t *tree, dev_node_t *dev)
 	return retval;
 }
 
+errno_t driver_dev_quiesce(dev_tree_t *tree, dev_node_t *dev)
+{
+	async_exch_t *exch;
+	errno_t retval;
+	driver_t *drv;
+	devman_handle_t handle;
+
+	assert(dev != NULL);
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "driver_dev_quiesce(%p)", dev);
+
+	fibril_rwlock_read_lock(&tree->rwlock);
+	drv = dev->drv;
+	handle = dev->handle;
+	fibril_rwlock_read_unlock(&tree->rwlock);
+
+	exch = async_exchange_begin(drv->sess);
+	retval = async_req_1_0(exch, DRIVER_DEV_QUIESCE, handle);
+	async_exchange_end(exch);
+
+	return retval;
+}
+
 errno_t driver_dev_gone(dev_tree_t *tree, dev_node_t *dev)
 {
 	async_exch_t *exch;

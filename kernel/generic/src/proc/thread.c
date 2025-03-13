@@ -1,6 +1,6 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2010 Jakub Jermar
- * Copyright (c) 2018 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -337,7 +337,9 @@ static void thread_destroy(void *obj)
 
 	irq_spinlock_unlock(&thread->task->lock, false);
 
-	assert((atomic_get_unordered(&thread->state) == Exiting) || (atomic_get_unordered(&thread->state) == Lingering));
+	assert((atomic_get_unordered(&thread->state) == Entering) ||
+	    (atomic_get_unordered(&thread->state) == Exiting) ||
+	    (atomic_get_unordered(&thread->state) == Lingering));
 
 	/* Clear cpu->fpu_owner if set to this thread. */
 #ifdef CONFIG_FPU_LAZY

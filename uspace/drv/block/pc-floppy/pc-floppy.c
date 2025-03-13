@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -253,6 +253,15 @@ errno_t pc_fdc_destroy(pc_fdc_t *fdc)
 
 	free(fdc);
 	return EOK;
+}
+
+/** Quiesce floppy controller.
+ *
+ * @param fdc Floppy controller
+ */
+void pc_fdc_quiesce(pc_fdc_t *fdc)
+{
+	(void)pc_fdc_reset(fdc);
 }
 
 /** Enable device I/O.

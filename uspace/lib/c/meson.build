@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024 Jiri Svoboda
+# Copyright (c) 2025 Jiri Svoboda
 # Copyright (c) 2005 Martin Decky
 # Copyright (c) 2007 Jakub Jermar
 # All rights reserved.
@@ -121,6 +121,7 @@ src += files(
 	'generic/double_to_str.c',
 	'generic/malloc.c',
 	'generic/rndgen.c',
+	'generic/shutdown.c',
 	'generic/stdio/scanf.c',
 	'generic/stdio/sprintf.c',
 	'generic/stdio/sscanf.c',

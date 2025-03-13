@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2009 Lukas Mejdrech
  * Copyright (c) 2011 Martin Decky
  * Copyright (c) 2011 Radim Vansa
@@ -181,6 +182,15 @@ static void ne2k_init(ne2k_t *ne2k)
 		if (pio_read_8(ne2k->port + DP_ISR) != 0)
 			break;
 	}
+}
+
+/** Quiesce NE2000.
+ *
+ * @param ne2k NE2000
+ */
+void ne2k_quiesce(ne2k_t *ne2k)
+{
+	ne2k_init(ne2k);
 }
 
 /** Probe and initialize the network interface.

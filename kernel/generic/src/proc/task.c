@@ -1,6 +1,6 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2010 Jakub Jermar
- * Copyright (c) 2018 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -103,7 +103,7 @@ void task_init(void)
 /** Kill all tasks except the current task.
  *
  */
-void task_done(void)
+void task_done(task_t *cur_task)
 {
 	size_t tasks_left;
 	task_t *task;
@@ -111,6 +111,7 @@ void task_done(void)
 	if (ipc_box_0) {
 		task_t *task_0 = ipc_box_0->task;
 		ipc_box_0 = NULL;
+
 		/*
 		 * The first task is held by kinit(), we need to release it or
 		 * it will never finish cleanup.
@@ -128,7 +129,7 @@ void task_done(void)
 
 		task = task_first();
 		while (task != NULL) {
-			if (task != TASK) {
+			if (task != cur_task) {
 				tasks_left++;
 #ifdef CONFIG_DEBUG
 				printf("[%" PRIu64 "] ", task->taskid);

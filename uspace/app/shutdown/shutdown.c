@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,7 @@
 
 #include <fibril_synch.h>
 #include <nchoice.h>
+#include <shutdown.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <str.h>
@@ -118,6 +119,13 @@ static errno_t choose_action(void)
 		goto error;
 	}
 
+	rc = nchoice_add(nchoice, "Restart", (void *)(uintptr_t)sd_restart,
+	    0);
+	if (rc != EOK) {
+		printf(NAME ": Out of memory.\n");
+		goto error;
+	}
+
 	rc = nchoice_add(nchoice, "Cancel", (void *)(uintptr_t)sd_cancel,
 	    ncf_default);
 	if (rc != EOK) {
@@ -156,6 +164,11 @@ int main(int argc, char **argv)
 			++argv;
 			action = sd_poweroff;
 			continue;
+		} else if (str_cmp(*argv, "-r") == 0) {
+			--argc;
+			++argv;
+			action = sd_restart;
+			continue;
 		}
 
 		printf(NAME ": Error, invalid option.\n");
@@ -186,7 +199,19 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	rc = system_shutdown(system);
+	switch (action) {
+	case sd_poweroff:
+		rc = system_poweroff(system);
+		break;
+	case sd_restart:
+		rc = system_restart(system);
+		break;
+	case sd_cancel:
+		assert(false);
+		rc = EINVAL;
+		break;
+	}
+
 	if (rc != EOK) {
 		system_close(system);
 		printf(NAME ": Failed requesting system shutdown.\n");
@@ -222,7 +247,8 @@ static void syntax_print(void)
 	printf("syntax:\n"
 	    "\tshutdown [<options>]\n"
 	    "options:\n"
-	    "\t-p Power off\n");
+	    "\t-p Power off\n"
+	    "\t-r Restart off\n");
 }
 
 /**
