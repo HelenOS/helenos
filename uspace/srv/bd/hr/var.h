@@ -58,12 +58,6 @@ typedef struct hr_ops {
 	errno_t	(*add_hotspare)(hr_volume_t *, service_id_t);
 } hr_ops_t;
 
-typedef struct hr_deferred_invalidation {
-	link_t link;
-	size_t index;
-	service_id_t svc_id;
-} hr_deferred_invalidation_t;
-
 typedef struct hr_volume {
 	hr_ops_t hr_ops;
 	bd_srvs_t hr_bds;
