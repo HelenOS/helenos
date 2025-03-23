@@ -83,7 +83,7 @@ typedef struct hr_volume {
 	fibril_rwlock_t	 extents_lock;		/* extent service id lock */
 
 	size_t		 hotspare_no;		/* no. of available hotspares */
-	hr_extent_t	 hotspares[HR_MAX_HOTSPARES + HR_MAX_EXTENTS];
+	hr_extent_t	 hotspares[HR_MAX_HOTSPARES];
 	fibril_mutex_t	 hotspare_lock;		/* lock protecting hotspares */
 
 	fibril_rwlock_t	 states_lock;		/* states lock */
