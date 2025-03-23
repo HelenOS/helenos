@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Miroslav Cimerman
+ * Copyright (c) 2025 Miroslav Cimerman
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -89,42 +89,40 @@ typedef struct hr {
 } hr_t;
 
 typedef struct hr_config {
-	char devname[HR_DEVNAME_LEN];
-	service_id_t devs[HR_MAX_EXTENTS];
-	size_t dev_no;
-	hr_level_t level;
+	char		 devname[HR_DEVNAME_LEN];
+	service_id_t	 devs[HR_MAX_EXTENTS];
+	size_t		 dev_no;
+	hr_level_t	 level;
 } hr_config_t;
 
 typedef struct hr_extent {
-	service_id_t svc_id;
-	hr_ext_status_t status;
+	service_id_t	 svc_id;
+	hr_ext_status_t	 status;
 } hr_extent_t;
 
 typedef struct hr_vol_info {
-	hr_extent_t extents[HR_MAX_EXTENTS];
-	hr_extent_t hotspares[HR_MAX_HOTSPARES];
-	size_t extent_no;
-	size_t hotspare_no;
-	service_id_t svc_id;
-	hr_level_t level;
-	uint64_t nblocks;
-	uint32_t strip_size;
-	size_t bsize;
-	hr_vol_status_t status;
-	uint8_t layout;
+	hr_extent_t	 extents[HR_MAX_EXTENTS];
+	hr_extent_t	 hotspares[HR_MAX_HOTSPARES];
+	size_t		 extent_no;
+	size_t		 hotspare_no;
+	service_id_t	 svc_id;
+	hr_level_t	 level;
+	uint64_t	 nblocks;
+	uint32_t	 strip_size;
+	size_t		 bsize;
+	hr_vol_status_t	 status;
+	uint8_t		 layout;
 } hr_vol_info_t;
 
-extern errno_t hr_sess_init(hr_t **);
-extern void hr_sess_destroy(hr_t *);
-
-extern errno_t hr_create(hr_t *, hr_config_t *, bool);
-extern errno_t hr_stop(const char *, long);
-extern errno_t hr_add_hotspare(service_id_t, service_id_t);
-extern errno_t hr_print_status(void);
-
-extern const char *hr_get_vol_status_msg(hr_vol_status_t);
-extern const char *hr_get_ext_status_msg(hr_ext_status_t);
-extern const char *hr_get_layout_str(hr_level_t, uint8_t);
+extern errno_t		 hr_sess_init(hr_t **);
+extern void		 hr_sess_destroy(hr_t *);
+extern errno_t		 hr_create(hr_t *, hr_config_t *, bool);
+extern errno_t		 hr_stop(const char *, long);
+extern errno_t		 hr_add_hotspare(service_id_t, service_id_t);
+extern errno_t		 hr_print_status(void);
+extern const char	*hr_get_vol_status_msg(hr_vol_status_t);
+extern const char	*hr_get_ext_status_msg(hr_ext_status_t);
+extern const char	*hr_get_layout_str(hr_level_t, uint8_t);
 
 #endif
 
