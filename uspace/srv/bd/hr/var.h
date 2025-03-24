@@ -90,7 +90,8 @@ typedef struct hr_volume {
 
 	_Atomic bool	 state_dirty;		/* dirty state */
 
-	/* XXX: unportable for 32-bit?
+	/*
+	 * XXX: unportable for 32-bit?
 	 *
 	 * Add macros for locking or atomic increment depending
 	 * on the platform?
