@@ -479,7 +479,7 @@ static void hr_client_conn(ipc_call_t *icall, void *arg)
 		HR_DEBUG("bd_conn()\n");
 		vol = hr_get_volume(svc_id);
 		if (vol == NULL)
-			async_answer_0(icall, EINVAL);
+			async_answer_0(icall, ENOENT);
 		bd_conn(icall, &vol->hr_bds);
 	}
 }
