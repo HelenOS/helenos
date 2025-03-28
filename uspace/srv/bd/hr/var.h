@@ -41,14 +41,17 @@
 #include <errno.h>
 #include <fibril_synch.h>
 #include <hr.h>
+#include <stdatomic.h>
 
 #include "fge.h"
+#include "superblock.h"
 
 #define NAME		"hr"
 #define HR_STRIP_SIZE	DATA_XFER_LIMIT
 
 struct hr_volume;
 typedef struct hr_volume hr_volume_t;
+typedef struct hr_metadata hr_metadata_t;
 
 typedef struct hr_ops {
 	errno_t		(*create)(hr_volume_t *);
@@ -68,10 +71,15 @@ typedef struct hr_volume {
 	fibril_mutex_t	 range_lock_list_lock;	/* range locks list lock */
 	hr_fpool_t	*fge;			/* fibril pool */
 
+	uint32_t	 metadata_version; /* XXX: yet unused */
+
+	hr_metadata_t	*in_mem_md; /* TODO: implement */
+
 	/* invariants */
 	size_t		 extent_no;		/* number of extents */
 	size_t		 bsize;			/* block size */
 	uint64_t	 nblocks;		/* no. of all usable blocks */
+	uint64_t	 truncated_blkno;	/* blkno per extent */
 	uint64_t	 data_blkno;		/* no. of user usable blocks */
 	uint64_t	 data_offset;		/* user data offset in blocks */
 	uint32_t	 strip_size;		/* strip size */
@@ -90,13 +98,9 @@ typedef struct hr_volume {
 
 	_Atomic bool	 state_dirty;		/* dirty state */
 
-	/*
-	 * XXX: unportable for 32-bit?
-	 *
-	 * Add macros for locking or atomic increment depending
-	 * on the platform?
-	 */
+	/* XXX: atomic_uint_least64_t? */
 	_Atomic uint64_t rebuild_blk;		/* rebuild position */
+	_Atomic int	 open_cnt;		/* open/close() counter */
 	uint64_t	 counter;		/* TODO: metadata syncing */
 	hr_vol_status_t	 status;		/* volume status */
 } hr_volume_t;

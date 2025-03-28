@@ -58,46 +58,45 @@
 #include "var.h"
 
 loc_srv_t *hr_srv;
-
-static fibril_mutex_t hr_volumes_lock;
-static list_t hr_volumes;
+list_t hr_volumes;
+fibril_rwlock_t hr_volumes_lock;
 
 static service_id_t ctl_sid;
 
-static hr_volume_t *hr_get_volume(service_id_t svc_id)
+static void hr_auto_assemble_srv(ipc_call_t *icall)
 {
-	HR_DEBUG("hr_get_volume(): (%" PRIun ")\n", svc_id);
+	HR_DEBUG("%s()", __func__);
 
-	fibril_mutex_lock(&hr_volumes_lock);
-	list_foreach(hr_volumes, lvolumes, hr_volume_t, vol) {
-		if (vol->svc_id == svc_id) {
-			fibril_mutex_unlock(&hr_volumes_lock);
-			return vol;
-		}
+	errno_t rc;
+	size_t size;
+	size_t assembled_cnt = 0;
+	ipc_call_t call;
+
+	if (!async_data_read_receive(&call, &size)) {
+		async_answer_0(icall, EREFUSED);
+		return;
 	}
 
-	fibril_mutex_unlock(&hr_volumes_lock);
-	return NULL;
-}
-
-static errno_t hr_remove_volume(service_id_t svc_id)
-{
-	HR_DEBUG("hr_remove_volume(): (%" PRIun ")\n", svc_id);
-
-	fibril_mutex_lock(&hr_volumes_lock);
-	list_foreach(hr_volumes, lvolumes, hr_volume_t, vol) {
-		if (vol->svc_id == svc_id) {
-			hr_fpool_destroy(vol->fge);
-			hr_fini_devs(vol);
-			list_remove(&vol->lvolumes);
-			free(vol);
-			fibril_mutex_unlock(&hr_volumes_lock);
-			return EOK;
-		}
+	if (size != sizeof(size_t)) {
+		async_answer_0(icall, EINVAL);
+		return;
 	}
 
-	fibril_mutex_unlock(&hr_volumes_lock);
-	return ENOENT;
+	rc = hr_util_try_auto_assemble(&assembled_cnt);
+	if (rc != EOK) {
+		async_answer_0(&call, rc);
+		async_answer_0(icall, rc);
+		return;
+	}
+
+	rc = async_data_read_finalize(&call, &assembled_cnt, size);
+	if (rc != EOK) {
+		async_answer_0(&call, rc);
+		async_answer_0(icall, rc);
+		return;
+	}
+
+	async_answer_0(icall, EOK);
 }
 
 static void hr_create_srv(ipc_call_t *icall, bool assemble)
@@ -153,21 +152,12 @@ static void hr_create_srv(ipc_call_t *icall, bool assemble)
 		}
 	}
 
-	new_volume = calloc(1, sizeof(hr_volume_t));
-	if (new_volume == NULL) {
+	rc = hr_create_vol_struct(&new_volume, cfg->level);
+	if (rc != EOK) {
 		free(cfg);
-		async_answer_0(icall, ENOMEM);
+		async_answer_0(icall, rc);
 		return;
 	}
-
-	hr_fpool_t *fge = hr_fpool_create(16, 32, sizeof(hr_io_t));
-	if (fge == NULL) {
-		free(new_volume);
-		free(cfg);
-		async_answer_0(icall, ENOMEM);
-		return;
-	}
-	new_volume->fge = fge;
 
 	str_cpy(new_volume->devname, HR_DEVNAME_LEN, cfg->devname);
 	for (i = 0; i < cfg->dev_no; i++)
@@ -175,18 +165,18 @@ static void hr_create_srv(ipc_call_t *icall, bool assemble)
 	new_volume->level = cfg->level;
 	new_volume->extent_no = cfg->dev_no;
 
-	if (assemble) {
-		if (cfg->level != HR_LVL_UNKNOWN)
-			HR_WARN("level manually set when assembling, ingoring");
-		new_volume->level = HR_LVL_UNKNOWN;
-	}
-
 	rc = hr_init_devs(new_volume);
 	if (rc != EOK) {
 		free(cfg);
 		free(new_volume);
 		async_answer_0(icall, rc);
 		return;
+	}
+
+	if (assemble) {
+		if (cfg->level != HR_LVL_UNKNOWN)
+			HR_DEBUG("level manually set when assembling, ingoring");
+		new_volume->level = HR_LVL_UNKNOWN;
 	}
 
 	if (assemble) {
@@ -200,44 +190,6 @@ static void hr_create_srv(ipc_call_t *icall, bool assemble)
 			goto error;
 	}
 
-	switch (new_volume->level) {
-	case HR_LVL_1:
-		if (!assemble)
-			new_volume->layout = 0x00; /* XXX: yet unused */
-		new_volume->hr_ops.create = hr_raid1_create;
-		new_volume->hr_ops.init = hr_raid1_init;
-		new_volume->hr_ops.status_event = hr_raid1_status_event;
-		new_volume->hr_ops.add_hotspare = hr_raid1_add_hotspare;
-		break;
-	case HR_LVL_0:
-		if (!assemble)
-			new_volume->layout = 0x00;
-		new_volume->hr_ops.create = hr_raid0_create;
-		new_volume->hr_ops.init = hr_raid0_init;
-		new_volume->hr_ops.status_event = hr_raid0_status_event;
-		break;
-	case HR_LVL_4:
-		if (!assemble)
-			new_volume->layout = HR_RLQ_RAID4_N;
-		new_volume->hr_ops.create = hr_raid5_create;
-		new_volume->hr_ops.init = hr_raid5_init;
-		new_volume->hr_ops.status_event = hr_raid5_status_event;
-		new_volume->hr_ops.add_hotspare = hr_raid5_add_hotspare;
-		break;
-	case HR_LVL_5:
-		if (!assemble)
-			new_volume->layout = HR_RLQ_RAID5_NR;
-		new_volume->hr_ops.create = hr_raid5_create;
-		new_volume->hr_ops.init = hr_raid5_init;
-		new_volume->hr_ops.status_event = hr_raid5_status_event;
-		new_volume->hr_ops.add_hotspare = hr_raid5_add_hotspare;
-		break;
-	default:
-		HR_DEBUG("unkown level: %d, aborting\n", new_volume->level);
-		rc = EINVAL;
-		goto error;
-	}
-
 	if (!assemble) {
 		new_volume->hr_ops.init(new_volume);
 		if (rc != EOK)
@@ -248,26 +200,13 @@ static void hr_create_srv(ipc_call_t *icall, bool assemble)
 			goto error;
 	}
 
-	fibril_mutex_initialize(&new_volume->lock); /* XXX: will remove this */
-
-	fibril_rwlock_initialize(&new_volume->extents_lock);
-	fibril_rwlock_initialize(&new_volume->states_lock);
-
-	fibril_mutex_initialize(&new_volume->hotspare_lock);
-
-	list_initialize(&new_volume->range_lock_list);
-	fibril_mutex_initialize(&new_volume->range_lock_list_lock);
-
-	atomic_init(&new_volume->rebuild_blk, 0);
-	atomic_init(&new_volume->state_dirty, false);
-
 	rc = new_volume->hr_ops.create(new_volume);
 	if (rc != EOK)
 		goto error;
 
-	fibril_mutex_lock(&hr_volumes_lock);
+	fibril_rwlock_write_lock(&hr_volumes_lock);
 	list_append(&new_volume->lvolumes, &hr_volumes);
-	fibril_mutex_unlock(&hr_volumes_lock);
+	fibril_rwlock_write_unlock(&hr_volumes_lock);
 
 	if (assemble) {
 		HR_DEBUG("assembled volume \"%s\" (%" PRIun ")\n",
@@ -282,9 +221,7 @@ static void hr_create_srv(ipc_call_t *icall, bool assemble)
 	return;
 error:
 	free(cfg);
-	free(fge);
-	hr_fini_devs(new_volume);
-	free(new_volume);
+	hr_destroy_vol_struct(new_volume);
 	async_answer_0(icall, rc);
 }
 
@@ -312,7 +249,6 @@ static void hr_stop_srv(ipc_call_t *icall)
 			async_answer_0(icall, rc);
 			return;
 		}
-		rc = loc_service_unregister(hr_srv, svc_id);
 	} else {
 		fibril_rwlock_write_lock(&vol->states_lock);
 		fibril_rwlock_read_lock(&vol->extents_lock);
@@ -369,7 +305,7 @@ static void hr_print_status_srv(ipc_call_t *icall)
 	ipc_call_t call;
 	size_t size;
 
-	fibril_mutex_lock(&hr_volumes_lock);
+	fibril_rwlock_read_lock(&hr_volumes_lock);
 
 	vol_cnt = list_count(&hr_volumes);
 
@@ -418,11 +354,11 @@ static void hr_print_status_srv(ipc_call_t *icall)
 			goto error;
 	}
 
-	fibril_mutex_unlock(&hr_volumes_lock);
+	fibril_rwlock_read_unlock(&hr_volumes_lock);
 	async_answer_0(icall, EOK);
 	return;
 error:
-	fibril_mutex_unlock(&hr_volumes_lock);
+	fibril_rwlock_read_unlock(&hr_volumes_lock);
 	async_answer_0(&call, rc);
 	async_answer_0(icall, rc);
 }
@@ -449,6 +385,9 @@ static void hr_ctl_conn(ipc_call_t *icall, void *arg)
 			break;
 		case HR_ASSEMBLE:
 			hr_create_srv(&call, true);
+			break;
+		case HR_AUTO_ASSEMBLE:
+			hr_auto_assemble_srv(&call);
 			break;
 		case HR_STOP:
 			hr_stop_srv(&call);
@@ -496,7 +435,7 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	fibril_mutex_initialize(&hr_volumes_lock);
+	fibril_rwlock_initialize(&hr_volumes_lock);
 	list_initialize(&hr_volumes);
 
 	async_set_fallback_port_handler(hr_client_conn, NULL);

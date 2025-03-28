@@ -40,11 +40,15 @@
 #include <hr.h>
 #include <io/log.h>
 #include <loc.h>
+#include <mem.h>
 #include <stdatomic.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <str_error.h>
+#include <vbd.h>
 
+#include "io.h"
+#include "superblock.h"
 #include "util.h"
 #include "var.h"
 
@@ -55,6 +59,149 @@
 static bool hr_range_lock_overlap(hr_range_lock_t *, hr_range_lock_t *);
 
 extern loc_srv_t *hr_srv;
+extern list_t hr_volumes;
+extern fibril_rwlock_t hr_volumes_lock;
+
+errno_t hr_create_vol_struct(hr_volume_t **rvol, hr_level_t level)
+{
+	errno_t rc;
+
+	hr_volume_t *vol = calloc(1, sizeof(hr_volume_t));
+	if (vol == NULL)
+		return ENOMEM;
+
+	vol->level = level;
+
+	switch (level) {
+	case HR_LVL_1:
+		vol->hr_ops.create = hr_raid1_create;
+		vol->hr_ops.init = hr_raid1_init;
+		vol->hr_ops.status_event = hr_raid1_status_event;
+		vol->hr_ops.add_hotspare = hr_raid1_add_hotspare;
+		break;
+	case HR_LVL_0:
+		vol->hr_ops.create = hr_raid0_create;
+		vol->hr_ops.init = hr_raid0_init;
+		vol->hr_ops.status_event = hr_raid0_status_event;
+		break;
+	case HR_LVL_4:
+		vol->hr_ops.create = hr_raid5_create;
+		vol->hr_ops.init = hr_raid5_init;
+		vol->hr_ops.status_event = hr_raid5_status_event;
+		vol->hr_ops.add_hotspare = hr_raid5_add_hotspare;
+		break;
+	case HR_LVL_5:
+		vol->hr_ops.create = hr_raid5_create;
+		vol->hr_ops.init = hr_raid5_init;
+		vol->hr_ops.status_event = hr_raid5_status_event;
+		vol->hr_ops.add_hotspare = hr_raid5_add_hotspare;
+		break;
+	default:
+		HR_DEBUG("unkown level: %d, aborting\n", vol->level);
+		rc = EINVAL;
+		goto error;
+	}
+
+	vol->fge = hr_fpool_create(16, 32, sizeof(hr_io_t));
+	if (vol->fge == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	vol->status = HR_VOL_NONE;
+
+	for (size_t i = 0; i < HR_MAX_EXTENTS; ++i)
+		vol->extents[i].status = HR_EXT_MISSING;
+
+	for (size_t i = 0; i < HR_MAX_HOTSPARES; ++i)
+		vol->extents[i].status = HR_EXT_MISSING;
+
+	fibril_mutex_initialize(&vol->lock); /* XXX: will remove this */
+
+	fibril_rwlock_initialize(&vol->extents_lock);
+	fibril_rwlock_initialize(&vol->states_lock);
+
+	fibril_mutex_initialize(&vol->hotspare_lock);
+
+	list_initialize(&vol->range_lock_list);
+	fibril_mutex_initialize(&vol->range_lock_list_lock);
+
+	atomic_init(&vol->rebuild_blk, 0);
+	atomic_init(&vol->state_dirty, false);
+	atomic_init(&vol->open_cnt, 0);
+
+	*rvol = vol;
+
+	return EOK;
+error:
+	free(vol);
+	return rc;
+}
+
+void hr_destroy_vol_struct(hr_volume_t *vol)
+{
+	if (vol == NULL)
+		return;
+
+	hr_fpool_destroy(vol->fge);
+	hr_fini_devs(vol);
+	free(vol->in_mem_md);
+	free(vol);
+}
+
+hr_volume_t *hr_get_volume(service_id_t svc_id)
+{
+	HR_DEBUG("hr_get_volume(): (%" PRIun ")\n", svc_id);
+
+	hr_volume_t *rvol = NULL;
+
+	fibril_rwlock_read_lock(&hr_volumes_lock);
+	list_foreach(hr_volumes, lvolumes, hr_volume_t, iter) {
+		if (iter->svc_id == svc_id) {
+			rvol = iter;
+			break;
+		}
+	}
+
+	fibril_rwlock_read_unlock(&hr_volumes_lock);
+	return rvol;
+}
+
+errno_t hr_remove_volume(service_id_t svc_id)
+{
+	HR_DEBUG("hr_remove_volume(): (%" PRIun ")\n", svc_id);
+
+	errno_t rc;
+
+	fibril_rwlock_write_lock(&hr_volumes_lock);
+	list_foreach(hr_volumes, lvolumes, hr_volume_t, vol) {
+		if (vol->svc_id == svc_id) {
+			int open_cnt = atomic_load_explicit(&vol->open_cnt,
+			    memory_order_relaxed);
+			/*
+			 * The "atomicity" of this if condition is provided
+			 * by the write lock - no new bd connection can
+			 * come, because we need to get the bd_srvs_t from
+			 * volume, which we get from the list.
+			 * (see hr_client_conn() in hr.c)
+			 */
+			if (open_cnt > 0) {
+				fibril_rwlock_write_unlock(&hr_volumes_lock);
+				return EBUSY;
+			}
+			list_remove(&vol->lvolumes);
+			fibril_rwlock_write_unlock(&hr_volumes_lock);
+
+			hr_destroy_vol_struct(vol);
+
+			rc = loc_service_unregister(hr_srv, svc_id);
+			return rc;
+		}
+	}
+
+	fibril_rwlock_write_unlock(&hr_volumes_lock);
+	return ENOENT;
+}
 
 errno_t hr_init_devs(hr_volume_t *vol)
 {
@@ -416,6 +563,408 @@ static bool hr_range_lock_overlap(hr_range_lock_t *rl1, hr_range_lock_t *rl2)
 void hr_mark_vol_state_dirty(hr_volume_t *vol)
 {
 	atomic_store(&vol->state_dirty, true);
+}
+
+struct svc_id_linked {
+	link_t link;
+	service_id_t svc_id;
+	hr_metadata_t *md;
+	bool inited;
+	bool md_present;
+};
+
+static errno_t hr_add_svc_linked_to_list(list_t *list, service_id_t svc_id,
+    bool inited, hr_metadata_t *md)
+{
+	errno_t rc = EOK;
+	struct svc_id_linked *to_add;
+
+	to_add = malloc(sizeof(struct svc_id_linked));
+	if (to_add == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
+	to_add->svc_id = svc_id;
+	to_add->inited = inited;
+
+	if (md != NULL) {
+		to_add->md = malloc(sizeof(hr_metadata_t));
+		if (to_add->md == NULL) {
+			rc = ENOMEM;
+			goto error;
+		}
+		to_add->md_present = true;
+		memcpy(to_add->md, md, sizeof(*md));
+	} else {
+		to_add->md_present = false;
+	}
+
+	list_append(&to_add->link, list);
+
+error:
+	return rc;
+}
+
+static void free_svc_id_linked(struct svc_id_linked *p)
+{
+	if (p->md_present)
+		free(p->md);
+	free(p);
+}
+
+static void free_svc_id_list(list_t *list)
+{
+	struct svc_id_linked *dev_id;
+	while (!list_empty(list)) {
+		dev_id = list_pop(list, struct svc_id_linked, link);
+		free_svc_id_linked(dev_id);
+	}
+}
+
+static errno_t hr_fill_disk_part_svcs_list(list_t *list)
+{
+	errno_t rc;
+	size_t disk_count;
+	service_id_t *disk_svcs = NULL;
+	vbd_t *vbd = NULL;
+
+	rc = vbd_create(&vbd);
+	if (rc != EOK)
+		goto error;
+
+	rc = vbd_get_disks(vbd, &disk_svcs, &disk_count);
+	if (rc != EOK)
+		goto error;
+
+	for (size_t i = 0; i < disk_count; i++) {
+		vbd_disk_info_t disk_info;
+		rc = vbd_disk_info(vbd, disk_svcs[i], &disk_info);
+		if (rc != EOK)
+			goto error;
+
+		if (disk_info.ltype == lt_none) {
+			rc = hr_add_svc_linked_to_list(list, disk_svcs[i], false, NULL);
+			if (rc != EOK)
+				goto error;
+		} else {
+			size_t part_count;
+			service_id_t *part_ids = NULL;
+			rc = vbd_label_get_parts(vbd, disk_svcs[i], &part_ids, &part_count);
+			if (rc != EOK)
+				goto error;
+
+			for (size_t j = 0; j < part_count; j++) {
+				vbd_part_info_t part_info;
+				rc = vbd_part_get_info(vbd, part_ids[j], &part_info);
+				if (rc != EOK) {
+					free(part_ids);
+					goto error;
+				}
+
+				rc = hr_add_svc_linked_to_list(list,
+				    part_info.svc_id, false, NULL);
+				if (rc != EOK) {
+					free(part_ids);
+					goto error;
+				}
+			}
+
+			free(part_ids);
+		}
+	}
+
+	free(disk_svcs);
+	vbd_destroy(vbd);
+	return EOK;
+error:
+	free_svc_id_list(list);
+	if (disk_svcs != NULL)
+		free(disk_svcs);
+	vbd_destroy(vbd);
+
+	return rc;
+}
+
+static errno_t block_init_dev_list(list_t *list)
+{
+	list_foreach_safe(*list, cur_link, next_link) {
+		struct svc_id_linked *iter;
+		iter = list_get_instance(cur_link, struct svc_id_linked, link);
+
+		if (iter->inited)
+			continue;
+
+		errno_t rc = block_init(iter->svc_id);
+
+		/* already used as an extent of active volume */
+		/* XXX: figure out how it is with hotspares too */
+		if (rc == EEXIST) {
+			list_remove(cur_link);
+			free_svc_id_linked(iter);
+			continue;
+		}
+
+		if (rc != EOK)
+			return rc;
+
+		iter->inited = true;
+	}
+
+	return EOK;
+}
+
+static void block_fini_dev_list(list_t *list)
+{
+	list_foreach(*list, link, struct svc_id_linked, iter) {
+		if (iter->inited) {
+			block_fini(iter->svc_id);
+			iter->inited = false;
+		}
+	}
+}
+
+static errno_t hr_util_get_matching_md_svcs_list(list_t *rlist, list_t *devlist,
+    service_id_t svc_id, hr_metadata_t *md_main)
+{
+	errno_t rc = EOK;
+
+	list_foreach(*devlist, link, struct svc_id_linked, iter) {
+		if (iter->svc_id == svc_id)
+			continue;
+		void *md_block;
+		hr_metadata_t md;
+		rc = hr_get_metadata_block(iter->svc_id, &md_block);
+		if (rc != EOK)
+			goto error;
+		hr_decode_metadata_from_block(md_block, &md);
+
+		free(md_block);
+
+		if (!hr_valid_md_magic(&md))
+			continue;
+
+		if (memcmp(md_main->uuid, md.uuid, HR_UUID_LEN) != 0)
+			continue;
+
+		/*
+		 * XXX: can I assume bsize and everything is fine when
+		 * UUID matches?
+		 */
+
+		rc = hr_add_svc_linked_to_list(rlist, iter->svc_id, true, &md);
+		if (rc != EOK)
+			goto error;
+	}
+
+	return  EOK;
+error:
+	free_svc_id_list(rlist);
+	return rc;
+}
+
+static errno_t hr_util_assemble_from_matching_list(list_t *list)
+{
+	HR_DEBUG("%s()", __func__);
+
+	errno_t rc = EOK;
+
+	hr_metadata_t *main_md = NULL;
+	size_t max_counter_val = 0;
+
+	list_foreach(*list, link, struct svc_id_linked, iter) {
+		hr_metadata_dump(iter->md);
+		if (iter->md->counter >= max_counter_val) {
+			max_counter_val = iter->md->counter;
+			main_md = iter->md;
+		}
+	}
+
+	assert(main_md != NULL);
+
+	hr_volume_t *vol;
+	rc = hr_create_vol_struct(&vol, (hr_level_t)main_md->level);
+	if (rc != EOK)
+		goto error;
+
+	vol->nblocks = main_md->nblocks;
+	vol->data_blkno = main_md->data_blkno;
+	vol->truncated_blkno = main_md->truncated_blkno;
+	vol->data_offset = main_md->data_offset;
+	vol->counter = main_md->counter;
+	vol->metadata_version = main_md->version;
+	vol->extent_no = main_md->extent_no;
+	vol->level = main_md->level;
+	vol->layout = main_md->layout;
+	vol->strip_size = main_md->strip_size;
+	vol->bsize = main_md->bsize;
+	memcpy(vol->devname, main_md->devname, HR_DEVNAME_LEN);
+
+	list_foreach(*list, link, struct svc_id_linked, iter) {
+		vol->extents[iter->md->index].svc_id = iter->svc_id;
+		if (iter->md->counter == max_counter_val)
+			vol->extents[iter->md->index].status = HR_EXT_ONLINE;
+		else
+			vol->extents[iter->md->index].status = HR_EXT_INVALID;
+	}
+
+	rc = vol->hr_ops.create(vol);
+	if (rc != EOK)
+		goto error;
+
+	fibril_rwlock_write_lock(&hr_volumes_lock);
+
+	list_foreach(hr_volumes, lvolumes, hr_volume_t, other) {
+		uint8_t *our_uuid = vol->in_mem_md->uuid;
+		uint8_t *other_uuid = other->in_mem_md->uuid;
+		if (memcmp(our_uuid, other_uuid, HR_UUID_LEN) == 0) {
+			rc = EEXIST;
+			fibril_rwlock_write_unlock(&hr_volumes_lock);
+			goto error;
+		}
+	}
+
+	/*
+	 * XXX: register it here
+	 * ... if it fails on EEXIST try different name... like + 1 on the end
+	 */
+
+	list_append(&vol->lvolumes, &hr_volumes);
+
+	fibril_rwlock_write_unlock(&hr_volumes_lock);
+
+	return EOK;
+error:
+	hr_destroy_vol_struct(vol);
+	return rc;
+}
+
+errno_t hr_util_try_auto_assemble(size_t *rassembled_cnt)
+{
+	HR_DEBUG("%s()", __func__);
+
+	/*
+	 * scan partitions or disks:
+	 *
+	 * When we find a metadata block with valid
+	 * magic, take UUID and try to find other matching
+	 * UUIDs.
+	 *
+	 * We ignore extents that are a part of already
+	 * active volumes. (even when the counter is lower
+	 * on active volumes... XXX: use timestamp as initial counter value
+	 * when assembling, or writing dirty metadata?)
+	 */
+
+	size_t asm_cnt = 0;
+	errno_t rc;
+	list_t dev_id_list;
+
+	list_initialize(&dev_id_list);
+	rc = hr_fill_disk_part_svcs_list(&dev_id_list);
+	if (rc != EOK)
+		goto error;
+
+	rc = block_init_dev_list(&dev_id_list);
+	if (rc != EOK)
+		goto error;
+
+	struct svc_id_linked *iter;
+	while (!list_empty(&dev_id_list)) {
+		iter = list_pop(&dev_id_list, struct svc_id_linked, link);
+
+		printf("svc_id: %lu\n", iter->svc_id);
+
+		void *metadata_block;
+		hr_metadata_t metadata;
+
+		rc = hr_get_metadata_block(iter->svc_id, &metadata_block);
+		if (rc != EOK)
+			goto error;
+
+		hr_decode_metadata_from_block(metadata_block, &metadata);
+
+		free(metadata_block);
+
+		if (!hr_valid_md_magic(&metadata)) {
+			printf("BAD magic\n");
+			block_fini(iter->svc_id);
+			free_svc_id_linked(iter);
+			continue;
+		}
+
+		hr_metadata_dump(&metadata);
+
+		char *svc_name = NULL;
+		rc = loc_service_get_name(iter->svc_id, &svc_name);
+		if (rc != EOK)
+			goto error;
+
+		HR_DEBUG("found valid metadata on %s, "
+		    "will try to match other extents\n", svc_name);
+
+		free(svc_name);
+
+		list_t matching_svcs_list;
+		list_initialize(&matching_svcs_list);
+
+		rc = hr_util_get_matching_md_svcs_list(&matching_svcs_list,
+		    &dev_id_list, iter->svc_id, &metadata);
+		if (rc != EOK)
+			goto error;
+
+		/* add current iter to list as well */
+		rc = hr_add_svc_linked_to_list(&matching_svcs_list,
+		    iter->svc_id, true, &metadata);
+		if (rc != EOK) {
+			free_svc_id_list(&matching_svcs_list);
+			goto error;
+		}
+
+		/* remove matching list members from dev_id_list */
+		list_foreach(matching_svcs_list, link, struct svc_id_linked,
+		    iter2) {
+			printf("matching svc_id: %lu\n", iter2->svc_id);
+			struct svc_id_linked *to_remove;
+			list_foreach_safe(dev_id_list, cur_link, next_link) {
+				to_remove = list_get_instance(cur_link,
+				    struct svc_id_linked, link);
+				if (to_remove->svc_id == iter2->svc_id) {
+					list_remove(cur_link);
+					free_svc_id_linked(to_remove);
+				}
+			}
+		}
+
+		rc = hr_util_assemble_from_matching_list(&matching_svcs_list);
+		switch (rc) {
+		case EOK:
+			asm_cnt++;
+			break;
+		case EEXIST:
+			/*
+			 * A race is detected this way, because we don't want
+			 * to hold the hr_volumes list lock for a long time,
+			 * for all assembly attempts. XXX: discuss...
+			 */
+			rc = EOK;
+			break;
+		default:
+			block_fini_dev_list(&matching_svcs_list);
+			free_svc_id_list(&matching_svcs_list);
+			goto error;
+		}
+
+		free_svc_id_list(&matching_svcs_list);
+	}
+
+error:
+	if (rassembled_cnt != NULL)
+		*rassembled_cnt = asm_cnt;
+
+	block_fini_dev_list(&dev_id_list);
+	free_svc_id_list(&dev_id_list);
+
+	return rc;
 }
 
 /** @}

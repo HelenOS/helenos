@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Miroslav Cimerman
+ * Copyright (c) 2025 Miroslav Cimerman
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,6 +40,7 @@
 typedef enum {
 	HR_CREATE = IPC_FIRST_USER_METHOD,
 	HR_ASSEMBLE,
+	HR_AUTO_ASSEMBLE,
 	HR_STOP,
 	HR_ADD_HOTSPARE,
 	HR_STATUS

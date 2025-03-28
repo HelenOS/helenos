@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Miroslav Cimerman
+ * Copyright (c) 2025 Miroslav Cimerman
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,24 +44,24 @@
 
 #define HRCTL_SAMPLE_CONFIG_PATH "/cfg/sample_hr_config.sif"
 
-static void usage(void);
-static errno_t fill_config_devs(int, char **, int, hr_config_t *);
-static errno_t load_config(const char *, hr_config_t *);
+static void	usage(void);
+static errno_t	fill_config_devs(int, char **, int, hr_config_t *);
+static errno_t	load_config(const char *, hr_config_t *);
 
 static const char usage_str[] =
     "Usage: hrctl [OPTION]... -n <dev_no> <devices>...\n"
     "\n"
     "Options:\n"
-    "  -h, --help                display this help and exit\n"
+    "  -h, --help                display this message and exit\n"
     "  -C, --create-file=PATH    create an array from file,\n"
     "                            sample file at: " HRCTL_SAMPLE_CONFIG_PATH "\n"
-    "  -A, --assemble-file=PATH  create an array from file\n"
+    "  -A, --auto-assemble       try to auto assemble all valid arrays\n"
     "  -s, --status              display status of active arrays\n"
     "  -H, --hotspare=DEV        add hotspare extent\n"
     "  -D, --destroy             destroy/disassemble an active array\n"
     "  -F, --fail-extent         fail an extent, use with -D and set it before\n"
     "  -c, --create=NAME         create new array\n"
-    "  -a, --assemble=NAME       assemble an existing array\n"
+    "  -a, --assemble=NAME       assemble from specified extents\n"
     "  -n                        non-zero number of devices\n"
     "  -l, --level=LEVEL         set the RAID level,\n"
     "                            valid values: 0, 1, 4, 5\n"
@@ -94,7 +94,7 @@ static struct option const long_options[] = {
 	{ "create", required_argument, 0, 'c' },
 	{ "level", required_argument, 0, 'l' },
 	{ "create-file", required_argument, 0, 'C' },
-	{ "assemble-file", required_argument, 0, 'A' },
+	{ "auto-assemble", no_argument, 0, 'A' },
 	{ "destroy", required_argument, 0, 'D' },
 	{ "fail-extent", required_argument, 0, 'F' },
 	{ "hotspare", required_argument, 0, 'H' },
@@ -252,7 +252,7 @@ int main(int argc, char **argv)
 	optind = 0;
 
 	while (c != -1) {
-		c = getopt_long(argc, argv, "hsC:c:A:a:l:0145Ln:D:F:H:",
+		c = getopt_long(argc, argv, "hsC:c:Aa:l:0145Ln:D:F:H:",
 		    long_options, NULL);
 		switch (c) {
 		case 's':
@@ -281,14 +281,17 @@ int main(int argc, char **argv)
 			create = true;
 			break;
 		case 'A':
-			rc = load_config(optarg, cfg);
+			size_t cnt;
+			rc = hr_auto_assemble(&cnt);
 			if (rc != EOK) {
-				printf("hrctl: failed to load config\n");
-				free(cfg);
-				return 1;
+				/* XXX: here have own error codes */
+				printf("hrctl: auto assemble rc: %s\n",
+				    str_error(rc));
+			} else {
+				printf("hrctl: auto assembled %lu volumes\n",
+				    cnt);
 			}
-			assemble = true;
-			goto skip;
+			return rc;
 		case 'a':
 			if (str_size(optarg) > sizeof(cfg->devname) - 1) {
 				printf("hrctl: device name too long\n");
@@ -302,10 +305,8 @@ int main(int argc, char **argv)
 			rc = hr_stop(optarg, fail_extent);
 			free(cfg);
 			if (rc != EOK) {
-				if (rc == ENOENT)
-					printf("hrctl: service named \"%s\" does not exist\n",
-					    optarg);
-				return 1;
+				printf("hrctl: got %s\n", str_error(rc));
+				return rc;
 			}
 			return 0;
 		case 'F':

@@ -117,6 +117,7 @@ typedef struct hr_vol_info {
 extern errno_t		 hr_sess_init(hr_t **);
 extern void		 hr_sess_destroy(hr_t *);
 extern errno_t		 hr_create(hr_t *, hr_config_t *, bool);
+extern errno_t		 hr_auto_assemble(size_t *);
 extern errno_t		 hr_stop(const char *, long);
 extern errno_t		 hr_add_hotspare(service_id_t, service_id_t);
 extern errno_t		 hr_print_status(void);

@@ -114,6 +114,41 @@ errno_t hr_create(hr_t *hr, hr_config_t *hr_config, bool assemble)
 	return EOK;
 }
 
+errno_t hr_auto_assemble(size_t *rassembled_cnt)
+{
+	hr_t *hr;
+	errno_t rc;
+	size_t assembled_cnt;
+
+	rc = hr_sess_init(&hr);
+	if (rc != EOK)
+		return rc;
+
+	async_exch_t *exch = async_exchange_begin(hr->sess);
+	if (exch == NULL) {
+		rc = EINVAL;
+		goto error;
+	}
+
+	aid_t req = async_send_0(exch, HR_AUTO_ASSEMBLE, NULL);
+
+	rc = async_data_read_start(exch, &assembled_cnt, sizeof(size_t));
+	if (rc != EOK) {
+		async_exchange_end(exch);
+		async_forget(req);
+		return rc;
+	}
+
+	async_exchange_end(exch);
+	async_wait_for(req, &rc);
+
+	if (rassembled_cnt != NULL)
+		*rassembled_cnt = assembled_cnt;
+error:
+	hr_sess_destroy(hr);
+	return rc;
+}
+
 static errno_t print_vol_info(size_t index, hr_vol_info_t *vol_info)
 {
 	errno_t rc;
@@ -217,9 +252,6 @@ errno_t hr_stop(const char *devname, long extent)
 	}
 	rc = async_req_2_0(exch, HR_STOP, svc_id, extent);
 	async_exchange_end(exch);
-
-	if (rc != EOK)
-		goto error;
 error:
 	hr_sess_destroy(hr);
 	return rc;

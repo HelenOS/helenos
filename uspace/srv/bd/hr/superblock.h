@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Miroslav Cimerman
+ * Copyright (c) 2025 Miroslav Cimerman
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,38 +38,51 @@
 
 #include "var.h"
 
-#define HR_META_SIZE 1	/* in blocks */
-#define HR_META_OFF 7	/* in blocks */
-#define HR_DATA_OFF (HR_META_SIZE + HR_META_OFF)
+#define HR_META_SIZE		1	/* in blocks */
+#define HR_META_OFF		7	/* in blocks */
+#define HR_DATA_OFF		(HR_META_OFF + HR_META_SIZE)
 
-#define HR_MAGIC 0x4420492041205248LLU
-#define HR_UUID_LEN 16
+#define HR_MAGIC_STR		"HelenRAID"
+#define HR_MAGIC_SIZE		16
+#define HR_UUID_LEN		16
+/* #define HR_METADATA_VERSION 0 */
 
-typedef struct hr_metadata {
-	uint64_t magic;
-	uint32_t version;	/* unused XXX */
-	uint32_t extent_no;
+typedef struct hr_metadata hr_metadata_t;
+typedef struct hr_volume hr_volume_t;
 
-	uint32_t index;		/* index of disk in array */
-	uint32_t level;
-	uint32_t layout;
-	uint32_t strip_size;
+struct hr_metadata {
+	char		magic[HR_MAGIC_SIZE];
 
-	uint64_t nblocks;	/* all blocks */
-	uint64_t data_blkno;	/* usable blocks */
+	uint8_t		uuid[HR_UUID_LEN];
 
-	uint64_t data_offset;	/* block where data starts */
+	/* TODO: change to blkno */
+	uint64_t	nblocks;		/* all blocks */
+	uint64_t	data_blkno;		/* usable blocks */
 
-	uint64_t counter; /* unused */
+	uint64_t	truncated_blkno;	/* usable blocks */
+	uint64_t	data_offset;
 
-	uint8_t uuid[HR_UUID_LEN];
+	uint64_t	counter;		/* yet unused */
+	uint32_t	version;		/* yet unused */
+	uint32_t	extent_no;
 
-	char devname[HR_DEVNAME_LEN];
-} hr_metadata_t;
+	uint32_t	index;			/* index of extent in volume */
+	uint32_t	level;
+	uint32_t	layout;
+	uint32_t	strip_size;
 
-extern errno_t hr_write_meta_to_vol(hr_volume_t *);
-extern errno_t hr_write_meta_to_ext(hr_volume_t *, size_t);
-extern errno_t hr_fill_vol_from_meta(hr_volume_t *);
+	uint32_t	bsize;
+
+	char		devname[HR_DEVNAME_LEN];
+};
+
+extern errno_t	hr_write_meta_to_vol(hr_volume_t *);
+extern errno_t	hr_write_meta_to_ext(hr_volume_t *, size_t);
+extern errno_t	hr_fill_vol_from_meta(hr_volume_t *);
+extern errno_t	hr_get_metadata_block(service_id_t, void **);
+extern void	hr_decode_metadata_from_block(void *, hr_metadata_t *);
+extern void	hr_metadata_dump(hr_metadata_t *);
+extern bool	hr_valid_md_magic(hr_metadata_t *);
 
 #endif
 
