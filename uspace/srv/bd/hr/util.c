@@ -249,6 +249,14 @@ void hr_fini_devs(hr_volume_t *vol)
 			block_fini(vol->extents[i].svc_id);
 		}
 	}
+
+	for (i = 0; i < vol->hotspare_no; i++) {
+		if (vol->hotspares[i].svc_id != 0) {
+			HR_DEBUG("hr_fini_devs(): block_fini() on (%lu)\n",
+			    vol->hotspares[i].svc_id);
+			block_fini(vol->hotspares[i].svc_id);
+		}
+	}
 }
 
 errno_t hr_register_volume(hr_volume_t *vol)
