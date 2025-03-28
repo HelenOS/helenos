@@ -33,6 +33,7 @@
  * @file
  */
 
+#include <adt/list.h>
 #include <async.h>
 #include <bd_srv.h>
 #include <errno.h>
@@ -48,6 +49,7 @@
 #include <stdlib.h>
 #include <str.h>
 #include <str_error.h>
+#include <block.h>
 
 #include "fge.h"
 #include "io.h"
