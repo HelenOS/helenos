@@ -177,13 +177,23 @@ error:
 
 static errno_t hr_raid1_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
 {
-	HR_DEBUG("hr_bd_open()\n");
+	HR_DEBUG("%s()", __func__);
+
+	hr_volume_t *vol = bd->srvs->sarg;
+
+	atomic_fetch_add_explicit(&vol->open_cnt, 1, memory_order_relaxed);
+
 	return EOK;
 }
 
 static errno_t hr_raid1_bd_close(bd_srv_t *bd)
 {
-	HR_DEBUG("hr_bd_close()\n");
+	HR_DEBUG("%s()", __func__);
+
+	hr_volume_t *vol = bd->srvs->sarg;
+
+	atomic_fetch_sub_explicit(&vol->open_cnt, 1, memory_order_relaxed);
+
 	return EOK;
 }
 
