@@ -100,7 +100,7 @@ static errno_t hr_remove_volume(service_id_t svc_id)
 
 static void hr_create_srv(ipc_call_t *icall, bool assemble)
 {
-	HR_DEBUG("hr_create_srv()\n");
+	HR_DEBUG("%s()", __func__);
 
 	errno_t rc;
 	size_t i, size;
@@ -231,7 +231,7 @@ static void hr_create_srv(ipc_call_t *icall, bool assemble)
 		new_volume->hr_ops.add_hotspare = hr_raid5_add_hotspare;
 		break;
 	default:
-		HR_ERROR("unkown level: %d, aborting\n", new_volume->level);
+		HR_DEBUG("unkown level: %d, aborting\n", new_volume->level);
 		rc = EINVAL;
 		goto error;
 	}
@@ -288,7 +288,7 @@ error:
 
 static void hr_stop_srv(ipc_call_t *icall)
 {
-	HR_DEBUG("hr_stop_srv()\n");
+	HR_DEBUG("%s()", __func__);
 
 	errno_t rc = EOK;
 	service_id_t svc_id;
@@ -329,7 +329,7 @@ static void hr_stop_srv(ipc_call_t *icall)
 
 static void hr_add_hotspare_srv(ipc_call_t *icall)
 {
-	HR_DEBUG("hr_add_hotspare()\n");
+	HR_DEBUG("%s()", __func__);
 
 	errno_t rc = EOK;
 	service_id_t vol_svc_id;
@@ -359,7 +359,7 @@ static void hr_add_hotspare_srv(ipc_call_t *icall)
 
 static void hr_print_status_srv(ipc_call_t *icall)
 {
-	HR_DEBUG("hr_status_srv()\n");
+	HR_DEBUG("%s()", __func__);
 
 	errno_t rc;
 	size_t vol_cnt = 0;
@@ -427,7 +427,7 @@ error:
 
 static void hr_ctl_conn(ipc_call_t *icall, void *arg)
 {
-	HR_DEBUG("hr_ctl_conn()\n");
+	HR_DEBUG("%s()", __func__);
 
 	async_accept_0(icall);
 
@@ -465,7 +465,7 @@ static void hr_ctl_conn(ipc_call_t *icall, void *arg)
 
 static void hr_client_conn(ipc_call_t *icall, void *arg)
 {
-	HR_DEBUG("hr_client_conn()\n");
+	HR_DEBUG("%s()", __func__);
 
 	hr_volume_t *vol;
 

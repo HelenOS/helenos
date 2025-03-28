@@ -58,7 +58,7 @@ extern loc_srv_t *hr_srv;
 
 errno_t hr_init_devs(hr_volume_t *vol)
 {
-	HR_DEBUG("hr_init_devs()\n");
+	HR_DEBUG("%s()", __func__);
 
 	errno_t rc;
 	size_t i;
@@ -91,7 +91,7 @@ errno_t hr_init_devs(hr_volume_t *vol)
 
 void hr_fini_devs(hr_volume_t *vol)
 {
-	HR_DEBUG("hr_fini_devs()\n");
+	HR_DEBUG("%s()", __func__);
 
 	size_t i;
 
@@ -106,7 +106,7 @@ void hr_fini_devs(hr_volume_t *vol)
 
 errno_t hr_register_volume(hr_volume_t *vol)
 {
-	HR_DEBUG("hr_register_volume()\n");
+	HR_DEBUG("%s()", __func__);
 
 	errno_t rc;
 	service_id_t new_id;
@@ -146,7 +146,7 @@ error:
 
 errno_t hr_check_devs(hr_volume_t *vol, uint64_t *rblkno, size_t *rbsize)
 {
-	HR_DEBUG("hr_check_devs()\n");
+	HR_DEBUG("%s()", __func__);
 
 	errno_t rc;
 	size_t i, bsize;

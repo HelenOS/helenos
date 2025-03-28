@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Miroslav Cimerman
+ * Copyright (c) 2025 Miroslav Cimerman
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -55,7 +55,7 @@ static errno_t validate_meta(hr_metadata_t *);
 
 errno_t hr_write_meta_to_vol(hr_volume_t *vol)
 {
-	HR_DEBUG("hr_write_meta_to_vol()\n");
+	HR_DEBUG("%s()", __func__);
 
 	errno_t rc;
 	size_t i;
@@ -93,7 +93,7 @@ error:
 
 errno_t hr_write_meta_to_ext(hr_volume_t *vol, size_t ext)
 {
-	HR_DEBUG("hr_write_meta_to_vol()\n");
+	HR_DEBUG("%s()", __func__);
 
 	errno_t rc;
 	hr_metadata_t *metadata;
@@ -132,7 +132,7 @@ error:
  */
 static errno_t hr_fill_meta_from_vol(hr_volume_t *vol, hr_metadata_t *metadata)
 {
-	HR_DEBUG("hr_fill_meta_from_vol()\n");
+	HR_DEBUG("%s()", __func__);
 
 	size_t meta_blkno = HR_META_OFF + HR_META_SIZE;
 
@@ -179,7 +179,7 @@ static errno_t validate_meta(hr_metadata_t *md)
 
 errno_t hr_fill_vol_from_meta(hr_volume_t *vol)
 {
-	HR_DEBUG("hr_get_vol_from_meta()\n");
+	HR_DEBUG("%s()", __func__);
 
 	errno_t rc;
 	hr_metadata_t *metadata;

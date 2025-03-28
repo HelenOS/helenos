@@ -131,13 +131,13 @@ void hr_raid0_status_event(hr_volume_t *vol)
 
 static errno_t hr_raid0_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
 {
-	HR_DEBUG("hr_bd_open()\n");
+	HR_DEBUG("%s()", __func__);
 	return EOK;
 }
 
 static errno_t hr_raid0_bd_close(bd_srv_t *bd)
 {
-	HR_DEBUG("hr_bd_close()\n");
+	HR_DEBUG("%s()", __func__);
 	return EOK;
 }
 

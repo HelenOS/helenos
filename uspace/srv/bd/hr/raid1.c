@@ -146,7 +146,7 @@ void hr_raid1_status_event(hr_volume_t *vol)
 
 errno_t hr_raid1_add_hotspare(hr_volume_t *vol, service_id_t hotspare)
 {
-	HR_DEBUG("hr_raid1_add_hotspare()\n");
+	HR_DEBUG("%s()", __func__);
 
 	errno_t rc = EOK;
 
@@ -469,7 +469,7 @@ end:
  */
 static errno_t hr_raid1_rebuild(void *arg)
 {
-	HR_DEBUG("hr_raid1_rebuild()\n");
+	HR_DEBUG("%s()", __func__);
 
 	hr_volume_t *vol = arg;
 	void *buf = NULL;
