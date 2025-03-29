@@ -276,7 +276,8 @@ errno_t hr_register_volume(hr_volume_t *vol)
 	if (rc != EOK) {
 		HR_ERROR("unable to register device \"%s\": %s\n",
 		    fullname, str_error(rc));
-		goto error;
+		free(fullname);
+		return rc;
 	}
 
 	rc = loc_category_get_id("raid", &cat_id, IPC_FLAG_BLOCKING);
@@ -294,7 +295,11 @@ errno_t hr_register_volume(hr_volume_t *vol)
 	}
 
 	vol->svc_id = new_id;
+
+	free(fullname);
+	return EOK;
 error:
+	rc = loc_service_unregister(hr_srv, new_id);
 	free(fullname);
 	return rc;
 }
