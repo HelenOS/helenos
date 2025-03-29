@@ -101,7 +101,6 @@ errno_t hr_write_meta_to_ext(hr_volume_t *vol, size_t ext)
 
 	errno_t rc;
 	hr_metadata_t *metadata;
-	uuid_t uuid;
 
 	/* XXX: use scratchpad */
 	metadata = calloc(1, HR_META_SIZE * vol->bsize);
@@ -113,11 +112,6 @@ errno_t hr_write_meta_to_ext(hr_volume_t *vol, size_t ext)
 		goto error;
 
 	metadata->index = host2uint32_t_le(ext);
-
-	rc = uuid_generate(&uuid);
-	if (rc != EOK)
-		goto error;
-	uuid_encode(&uuid, metadata->uuid);
 
 	rc = block_write_direct(vol->extents[ext].svc_id, HR_META_OFF,
 	    HR_META_SIZE, metadata);
