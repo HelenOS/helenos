@@ -874,7 +874,22 @@ error:
 	return rc;
 }
 
-errno_t hr_util_try_auto_assemble(size_t *rassembled_cnt)
+static errno_t hr_fill_svcs_list_from_cfg(hr_config_t *cfg, list_t *list)
+{
+	errno_t rc = EOK;
+	for (size_t i = 0; i < cfg->dev_no; ++i) {
+		rc = hr_add_svc_linked_to_list(list, cfg->devs[i], false, NULL);
+		if (rc != EOK)
+			goto error;
+	}
+
+	return EOK;
+error:
+	free_svc_id_list(list);
+	return rc;
+}
+
+errno_t hr_util_try_assemble(hr_config_t *cfg, size_t *rassembled_cnt)
 {
 	HR_DEBUG("%s()", __func__);
 
@@ -896,7 +911,12 @@ errno_t hr_util_try_auto_assemble(size_t *rassembled_cnt)
 	list_t dev_id_list;
 
 	list_initialize(&dev_id_list);
-	rc = hr_fill_disk_part_svcs_list(&dev_id_list);
+
+	if (cfg == NULL)
+		rc = hr_fill_disk_part_svcs_list(&dev_id_list);
+	else
+		rc = hr_fill_svcs_list_from_cfg(cfg, &dev_id_list);
+
 	if (rc != EOK)
 		goto error;
 

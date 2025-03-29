@@ -78,28 +78,86 @@ static void hr_auto_assemble_srv(ipc_call_t *icall)
 	}
 
 	if (size != sizeof(size_t)) {
+		async_answer_0(&call, EINVAL);
 		async_answer_0(icall, EINVAL);
 		return;
 	}
 
-	rc = hr_util_try_auto_assemble(&assembled_cnt);
-	if (rc != EOK) {
-		async_answer_0(&call, rc);
-		async_answer_0(icall, rc);
-		return;
-	}
+	rc = hr_util_try_assemble(NULL, &assembled_cnt);
+	if (rc != EOK)
+		goto error;
 
 	rc = async_data_read_finalize(&call, &assembled_cnt, size);
-	if (rc != EOK) {
-		async_answer_0(&call, rc);
-		async_answer_0(icall, rc);
+	if (rc != EOK)
+		goto error;
+
+	async_answer_0(icall, EOK);
+	return;
+error:
+	async_answer_0(&call, rc);
+	async_answer_0(icall, rc);
+}
+
+static void hr_assemble_srv(ipc_call_t *icall)
+{
+	HR_DEBUG("%s()", __func__);
+
+	errno_t rc;
+	size_t size, assembled_cnt;
+	hr_config_t *cfg;
+	ipc_call_t call;
+
+	if (!async_data_write_receive(&call, &size)) {
+		async_answer_0(&call, EREFUSED);
+		async_answer_0(icall, EREFUSED);
 		return;
 	}
 
+	if (size != sizeof(hr_config_t)) {
+		async_answer_0(&call, EINVAL);
+		async_answer_0(icall, EINVAL);
+		return;
+	}
+
+	cfg = calloc(1, sizeof(hr_config_t));
+	if (cfg == NULL) {
+		async_answer_0(&call, ENOMEM);
+		async_answer_0(icall, ENOMEM);
+		return;
+	}
+
+	rc = async_data_write_finalize(&call, cfg, size);
+	if (rc != EOK)
+		goto error;
+
+	if (!async_data_read_receive(&call, &size)) {
+		async_answer_0(icall, EREFUSED);
+		return;
+	}
+
+	if (size != sizeof(size_t)) {
+		async_answer_0(icall, EINVAL);
+		return;
+	}
+
+	rc = hr_util_try_assemble(cfg, &assembled_cnt);
+	if (rc != EOK)
+		goto error;
+
+	rc = async_data_read_finalize(&call, &assembled_cnt, size);
+	if (rc != EOK)
+		goto error;
+
+	free(cfg);
 	async_answer_0(icall, EOK);
+	return;
+error:
+	free(cfg);
+	async_answer_0(&call, rc);
+	async_answer_0(icall, rc);
 }
 
-static void hr_create_srv(ipc_call_t *icall, bool assemble)
+static void hr_create_srv(ipc_call_t *icall)
 {
 	HR_DEBUG("%s()", __func__);
 
@@ -140,19 +198,17 @@ static void hr_create_srv(ipc_call_t *icall, bool assemble)
 	 * If there was a missing device provided
 	 * for creation of a new array, abort
 	 */
-	if (!assemble) {
-		for (i = 0; i < cfg->dev_no; i++) {
-			if (cfg->devs[i] == 0) {
-				/*
-				 * XXX: own error codes, no need to log this...
-				 * its user error not service error
-				 */
-				HR_ERROR("missing device provided for array "
-				    "creation, aborting");
-				free(cfg);
-				async_answer_0(icall, EINVAL);
-				return;
-			}
+	for (i = 0; i < cfg->dev_no; i++) {
+		if (cfg->devs[i] == 0) {
+			/*
+			 * XXX: own error codes, no need to log this...
+			 * its user error not service error
+			 */
+			HR_ERROR("missing device provided for array "
+			    "creation, aborting");
+			free(cfg);
+			async_answer_0(icall, EINVAL);
+			return;
 		}
 	}
 
@@ -169,6 +225,7 @@ static void hr_create_srv(ipc_call_t *icall, bool assemble)
 	new_volume->level = cfg->level;
 	new_volume->extent_no = cfg->dev_no;
 
+	/* XXX: do proper initing ... */
 	rc = hr_init_devs(new_volume);
 	if (rc != EOK) {
 		free(cfg);
@@ -177,32 +234,13 @@ static void hr_create_srv(ipc_call_t *icall, bool assemble)
 		return;
 	}
 
-	if (assemble) {
-		if (cfg->level != HR_LVL_UNKNOWN)
-			HR_DEBUG("level manually set when assembling, ingoring");
-		new_volume->level = HR_LVL_UNKNOWN;
-	}
+	new_volume->hr_ops.init(new_volume);
+	if (rc != EOK)
+		goto error;
 
-	if (assemble) {
-		/* just bsize needed for reading metadata later */
-		rc = hr_check_devs(new_volume, NULL, &new_volume->bsize);
-		if (rc != EOK)
-			goto error;
-
-		rc = hr_fill_vol_from_meta(new_volume);
-		if (rc != EOK)
-			goto error;
-	}
-
-	if (!assemble) {
-		new_volume->hr_ops.init(new_volume);
-		if (rc != EOK)
-			goto error;
-
-		rc = hr_write_meta_to_vol(new_volume);
-		if (rc != EOK)
-			goto error;
-	}
+	rc = hr_write_meta_to_vol(new_volume);
+	if (rc != EOK)
+		goto error;
 
 	rc = new_volume->hr_ops.create(new_volume);
 	if (rc != EOK)
@@ -216,13 +254,8 @@ static void hr_create_srv(ipc_call_t *icall, bool assemble)
 	list_append(&new_volume->lvolumes, &hr_volumes);
 	fibril_rwlock_write_unlock(&hr_volumes_lock);
 
-	if (assemble) {
-		HR_DEBUG("assembled volume \"%s\" (%" PRIun ")\n",
-		    new_volume->devname, new_volume->svc_id);
-	} else {
-		HR_DEBUG("created volume \"%s\" (%" PRIun ")\n",
-		    new_volume->devname, new_volume->svc_id);
-	}
+	HR_DEBUG("created volume \"%s\" (%" PRIun ")\n", new_volume->devname,
+	    new_volume->svc_id);
 
 	free(cfg);
 	async_answer_0(icall, rc);
@@ -389,10 +422,10 @@ static void hr_ctl_conn(ipc_call_t *icall, void *arg)
 
 		switch (method) {
 		case HR_CREATE:
-			hr_create_srv(&call, false);
+			hr_create_srv(&call);
 			break;
 		case HR_ASSEMBLE:
-			hr_create_srv(&call, true);
+			hr_assemble_srv(&call);
 			break;
 		case HR_AUTO_ASSEMBLE:
 			hr_auto_assemble_srv(&call);

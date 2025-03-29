@@ -37,6 +37,7 @@
 #define _HR_UTIL_H
 
 #include <errno.h>
+#include <hr.h>
 #include <io/log.h>
 
 #include "var.h"
@@ -76,7 +77,7 @@ extern void		 hr_mark_vol_state_dirty(hr_volume_t *);
 extern void		 hr_range_lock_release(hr_range_lock_t *);
 extern hr_range_lock_t	*hr_range_lock_acquire(hr_volume_t *, uint64_t,
     uint64_t);
-extern errno_t		 hr_util_try_auto_assemble(size_t *);
+extern errno_t		 hr_util_try_assemble(hr_config_t *, size_t *);
 extern errno_t		 hr_util_add_hotspare(hr_volume_t *, service_id_t);
 
 #endif

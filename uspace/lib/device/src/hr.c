@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Miroslav Cimerman
+ * Copyright (c) 2025 Miroslav Cimerman
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -87,7 +87,7 @@ void hr_sess_destroy(hr_t *hr)
 	free(hr);
 }
 
-errno_t hr_create(hr_t *hr, hr_config_t *hr_config, bool assemble)
+errno_t hr_create(hr_t *hr, hr_config_t *hr_config)
 {
 	errno_t rc, retval;
 	async_exch_t *exch;
@@ -97,7 +97,7 @@ errno_t hr_create(hr_t *hr, hr_config_t *hr_config, bool assemble)
 	if (exch == NULL)
 		return EINVAL;
 
-	req = async_send_0(exch, assemble ? HR_ASSEMBLE : HR_CREATE, NULL);
+	req = async_send_0(exch, HR_CREATE, NULL);
 
 	rc = async_data_write_start(exch, hr_config, sizeof(hr_config_t));
 	if (rc != EOK) {
@@ -112,6 +112,42 @@ errno_t hr_create(hr_t *hr, hr_config_t *hr_config, bool assemble)
 		return retval;
 
 	return EOK;
+}
+
+errno_t hr_assemble(hr_t *hr, hr_config_t *hr_config, size_t *rassembled_cnt)
+{
+	errno_t rc;
+	async_exch_t *exch;
+	aid_t req;
+	size_t assembled_cnt;
+
+	exch = async_exchange_begin(hr->sess);
+	if (exch == NULL)
+		return EINVAL;
+
+	req = async_send_0(exch, HR_ASSEMBLE, NULL);
+
+	rc = async_data_write_start(exch, hr_config, sizeof(hr_config_t));
+	if (rc != EOK) {
+		async_exchange_end(exch);
+		async_forget(req);
+		return rc;
+	}
+
+	rc = async_data_read_start(exch, &assembled_cnt, sizeof(size_t));
+	if (rc != EOK) {
+		async_exchange_end(exch);
+		async_forget(req);
+		return rc;
+	}
+
+	async_exchange_end(exch);
+	async_wait_for(req, &rc);
+
+	if (rassembled_cnt != NULL)
+		*rassembled_cnt = assembled_cnt;
+
+	return rc;
 }
 
 errno_t hr_auto_assemble(size_t *rassembled_cnt)

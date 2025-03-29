@@ -61,7 +61,7 @@ static const char usage_str[] =
     "  -D, --destroy             destroy/disassemble an active array\n"
     "  -F, --fail-extent         fail an extent, use with -D and set it before\n"
     "  -c, --create=NAME         create new array\n"
-    "  -a, --assemble=NAME       assemble from specified extents\n"
+    "  -a, --assemble            try to assemble from specified extents\n"
     "  -n                        non-zero number of devices\n"
     "  -l, --level=LEVEL         set the RAID level,\n"
     "                            valid values: 0, 1, 4, 5\n"
@@ -77,9 +77,9 @@ static const char usage_str[] =
     "  hrctl --create hr0 -0 -n 2 devices/\\hw\\0 devices/\\hw\\1\n"
     "    - creates new mirroring RAID device named /hr0 consisting\n"
     "      of 2 drives\n"
-    "  hrctl --assemble hr0 -n 2 devices/\\hw\\0 devices/\\hw\\1\n"
-    "    - assembles RAID device named /hr0 consisting of 2 drives,\n"
-    "      that were previously in an array\n"
+    "  hrctl --assemble -n 2 devices/\\hw\\0 devices/\\hw\\1\n"
+    "    - assembles RAID devices from specified extents,\n"
+    "      that were previously in an (active) array\n"
     "  hrctl devices/hr0 --hotspare=devices/disk10\n"
     "    - adds \"devices/disk10\" as hotspare extent\n"
     "  hrctl -F 0 -D devices/hr0\n"
@@ -90,7 +90,7 @@ static const char usage_str[] =
 static struct option const long_options[] = {
 	{ "help", no_argument, 0, 'h' },
 	{ "status", no_argument, 0, 's' },
-	{ "assemble", required_argument, 0, 'a' },
+	{ "assemble", no_argument, 0, 'a' },
 	{ "create", required_argument, 0, 'c' },
 	{ "level", required_argument, 0, 'l' },
 	{ "create-file", required_argument, 0, 'C' },
@@ -252,7 +252,7 @@ int main(int argc, char **argv)
 	optind = 0;
 
 	while (c != -1) {
-		c = getopt_long(argc, argv, "hsC:c:Aa:l:0145Ln:D:F:H:",
+		c = getopt_long(argc, argv, "hsC:c:Aal:0145Ln:D:F:H:",
 		    long_options, NULL);
 		switch (c) {
 		case 's':
@@ -293,12 +293,20 @@ int main(int argc, char **argv)
 			}
 			return rc;
 		case 'a':
-			if (str_size(optarg) > sizeof(cfg->devname) - 1) {
-				printf("hrctl: device name too long\n");
-				free(cfg);
-				return 1;
-			}
-			str_cpy(cfg->devname, sizeof(cfg->devname), optarg);
+			/*
+			 * XXX: redo this, no devname, only svc ids...
+			 *
+			 * find some other way to rename the arrays...,
+			 *
+			 * some metadata editation tool... something like
+			 * fdisk but can only change devnames on inactive
+			 * extents...
+			 */
+
+			/*
+			 * XXX: remake whole parsing, don't allow -a
+			 * to have any levels set or anything
+			 */
 			assemble = true;
 			break;
 		case 'D':
@@ -413,11 +421,19 @@ skip:
 	}
 
 	if (create) {
-		rc = hr_create(hr, cfg, false);
+		rc = hr_create(hr, cfg);
 		printf("hrctl: hr_create() rc: %s\n", str_error(rc));
 	} else if (assemble) {
-		rc = hr_create(hr, cfg, true);
-		printf("hrctl: hr_assemble() rc: %s\n", str_error(rc));
+		size_t assembled_cnt = 0;
+		rc = hr_assemble(hr, cfg, &assembled_cnt);
+		if (rc != EOK) {
+			/* XXX: here have own error codes */
+			printf("hrctl: auto assemble rc: %s\n", str_error(rc));
+		} else {
+			printf("hrctl: auto assembled %lu volumes\n",
+			    assembled_cnt);
+		}
+
 	}
 
 end:
