@@ -325,6 +325,8 @@ void hr_decode_metadata_from_block(void *block, hr_metadata_t *metadata)
 
 	memcpy(metadata->magic, scratch_md.magic, HR_MAGIC_SIZE);
 	memcpy(metadata->uuid, scratch_md.uuid, HR_UUID_LEN);
+	/* uuid_decode((uint8_t *)scratch_md.uuid, (uuid_t *)metadata->uuid); */
+
 	metadata->nblocks = uint64_t_le2host(scratch_md.nblocks);
 	metadata->data_blkno = uint64_t_le2host(scratch_md.data_blkno);
 	metadata->truncated_blkno = uint64_t_le2host(
@@ -337,7 +339,7 @@ void hr_decode_metadata_from_block(void *block, hr_metadata_t *metadata)
 	metadata->level = uint32_t_le2host(scratch_md.level);
 	metadata->layout = uint32_t_le2host(scratch_md.layout);
 	metadata->strip_size = uint32_t_le2host(scratch_md.strip_size);
-	metadata->bsize = uint64_t_le2host(scratch_md.bsize);
+	metadata->bsize = uint32_t_le2host(scratch_md.bsize);
 	memcpy(metadata->devname, scratch_md.devname, HR_DEVNAME_LEN);
 }
 
@@ -362,6 +364,7 @@ void hr_metadata_dump(hr_metadata_t *metadata)
 	printf("\tlevel: %u\n", metadata->level);
 	printf("\tlayout: %u\n", metadata->layout);
 	printf("\tstrip_size: %u\n", metadata->strip_size);
+	printf("\tbsize: %u\n", metadata->bsize);
 	printf("\tdevname: %s\n", metadata->devname);
 }
 
