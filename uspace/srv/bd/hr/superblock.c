@@ -76,7 +76,7 @@ errno_t hr_write_meta_to_vol(hr_volume_t *vol)
 		goto error;
 
 	/* XXX: for now we just copy byte by byte as "encoding" */
-	memcpy(metadata->uuid, &uuid, sizeof(HR_UUID_LEN));
+	memcpy(metadata->uuid, &uuid, HR_UUID_LEN);
 	/* uuid_encode(&uuid, metadata->uuid); */
 
 	for (i = 0; i < vol->extent_no; i++) {
