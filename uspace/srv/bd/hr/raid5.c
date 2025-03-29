@@ -149,23 +149,13 @@ void hr_raid5_status_event(hr_volume_t *vol)
 
 errno_t hr_raid5_add_hotspare(hr_volume_t *vol, service_id_t hotspare)
 {
-	HR_DEBUG("hr_raid5_add_hotspare()\n");
+	HR_DEBUG("%s()", __func__);
 
 	fibril_mutex_lock(&vol->lock);
-	fibril_mutex_lock(&vol->hotspare_lock);
 
-	if (vol->hotspare_no >= HR_MAX_HOTSPARES) {
-		HR_ERROR("hr_raid5_add_hotspare(): cannot add more hotspares "
-		    "to \"%s\"\n", vol->devname);
-		fibril_mutex_unlock(&vol->lock);
-		return ELIMIT;
-	}
-
-	vol->hotspares[vol->hotspare_no].svc_id = hotspare;
-
-	vol->hotspare_no++;
-
-	hr_update_hotspare_status(vol, vol->hotspare_no - 1, HR_EXT_HOTSPARE);
+	errno_t rc = hr_util_add_hotspare(vol, hotspare);
+	if (rc != EOK)
+		goto end;
 
 	/*
 	 * If the volume is degraded, start rebuild right away.
@@ -183,10 +173,10 @@ errno_t hr_raid5_add_hotspare(hr_volume_t *vol, service_id_t hotspare)
 		fibril_detach(fib);
 	}
 
-	fibril_mutex_unlock(&vol->hotspare_lock);
+end:
 	fibril_mutex_unlock(&vol->lock);
 
-	return EOK;
+	return rc;
 }
 
 static errno_t hr_raid5_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
@@ -768,13 +758,6 @@ static errno_t hr_raid5_rebuild(void *arg)
 	vol->hotspare_no--;
 
 	hr_extent_t *rebuild_ext = &vol->extents[bad];
-
-	rc = block_init(rebuild_ext->svc_id);
-	if (rc != EOK) {
-		HR_ERROR("hr_raid5_rebuild(): initing (%lu) failed, "
-		    "aborting rebuild\n", rebuild_ext->svc_id);
-		goto end;
-	}
 
 	HR_DEBUG("hr_raid5_rebuild(): starting rebuild on (%lu)\n",
 	    rebuild_ext->svc_id);

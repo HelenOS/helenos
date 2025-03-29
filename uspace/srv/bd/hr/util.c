@@ -982,5 +982,37 @@ error:
 	return rc;
 }
 
+errno_t hr_util_add_hotspare(hr_volume_t *vol, service_id_t hotspare)
+{
+	HR_DEBUG("%s()", __func__);
+
+	errno_t rc = EOK;
+
+	fibril_mutex_lock(&vol->hotspare_lock);
+
+	if (vol->hotspare_no >= HR_MAX_HOTSPARES) {
+		HR_ERROR("%s(): cannot add more hotspares "
+		    "to \"%s\"\n", __func__, vol->devname);
+		rc = ELIMIT;
+		goto end;
+	}
+
+	rc = block_init(hotspare);
+	if (rc != EOK)
+		goto end;
+
+	size_t hs_idx = vol->hotspare_no;
+
+	vol->hotspare_no++;
+
+	hr_update_hotspare_svc_id(vol, hs_idx, hotspare);
+	hr_update_hotspare_status(vol, hs_idx, HR_EXT_HOTSPARE);
+
+	hr_mark_vol_state_dirty(vol);
+end:
+	fibril_mutex_unlock(&vol->hotspare_lock);
+	return rc;
+}
+
 /** @}
  */

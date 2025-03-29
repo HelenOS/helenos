@@ -77,6 +77,7 @@ extern void		 hr_range_lock_release(hr_range_lock_t *);
 extern hr_range_lock_t	*hr_range_lock_acquire(hr_volume_t *, uint64_t,
     uint64_t);
 extern errno_t		 hr_util_try_auto_assemble(size_t *);
+extern errno_t		 hr_util_add_hotspare(hr_volume_t *, service_id_t);
 
 #endif
 

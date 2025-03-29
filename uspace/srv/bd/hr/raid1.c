@@ -144,27 +144,7 @@ errno_t hr_raid1_add_hotspare(hr_volume_t *vol, service_id_t hotspare)
 {
 	HR_DEBUG("%s()", __func__);
 
-	errno_t rc = EOK;
-
-	fibril_mutex_lock(&vol->hotspare_lock);
-
-	if (vol->hotspare_no >= HR_MAX_HOTSPARES) {
-		HR_ERROR("hr_raid1_add_hotspare(): cannot add more hotspares "
-		    "to \"%s\"\n", vol->devname);
-		rc = ELIMIT;
-		goto error;
-	}
-
-	size_t hs_idx = vol->hotspare_no;
-
-	vol->hotspare_no++;
-
-	hr_update_hotspare_svc_id(vol, hs_idx, hotspare);
-	hr_update_hotspare_status(vol, hs_idx, HR_EXT_HOTSPARE);
-
-	hr_mark_vol_state_dirty(vol);
-error:
-	fibril_mutex_unlock(&vol->hotspare_lock);
+	errno_t rc = hr_util_add_hotspare(vol, hotspare);
 
 	hr_raid1_update_vol_status(vol);
 
@@ -654,14 +634,6 @@ static errno_t swap_hs(hr_volume_t *vol, size_t bad, size_t hs)
 
 	service_id_t faulty_svc_id = vol->extents[bad].svc_id;
 	service_id_t hs_svc_id = vol->hotspares[hs].svc_id;
-
-	/* TODO: if rc != EOK, try next hotspare */
-	errno_t rc = block_init(hs_svc_id);
-	if (rc != EOK) {
-		HR_ERROR("hr_raid1_rebuild(): initing hotspare (%lu) failed\n",
-		    hs_svc_id);
-		return rc;
-	}
 
 	hr_update_ext_svc_id(vol, bad, hs_svc_id);
 	hr_update_ext_status(vol, bad, HR_EXT_HOTSPARE);
