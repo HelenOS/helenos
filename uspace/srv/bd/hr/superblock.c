@@ -88,6 +88,8 @@ errno_t hr_write_meta_to_vol(hr_volume_t *vol)
 			goto error;
 
 	}
+
+	memcpy(vol->in_mem_md, metadata, sizeof(hr_metadata_t));
 error:
 	free(metadata);
 	return rc;

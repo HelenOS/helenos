@@ -108,6 +108,13 @@ errno_t hr_create_vol_struct(hr_volume_t **rvol, hr_level_t level)
 		goto error;
 	}
 
+	vol->in_mem_md = calloc(1, sizeof(hr_metadata_t));
+	if (vol->in_mem_md == NULL) {
+		free(vol->fge);
+		rc = ENOMEM;
+		goto error;
+	}
+
 	vol->status = HR_VOL_NONE;
 
 	for (size_t i = 0; i < HR_MAX_EXTENTS; ++i)
@@ -812,6 +819,8 @@ static errno_t hr_util_assemble_from_matching_list(list_t *list)
 	vol->bsize = main_md->bsize;
 	memcpy(vol->devname, main_md->devname, HR_DEVNAME_LEN);
 
+	memcpy(vol->in_mem_md, main_md, sizeof(hr_metadata_t));
+
 	list_foreach(*list, link, struct svc_id_linked, iter) {
 		vol->extents[iter->md->index].svc_id = iter->svc_id;
 		if (iter->md->counter == max_counter_val)
@@ -839,6 +848,13 @@ static errno_t hr_util_assemble_from_matching_list(list_t *list)
 	/*
 	 * XXX: register it here
 	 * ... if it fails on EEXIST try different name... like + 1 on the end
+	 *
+	 * or have metadata edit utility as a part of hrctl..., or create
+	 * the original name + 4 random characters, tell the user that the device
+	 * was created with this new name, and add a option to hrctl to rename
+	 * an active array, and then write the new dirty metadata...
+	 *
+	 * or just refuse to assemble a name that is already used...
 	 *
 	 * TODO: discuss
 	 */
@@ -892,8 +908,6 @@ errno_t hr_util_try_auto_assemble(size_t *rassembled_cnt)
 	while (!list_empty(&dev_id_list)) {
 		iter = list_pop(&dev_id_list, struct svc_id_linked, link);
 
-		printf("svc_id: %lu\n", iter->svc_id);
-
 		void *metadata_block;
 		hr_metadata_t metadata;
 
@@ -906,13 +920,12 @@ errno_t hr_util_try_auto_assemble(size_t *rassembled_cnt)
 		free(metadata_block);
 
 		if (!hr_valid_md_magic(&metadata)) {
-			printf("BAD magic\n");
 			block_fini(iter->svc_id);
 			free_svc_id_linked(iter);
 			continue;
 		}
 
-		hr_metadata_dump(&metadata);
+		/* hr_metadata_dump(&metadata); */
 
 		char *svc_name = NULL;
 		rc = loc_service_get_name(iter->svc_id, &svc_name);
@@ -943,7 +956,6 @@ errno_t hr_util_try_auto_assemble(size_t *rassembled_cnt)
 		/* remove matching list members from dev_id_list */
 		list_foreach(matching_svcs_list, link, struct svc_id_linked,
 		    iter2) {
-			printf("matching svc_id: %lu\n", iter2->svc_id);
 			struct svc_id_linked *to_remove;
 			list_foreach_safe(dev_id_list, cur_link, next_link) {
 				to_remove = list_get_instance(cur_link,
