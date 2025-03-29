@@ -92,8 +92,6 @@ static bd_ops_t hr_raid5_bd_ops = {
 
 errno_t hr_raid5_create(hr_volume_t *new_volume)
 {
-	errno_t rc;
-
 	assert(new_volume->level == HR_LVL_5 || new_volume->level == HR_LVL_4);
 
 	if (new_volume->extent_no < 3) {
@@ -103,7 +101,7 @@ errno_t hr_raid5_create(hr_volume_t *new_volume)
 
 	fibril_rwlock_write_lock(&new_volume->states_lock);
 
-	rc = hr_raid5_update_vol_status(new_volume);
+	errno_t rc = hr_raid5_update_vol_status(new_volume);
 	if (rc != EOK) {
 		fibril_rwlock_write_unlock(&new_volume->states_lock);
 		return rc;
@@ -113,11 +111,9 @@ errno_t hr_raid5_create(hr_volume_t *new_volume)
 	new_volume->hr_bds.ops = &hr_raid5_bd_ops;
 	new_volume->hr_bds.sarg = new_volume;
 
-	rc = hr_register_volume(new_volume);
-
 	fibril_rwlock_write_unlock(&new_volume->states_lock);
 
-	return rc;
+	return EOK;
 }
 
 errno_t hr_raid5_init(hr_volume_t *vol)

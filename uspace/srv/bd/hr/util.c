@@ -834,7 +834,14 @@ static errno_t hr_util_assemble_from_matching_list(list_t *list)
 	/*
 	 * XXX: register it here
 	 * ... if it fails on EEXIST try different name... like + 1 on the end
+	 *
+	 * TODO: discuss
 	 */
+	rc = hr_register_volume(vol);
+	if (rc != EOK) {
+		fibril_rwlock_write_unlock(&hr_volumes_lock);
+		goto error;
+	}
 
 	list_append(&vol->lvolumes, &hr_volumes);
 

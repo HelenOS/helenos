@@ -90,8 +90,6 @@ static bd_ops_t hr_raid1_bd_ops = {
 
 errno_t hr_raid1_create(hr_volume_t *new_volume)
 {
-	errno_t rc;
-
 	assert(new_volume->level == HR_LVL_1);
 
 	if (new_volume->extent_no < 2) {
@@ -113,9 +111,7 @@ errno_t hr_raid1_create(hr_volume_t *new_volume)
 	if (state == HR_VOL_FAULTY || state == HR_VOL_NONE)
 		return EINVAL;
 
-	rc = hr_register_volume(new_volume);
-
-	return rc;
+	return EOK;
 }
 
 errno_t hr_raid1_init(hr_volume_t *vol)

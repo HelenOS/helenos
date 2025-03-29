@@ -143,6 +143,10 @@ static void hr_create_srv(ipc_call_t *icall, bool assemble)
 	if (!assemble) {
 		for (i = 0; i < cfg->dev_no; i++) {
 			if (cfg->devs[i] == 0) {
+				/*
+				 * XXX: own error codes, no need to log this...
+				 * its user error not service error
+				 */
 				HR_ERROR("missing device provided for array "
 				    "creation, aborting");
 				free(cfg);
@@ -201,6 +205,10 @@ static void hr_create_srv(ipc_call_t *icall, bool assemble)
 	}
 
 	rc = new_volume->hr_ops.create(new_volume);
+	if (rc != EOK)
+		goto error;
+
+	rc = hr_register_volume(new_volume);
 	if (rc != EOK)
 		goto error;
 
