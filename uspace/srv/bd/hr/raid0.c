@@ -99,6 +99,9 @@ errno_t hr_raid0_create(hr_volume_t *new_volume)
 	return EOK;
 }
 
+/*
+ * Called only once in volume's lifetime.
+ */
 errno_t hr_raid0_init(hr_volume_t *vol)
 {
 	errno_t rc;
@@ -113,6 +116,12 @@ errno_t hr_raid0_init(hr_volume_t *vol)
 
 	vol->nblocks = total_blkno;
 	vol->bsize = bsize;
+	/*
+	 * XXX: according to bsize set the data_offset...
+	 *
+	 * also can change this depending on level, like
+	 * RAID5 might try to put data at 64K boundary
+	 */
 	vol->data_offset = HR_DATA_OFF;
 	vol->data_blkno = vol->nblocks - (vol->data_offset * vol->extent_no);
 	vol->strip_size = HR_STRIP_SIZE;
