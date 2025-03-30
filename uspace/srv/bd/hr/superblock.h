@@ -62,8 +62,8 @@ struct hr_metadata {
 	uint64_t	truncated_blkno;	/* usable blocks */
 	uint64_t	data_offset;
 
-	uint64_t	counter;		/* yet unused */
-	uint32_t	version;		/* yet unused */
+	uint64_t	counter;		/* XXX: yet unused */
+	uint32_t	version;		/* XXX: yet unused */
 	uint32_t	extent_no;
 
 	uint32_t	index;			/* index of extent in volume */

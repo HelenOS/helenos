@@ -52,11 +52,32 @@
 #include "util.h"
 #include "var.h"
 
+struct svc_id_linked;
+
+static bool	hr_range_lock_overlap(hr_range_lock_t *, hr_range_lock_t *);
+static errno_t	hr_add_svc_linked_to_list(list_t *, service_id_t, bool,
+    hr_metadata_t *);
+static void	free_svc_id_linked(struct svc_id_linked *);
+static void	free_svc_id_list(list_t *);
+static errno_t	hr_fill_disk_part_svcs_list(list_t *);
+static errno_t	block_init_dev_list(list_t *);
+static void	block_fini_dev_list(list_t *);
+static errno_t	hr_util_get_matching_md_svcs_list(list_t *, list_t *,
+    service_id_t, hr_metadata_t *);
+static errno_t	hr_util_assemble_from_matching_list(list_t *);
+static errno_t	hr_fill_svcs_list_from_cfg(hr_config_t *, list_t *);
+
 #define HR_RL_LIST_LOCK(vol) (fibril_mutex_lock(&vol->range_lock_list_lock))
 #define HR_RL_LIST_UNLOCK(vol) \
     (fibril_mutex_unlock(&vol->range_lock_list_lock))
 
-static bool hr_range_lock_overlap(hr_range_lock_t *, hr_range_lock_t *);
+struct svc_id_linked {
+	link_t		 link;
+	service_id_t	 svc_id;
+	hr_metadata_t	*md;
+	bool		 inited;
+	bool		 md_present;
+};
 
 extern loc_srv_t *hr_srv;
 extern list_t hr_volumes;
@@ -584,14 +605,6 @@ void hr_mark_vol_state_dirty(hr_volume_t *vol)
 {
 	atomic_store(&vol->state_dirty, true);
 }
-
-struct svc_id_linked {
-	link_t link;
-	service_id_t svc_id;
-	hr_metadata_t *md;
-	bool inited;
-	bool md_present;
-};
 
 static errno_t hr_add_svc_linked_to_list(list_t *list, service_id_t svc_id,
     bool inited, hr_metadata_t *md)

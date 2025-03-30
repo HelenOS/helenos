@@ -57,105 +57,19 @@
 #include "util.h"
 #include "var.h"
 
+static void hr_assemble_srv(ipc_call_t *);
+static void hr_auto_assemble_srv(ipc_call_t *);
+static void hr_stop_srv(ipc_call_t *);
+static void hr_add_hotspare_srv(ipc_call_t *);
+static void hr_print_status_srv(ipc_call_t *);
+static void hr_ctl_conn(ipc_call_t *, void *);
+static void hr_client_conn(ipc_call_t *, void *);
+
 loc_srv_t *hr_srv;
 list_t hr_volumes;
 fibril_rwlock_t hr_volumes_lock;
 
 static service_id_t ctl_sid;
-
-static void hr_auto_assemble_srv(ipc_call_t *icall)
-{
-	HR_DEBUG("%s()", __func__);
-
-	errno_t rc;
-	size_t size;
-	size_t assembled_cnt = 0;
-	ipc_call_t call;
-
-	if (!async_data_read_receive(&call, &size)) {
-		async_answer_0(icall, EREFUSED);
-		return;
-	}
-
-	if (size != sizeof(size_t)) {
-		async_answer_0(&call, EINVAL);
-		async_answer_0(icall, EINVAL);
-		return;
-	}
-
-	rc = hr_util_try_assemble(NULL, &assembled_cnt);
-	if (rc != EOK)
-		goto error;
-
-	rc = async_data_read_finalize(&call, &assembled_cnt, size);
-	if (rc != EOK)
-		goto error;
-
-	async_answer_0(icall, EOK);
-	return;
-error:
-	async_answer_0(&call, rc);
-	async_answer_0(icall, rc);
-}
-
-static void hr_assemble_srv(ipc_call_t *icall)
-{
-	HR_DEBUG("%s()", __func__);
-
-	errno_t rc;
-	size_t size, assembled_cnt;
-	hr_config_t *cfg;
-	ipc_call_t call;
-
-	if (!async_data_write_receive(&call, &size)) {
-		async_answer_0(&call, EREFUSED);
-		async_answer_0(icall, EREFUSED);
-		return;
-	}
-
-	if (size != sizeof(hr_config_t)) {
-		async_answer_0(&call, EINVAL);
-		async_answer_0(icall, EINVAL);
-		return;
-	}
-
-	cfg = calloc(1, sizeof(hr_config_t));
-	if (cfg == NULL) {
-		async_answer_0(&call, ENOMEM);
-		async_answer_0(icall, ENOMEM);
-		return;
-	}
-
-	rc = async_data_write_finalize(&call, cfg, size);
-	if (rc != EOK)
-		goto error;
-
-	if (!async_data_read_receive(&call, &size)) {
-		async_answer_0(icall, EREFUSED);
-		return;
-	}
-
-	if (size != sizeof(size_t)) {
-		async_answer_0(icall, EINVAL);
-		return;
-	}
-
-	rc = hr_util_try_assemble(cfg, &assembled_cnt);
-	if (rc != EOK)
-		goto error;
-
-	rc = async_data_read_finalize(&call, &assembled_cnt, size);
-	if (rc != EOK)
-		goto error;
-
-	free(cfg);
-	async_answer_0(icall, EOK);
-	return;
-error:
-	free(cfg);
-	async_answer_0(&call, rc);
-	async_answer_0(icall, rc);
-}
 
 static void hr_create_srv(ipc_call_t *icall)
 {
@@ -263,6 +177,100 @@ static void hr_create_srv(ipc_call_t *icall)
 error:
 	free(cfg);
 	hr_destroy_vol_struct(new_volume);
+	async_answer_0(icall, rc);
+}
+
+static void hr_assemble_srv(ipc_call_t *icall)
+{
+	HR_DEBUG("%s()", __func__);
+
+	errno_t rc;
+	size_t size, assembled_cnt;
+	hr_config_t *cfg;
+	ipc_call_t call;
+
+	if (!async_data_write_receive(&call, &size)) {
+		async_answer_0(&call, EREFUSED);
+		async_answer_0(icall, EREFUSED);
+		return;
+	}
+
+	if (size != sizeof(hr_config_t)) {
+		async_answer_0(&call, EINVAL);
+		async_answer_0(icall, EINVAL);
+		return;
+	}
+
+	cfg = calloc(1, sizeof(hr_config_t));
+	if (cfg == NULL) {
+		async_answer_0(&call, ENOMEM);
+		async_answer_0(icall, ENOMEM);
+		return;
+	}
+
+	rc = async_data_write_finalize(&call, cfg, size);
+	if (rc != EOK)
+		goto error;
+
+	if (!async_data_read_receive(&call, &size)) {
+		async_answer_0(icall, EREFUSED);
+		return;
+	}
+
+	if (size != sizeof(size_t)) {
+		async_answer_0(icall, EINVAL);
+		return;
+	}
+
+	rc = hr_util_try_assemble(cfg, &assembled_cnt);
+	if (rc != EOK)
+		goto error;
+
+	rc = async_data_read_finalize(&call, &assembled_cnt, size);
+	if (rc != EOK)
+		goto error;
+
+	free(cfg);
+	async_answer_0(icall, EOK);
+	return;
+error:
+	free(cfg);
+	async_answer_0(&call, rc);
+	async_answer_0(icall, rc);
+}
+
+static void hr_auto_assemble_srv(ipc_call_t *icall)
+{
+	HR_DEBUG("%s()", __func__);
+
+	errno_t rc;
+	size_t size;
+	size_t assembled_cnt = 0;
+	ipc_call_t call;
+
+	if (!async_data_read_receive(&call, &size)) {
+		async_answer_0(icall, EREFUSED);
+		return;
+	}
+
+	if (size != sizeof(size_t)) {
+		async_answer_0(&call, EINVAL);
+		async_answer_0(icall, EINVAL);
+		return;
+	}
+
+	rc = hr_util_try_assemble(NULL, &assembled_cnt);
+	if (rc != EOK)
+		goto error;
+
+	rc = async_data_read_finalize(&call, &assembled_cnt, size);
+	if (rc != EOK)
+		goto error;
+
+	async_answer_0(icall, EOK);
+	return;
+error:
+	async_answer_0(&call, rc);
 	async_answer_0(icall, rc);
 }
 

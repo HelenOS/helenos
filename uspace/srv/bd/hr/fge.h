@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Miroslav Cimerman
+ * Copyright (c) 2025 Miroslav Cimerman
  * Copyright (c) 2024 Vojtech Horky
  * All rights reserved.
  *
@@ -47,12 +47,12 @@ typedef struct hr_fgroup hr_fgroup_t;
 
 typedef errno_t (*hr_wu_t)(void *);
 
-extern hr_fpool_t *hr_fpool_create(size_t, size_t, size_t);
-extern void hr_fpool_destroy(hr_fpool_t *);
-extern hr_fgroup_t *hr_fgroup_create(hr_fpool_t *, size_t);
-extern void *hr_fgroup_alloc(hr_fgroup_t *);
-extern void hr_fgroup_submit(hr_fgroup_t *, hr_wu_t, void *);
-extern errno_t hr_fgroup_wait(hr_fgroup_t *, size_t *, size_t *);
+extern hr_fpool_t	*hr_fpool_create(size_t, size_t, size_t);
+extern void		 hr_fpool_destroy(hr_fpool_t *);
+extern hr_fgroup_t	*hr_fgroup_create(hr_fpool_t *, size_t);
+extern void		*hr_fgroup_alloc(hr_fgroup_t *);
+extern void		 hr_fgroup_submit(hr_fgroup_t *, hr_wu_t, void *);
+extern errno_t		 hr_fgroup_wait(hr_fgroup_t *, size_t *, size_t *);
 
 #endif
 
