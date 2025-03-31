@@ -122,9 +122,6 @@ typedef struct hr_range_lock {
 	bool		 ignore;	/* prot. by vol->range_lock_list_lock */
 } hr_range_lock_t;
 
-extern errno_t		hr_init_devs(hr_volume_t *);
-extern void		hr_fini_devs(hr_volume_t *);
-
 extern errno_t		hr_raid0_create(hr_volume_t *);
 extern errno_t 		hr_raid1_create(hr_volume_t *);
 extern errno_t 		hr_raid5_create(hr_volume_t *);

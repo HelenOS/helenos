@@ -126,27 +126,16 @@ static void hr_create_srv(ipc_call_t *icall)
 		}
 	}
 
-	rc = hr_create_vol_struct(&new_volume, cfg->level);
+	rc = hr_create_vol_struct(&new_volume, cfg->level, cfg->devname);
 	if (rc != EOK) {
 		free(cfg);
 		async_answer_0(icall, rc);
 		return;
 	}
 
-	str_cpy(new_volume->devname, HR_DEVNAME_LEN, cfg->devname);
-	for (i = 0; i < cfg->dev_no; i++)
-		new_volume->extents[i].svc_id = cfg->devs[i];
-	new_volume->level = cfg->level;
-	new_volume->extent_no = cfg->dev_no;
-
-	/* XXX: do proper initing ... */
-	rc = hr_init_devs(new_volume);
-	if (rc != EOK) {
-		free(cfg);
-		free(new_volume);
-		async_answer_0(icall, rc);
-		return;
-	}
+	rc = hr_init_extents_from_cfg(new_volume, cfg);
+	if (rc != EOK)
+		goto error;
 
 	new_volume->hr_ops.init(new_volume);
 	if (rc != EOK)

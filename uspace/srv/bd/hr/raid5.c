@@ -92,6 +92,8 @@ extern loc_srv_t *hr_srv;
 
 errno_t hr_raid5_create(hr_volume_t *new_volume)
 {
+	HR_DEBUG("%s()", __func__);
+
 	assert(new_volume->level == HR_LVL_5 || new_volume->level == HR_LVL_4);
 
 	if (new_volume->extent_no < 3) {
@@ -121,27 +123,26 @@ errno_t hr_raid5_create(hr_volume_t *new_volume)
  */
 errno_t hr_raid5_init(hr_volume_t *vol)
 {
-	errno_t rc;
-	size_t bsize;
-	uint64_t total_blkno;
+	HR_DEBUG("%s()", __func__);
 
 	assert(vol->level == HR_LVL_5 || vol->level == HR_LVL_4);
 
-	rc = hr_check_devs(vol, &total_blkno, &bsize);
-	if (rc != EOK)
-		return rc;
+	uint64_t truncated_blkno = vol->extents[0].blkno;
+	for (size_t i = 1; i < vol->extent_no; i++) {
+		if (vol->extents[i].blkno < truncated_blkno)
+			truncated_blkno = vol->extents[i].blkno;
+	}
 
+	uint64_t total_blkno = truncated_blkno * vol->extent_no;
+
+	vol->truncated_blkno = truncated_blkno;
 	vol->nblocks = total_blkno;
-	vol->bsize = bsize;
-	/*
-	 * XXX: according to bsize set the data_offset...
-	 *
-	 * also can change this depending on level, like
-	 * RAID5 might try to put data at 64K boundary
-	 */
 	vol->data_offset = HR_DATA_OFF;
-	vol->data_blkno = vol->nblocks - (vol->data_offset * vol->extent_no) -
-	    (vol->nblocks / vol->extent_no);
+
+	vol->data_blkno = total_blkno;
+	vol->data_blkno -= HR_META_SIZE * vol->extent_no; /* count md blocks */
+	vol->data_blkno -= truncated_blkno; /* count parity */
+
 	vol->strip_size = HR_STRIP_SIZE;
 
 	return EOK;

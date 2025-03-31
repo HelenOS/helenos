@@ -52,14 +52,14 @@
     log_msg(LOG_DEFAULT, LVL_ERROR, format, ##__VA_ARGS__)
 
 
-extern errno_t		 hr_create_vol_struct(hr_volume_t **, hr_level_t);
+extern errno_t		 hr_create_vol_struct(hr_volume_t **, hr_level_t,
+    const char *);
 extern void		 hr_destroy_vol_struct(hr_volume_t *);
 extern hr_volume_t	*hr_get_volume(service_id_t);
 extern errno_t		 hr_remove_volume(service_id_t);
-extern errno_t		 hr_init_devs(hr_volume_t *);
+extern errno_t		 hr_init_extents_from_cfg(hr_volume_t *, hr_config_t *);
 extern void		 hr_fini_devs(hr_volume_t *);
 extern errno_t		 hr_register_volume(hr_volume_t *);
-extern errno_t		 hr_check_devs(hr_volume_t *, uint64_t *, size_t *);
 extern errno_t		 hr_check_ba_range(hr_volume_t *, size_t, uint64_t);
 extern void		 hr_add_ba_offset(hr_volume_t *, uint64_t *);
 extern void		 hr_update_ext_status(hr_volume_t *, size_t,

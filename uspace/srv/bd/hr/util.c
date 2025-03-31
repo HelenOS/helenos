@@ -44,6 +44,7 @@
 #include <stdatomic.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <str.h>
 #include <str_error.h>
 #include <vbd.h>
 
@@ -83,7 +84,8 @@ extern loc_srv_t *hr_srv;
 extern list_t hr_volumes;
 extern fibril_rwlock_t hr_volumes_lock;
 
-errno_t hr_create_vol_struct(hr_volume_t **rvol, hr_level_t level)
+errno_t hr_create_vol_struct(hr_volume_t **rvol, hr_level_t level,
+    const char *devname)
 {
 	errno_t rc;
 
@@ -91,6 +93,7 @@ errno_t hr_create_vol_struct(hr_volume_t **rvol, hr_level_t level)
 	if (vol == NULL)
 		return ENOMEM;
 
+	str_cpy(vol->devname, HR_DEVNAME_LEN, devname);
 	vol->level = level;
 
 	switch (level) {
@@ -137,12 +140,6 @@ errno_t hr_create_vol_struct(hr_volume_t **rvol, hr_level_t level)
 	}
 
 	vol->status = HR_VOL_NONE;
-
-	for (size_t i = 0; i < HR_MAX_EXTENTS; ++i)
-		vol->extents[i].status = HR_EXT_MISSING;
-
-	for (size_t i = 0; i < HR_MAX_HOTSPARES; ++i)
-		vol->extents[i].status = HR_EXT_MISSING;
 
 	fibril_mutex_initialize(&vol->lock); /* XXX: will remove this */
 
@@ -231,35 +228,63 @@ errno_t hr_remove_volume(service_id_t svc_id)
 	return ENOENT;
 }
 
-errno_t hr_init_devs(hr_volume_t *vol)
+errno_t hr_init_extents_from_cfg(hr_volume_t *vol, hr_config_t *cfg)
 {
 	HR_DEBUG("%s()", __func__);
 
 	errno_t rc;
-	size_t i;
-	hr_extent_t *extent;
+	size_t i, blkno, bsize;
+	size_t last_bsize = 0;
 
-	for (i = 0; i < vol->extent_no; i++) {
-		extent = &vol->extents[i];
-		if (extent->svc_id == 0) {
-			extent->status = HR_EXT_MISSING;
-			continue;
+	for (i = 0; i < cfg->dev_no; i++) {
+		service_id_t svc_id = cfg->devs[i];
+		if (svc_id == 0) {
+			rc = EINVAL;
+			goto error;
 		}
 
-		HR_DEBUG("hr_init_devs(): block_init() on (%lu)\n",
-		    extent->svc_id);
-		rc = block_init(extent->svc_id);
-		extent->status = HR_EXT_ONLINE;
-
+		HR_DEBUG("%s(): block_init() on (%lu)\n", __func__, svc_id);
+		rc = block_init(svc_id);
 		if (rc != EOK) {
-			HR_ERROR("hr_init_devs(): initing (%lu) failed, "
-			    "aborting\n", extent->svc_id);
-			break;
+			HR_DEBUG("%s(): initing (%lu) failed, aborting\n",
+			    __func__, svc_id);
+			goto error;
 		}
+
+		rc = block_get_nblocks(svc_id, &blkno);
+		if (rc != EOK)
+			goto error;
+
+		rc = block_get_bsize(svc_id, &bsize);
+		if (rc != EOK)
+			goto error;
+
+		if (last_bsize != 0 && bsize != last_bsize) {
+			HR_DEBUG("block sizes differ\n");
+			rc = EINVAL;
+			goto error;
+		}
+
+		vol->extents[i].svc_id = svc_id;
+		vol->extents[i].blkno = blkno;
+		vol->extents[i].status = HR_EXT_ONLINE;
+
+		last_bsize = bsize;
 	}
+
+	vol->bsize = last_bsize;
+	vol->extent_no = cfg->dev_no;
 
 	for (i = 0; i < HR_MAX_HOTSPARES; i++)
 		vol->hotspares[i].status = HR_EXT_MISSING;
+
+	return EOK;
+
+error:
+	for (i = 0; i < HR_MAX_EXTENTS; i++) {
+		if (vol->extents[i].svc_id != 0)
+			block_fini(vol->extents[i].svc_id);
+	}
 
 	return rc;
 }
@@ -329,64 +354,6 @@ errno_t hr_register_volume(hr_volume_t *vol)
 error:
 	rc = loc_service_unregister(hr_srv, new_id);
 	free(fullname);
-	return rc;
-}
-
-errno_t hr_check_devs(hr_volume_t *vol, uint64_t *rblkno, size_t *rbsize)
-{
-	HR_DEBUG("%s()", __func__);
-
-	errno_t rc;
-	size_t i, bsize;
-	uint64_t nblocks;
-	size_t last_bsize = 0;
-	uint64_t last_nblocks = 0;
-	uint64_t total_blocks = 0;
-	hr_extent_t *extent;
-
-	for (i = 0; i < vol->extent_no; i++) {
-		extent = &vol->extents[i];
-		if (extent->status == HR_EXT_MISSING)
-			continue;
-		rc = block_get_nblocks(extent->svc_id, &nblocks);
-		if (rc != EOK)
-			goto error;
-		if (last_nblocks != 0 && nblocks != last_nblocks) {
-			HR_ERROR("number of blocks differs\n");
-			rc = EINVAL;
-			goto error;
-		}
-
-		total_blocks += nblocks;
-		last_nblocks = nblocks;
-	}
-
-	for (i = 0; i < vol->extent_no; i++) {
-		extent = &vol->extents[i];
-		if (extent->status == HR_EXT_MISSING)
-			continue;
-		rc = block_get_bsize(extent->svc_id, &bsize);
-		if (rc != EOK)
-			goto error;
-		if (last_bsize != 0 && bsize != last_bsize) {
-			HR_ERROR("block sizes differ\n");
-			rc = EINVAL;
-			goto error;
-		}
-
-		last_bsize = bsize;
-	}
-
-	if ((bsize % 512) != 0) {
-		HR_ERROR("block size not multiple of 512\n");
-		return EINVAL;
-	}
-
-	if (rblkno != NULL)
-		*rblkno = total_blocks;
-	if (rbsize != NULL)
-		*rbsize = bsize;
-error:
 	return rc;
 }
 
@@ -815,7 +782,8 @@ static errno_t hr_util_assemble_from_matching_list(list_t *list)
 	assert(main_md != NULL);
 
 	hr_volume_t *vol;
-	rc = hr_create_vol_struct(&vol, (hr_level_t)main_md->level);
+	rc = hr_create_vol_struct(&vol, (hr_level_t)main_md->level,
+	    main_md->devname);
 	if (rc != EOK)
 		goto error;
 
@@ -826,16 +794,23 @@ static errno_t hr_util_assemble_from_matching_list(list_t *list)
 	vol->counter = main_md->counter;
 	vol->metadata_version = main_md->version;
 	vol->extent_no = main_md->extent_no;
-	vol->level = main_md->level;
+	/* vol->level = main_md->level; */
 	vol->layout = main_md->layout;
 	vol->strip_size = main_md->strip_size;
 	vol->bsize = main_md->bsize;
-	memcpy(vol->devname, main_md->devname, HR_DEVNAME_LEN);
+	/* memcpy(vol->devname, main_md->devname, HR_DEVNAME_LEN); */
 
 	memcpy(vol->in_mem_md, main_md, sizeof(hr_metadata_t));
 
 	list_foreach(*list, link, struct svc_id_linked, iter) {
 		vol->extents[iter->md->index].svc_id = iter->svc_id;
+
+		size_t blkno;
+		rc = block_get_nblocks(iter->svc_id, &blkno);
+		if (rc != EOK)
+			goto error;
+		vol->extents[iter->md->index].blkno = blkno;
+
 		if (iter->md->counter == max_counter_val)
 			vol->extents[iter->md->index].status = HR_EXT_ONLINE;
 		else
@@ -1044,12 +1019,29 @@ errno_t hr_util_add_hotspare(hr_volume_t *vol, service_id_t hotspare)
 		HR_ERROR("%s(): cannot add more hotspares "
 		    "to \"%s\"\n", __func__, vol->devname);
 		rc = ELIMIT;
-		goto end;
+		goto error;
 	}
 
 	rc = block_init(hotspare);
 	if (rc != EOK)
-		goto end;
+		goto error;
+
+	size_t hs_blkno;
+	rc = block_get_nblocks(hotspare, &hs_blkno);
+	if (rc != EOK) {
+		block_fini(hotspare);
+		goto error;
+	}
+
+	/*
+	 * TODO: make more flexible, when will have foreign md, the calculation
+	 * will differ, maybe something new like vol->md_hs_blkno will be enough
+	 */
+	if (hs_blkno < vol->truncated_blkno - HR_META_SIZE) {
+		rc = EINVAL;
+		block_fini(hotspare);
+		goto error;
+	}
 
 	size_t hs_idx = vol->hotspare_no;
 
@@ -1059,7 +1051,7 @@ errno_t hr_util_add_hotspare(hr_volume_t *vol, service_id_t hotspare)
 	hr_update_hotspare_status(vol, hs_idx, HR_EXT_HOTSPARE);
 
 	hr_mark_vol_state_dirty(vol);
-end:
+error:
 	fibril_mutex_unlock(&vol->hotspare_lock);
 	return rc;
 }
