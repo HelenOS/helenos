@@ -82,8 +82,8 @@ errno_t hr_write_meta_to_vol(hr_volume_t *vol)
 	for (i = 0; i < vol->extent_no; i++) {
 		metadata->index = host2uint32_t_le(i);
 
-		rc = block_write_direct(vol->extents[i].svc_id, HR_META_OFF,
-		    HR_META_SIZE, metadata);
+		rc = block_write_direct(vol->extents[i].svc_id,
+		    vol->extents[i].blkno - 1, HR_META_SIZE, metadata);
 		if (rc != EOK)
 			goto error;
 
@@ -113,8 +113,8 @@ errno_t hr_write_meta_to_ext(hr_volume_t *vol, size_t ext)
 
 	metadata->index = host2uint32_t_le(ext);
 
-	rc = block_write_direct(vol->extents[ext].svc_id, HR_META_OFF,
-	    HR_META_SIZE, metadata);
+	rc = block_write_direct(vol->extents[ext].svc_id,
+	    vol->extents[ext].blkno - 1, HR_META_SIZE, metadata);
 	if (rc != EOK)
 		goto error;
 
@@ -133,7 +133,7 @@ static errno_t hr_fill_meta_from_vol(hr_volume_t *vol, hr_metadata_t *metadata)
 {
 	HR_DEBUG("%s()", __func__);
 
-	size_t meta_blkno = HR_META_OFF + HR_META_SIZE;
+	size_t meta_blkno = HR_META_SIZE;
 
 	if (vol->level != HR_LVL_1)
 		meta_blkno *= vol->extent_no;
@@ -191,6 +191,11 @@ errno_t hr_fill_vol_from_meta(hr_volume_t *vol)
 	service_id_t assembly_svc_id_order[HR_MAX_EXTENTS] = { 0 };
 	for (size_t i = 0; i < vol->extent_no; i++)
 		assembly_svc_id_order[i] = vol->extents[i].svc_id;
+
+	/*
+	 * XXX: sanitize metadata, for example if truncated_blkno <= extent.blkno
+	 * or bsize == extent.bsize
+	 */
 
 	size_t md_order_indices[HR_MAX_EXTENTS] = { 0 };
 	for (size_t i = 0; i < vol->extent_no; i++) {
@@ -254,6 +259,7 @@ end:
 	return rc;
 }
 
+/* XXX: rewrite with read_metadata_block() */
 static errno_t read_metadata(service_id_t dev, hr_metadata_t *metadata)
 {
 	errno_t rc;
@@ -263,10 +269,10 @@ static errno_t read_metadata(service_id_t dev, hr_metadata_t *metadata)
 	if (rc != EOK)
 		return rc;
 
-	if (nblocks < HR_META_SIZE + HR_META_OFF)
+	if (nblocks < HR_META_SIZE)
 		return EINVAL;
 
-	rc = block_read_direct(dev, HR_META_OFF, HR_META_SIZE, metadata);
+	rc = block_read_direct(dev, nblocks - 1, HR_META_SIZE, metadata);
 	if (rc != EOK)
 		return rc;
 
@@ -292,14 +298,14 @@ errno_t hr_get_metadata_block(service_id_t dev, void **rblock)
 	if (rc != EOK)
 		return rc;
 
-	if (blkno < HR_META_OFF + HR_META_SIZE)
+	if (blkno < HR_META_SIZE)
 		return EINVAL;
 
 	block = malloc(bsize);
 	if (block == NULL)
 		return ENOMEM;
 
-	rc = block_read_direct(dev, HR_META_OFF, HR_META_SIZE, block);
+	rc = block_read_direct(dev, blkno - 1, HR_META_SIZE, block);
 	if (rc != EOK) {
 		free(block);
 		return rc;

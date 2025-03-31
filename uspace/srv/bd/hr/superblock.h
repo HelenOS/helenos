@@ -38,9 +38,11 @@
 
 #include "var.h"
 
+/*
+ * Metadata is stored on the last block of an extent.
+ */
 #define HR_META_SIZE		1	/* in blocks */
-#define HR_META_OFF		7	/* in blocks */
-#define HR_DATA_OFF		(HR_META_OFF + HR_META_SIZE)
+#define HR_DATA_OFF		0
 
 #define HR_MAGIC_STR		"HelenRAID"
 #define HR_MAGIC_SIZE		16
@@ -74,7 +76,7 @@ struct hr_metadata {
 	uint32_t	bsize;
 
 	char		devname[HR_DEVNAME_LEN];
-};
+} __attribute__((packed));
 
 extern errno_t	hr_write_meta_to_vol(hr_volume_t *);
 extern errno_t	hr_write_meta_to_ext(hr_volume_t *, size_t);
