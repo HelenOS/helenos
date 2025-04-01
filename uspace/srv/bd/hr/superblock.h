@@ -47,7 +47,7 @@
 #define HR_MAGIC_STR		"HelenRAID"
 #define HR_MAGIC_SIZE		16
 #define HR_UUID_LEN		16
-/* #define HR_METADATA_VERSION 0 */
+#define HR_METADATA_VERSION	1
 
 typedef struct hr_metadata hr_metadata_t;
 typedef struct hr_volume hr_volume_t;
@@ -78,11 +78,12 @@ struct hr_metadata {
 	char		devname[HR_DEVNAME_LEN];
 } __attribute__((packed));
 
-extern errno_t	hr_write_meta_to_vol(hr_volume_t *);
-extern errno_t	hr_write_meta_to_ext(hr_volume_t *, size_t);
-extern errno_t	hr_fill_vol_from_meta(hr_volume_t *);
+extern errno_t	hr_metadata_init(hr_volume_t *, hr_metadata_t *);
+extern errno_t	hr_metadata_save(hr_volume_t *);
+extern errno_t	hr_write_metadata_block(service_id_t, const void *);
 extern errno_t	hr_get_metadata_block(service_id_t, void **);
-extern void	hr_decode_metadata_from_block(void *, hr_metadata_t *);
+extern void	hr_encode_metadata_to_block(hr_metadata_t *, void *);
+extern void	hr_decode_metadata_from_block(const void *, hr_metadata_t *);
 extern void	hr_metadata_dump(hr_metadata_t *);
 extern bool	hr_valid_md_magic(hr_metadata_t *);
 

@@ -841,11 +841,9 @@ static errno_t hr_raid5_rebuild(void *arg)
 	    "extent number %lu\n", vol->devname, vol->svc_id, hotspare_idx);
 
 	hr_update_ext_status(vol, bad, HR_EXT_ONLINE);
-	/*
-	 * For now write metadata at the end, because
-	 * we don't sync metada accross extents yet.
-	 */
-	hr_write_meta_to_ext(vol, bad);
+
+	rc = hr_metadata_save(vol);
+
 end:
 	(void)hr_raid5_update_vol_status(vol);
 

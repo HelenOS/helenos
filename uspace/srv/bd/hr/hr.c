@@ -141,7 +141,11 @@ static void hr_create_srv(ipc_call_t *icall)
 	if (rc != EOK)
 		goto error;
 
-	rc = hr_write_meta_to_vol(new_volume);
+	rc = hr_metadata_init(new_volume, new_volume->in_mem_md);
+	if (rc != EOK)
+		goto error;
+
+	rc = hr_metadata_save(new_volume);
 	if (rc != EOK)
 		goto error;
 

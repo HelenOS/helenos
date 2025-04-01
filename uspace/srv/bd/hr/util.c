@@ -772,7 +772,7 @@ static errno_t hr_util_assemble_from_matching_list(list_t *list)
 	size_t max_counter_val = 0;
 
 	list_foreach(*list, link, struct svc_id_linked, iter) {
-		hr_metadata_dump(iter->md);
+		/* hr_metadata_dump(iter->md); */
 		if (iter->md->counter >= max_counter_val) {
 			max_counter_val = iter->md->counter;
 			main_md = iter->md;

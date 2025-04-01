@@ -539,11 +539,8 @@ static errno_t hr_raid1_rebuild(void *arg)
 
 	fibril_rwlock_write_unlock(&vol->states_lock);
 
-	/*
-	 * For now write metadata at the end, because
-	 * we don't sync metada accross extents yet.
-	 */
-	hr_write_meta_to_ext(vol, rebuild_idx);
+	rc = hr_metadata_save(vol);
+
 end:
 	if (rc != EOK) {
 		/*

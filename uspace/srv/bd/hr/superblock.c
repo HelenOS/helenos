@@ -49,239 +49,125 @@
 #include "util.h"
 #include "var.h"
 
-static errno_t read_metadata(service_id_t, hr_metadata_t *);
-static errno_t hr_fill_meta_from_vol(hr_volume_t *, hr_metadata_t *);
-
-errno_t hr_write_meta_to_vol(hr_volume_t *vol)
+errno_t hr_metadata_init(hr_volume_t *vol, hr_metadata_t *md)
 {
 	HR_DEBUG("%s()", __func__);
 
-	errno_t rc;
-	size_t i;
-	hr_metadata_t *metadata;
+	str_cpy(md->magic, HR_MAGIC_SIZE, HR_MAGIC_STR);
+
+	md->version = HR_METADATA_VERSION;
+	vol->metadata_version = md->version;
+
+	md->counter = 0;
+	vol->counter = md->counter;
+
 	uuid_t uuid;
-
-	metadata = calloc(1, HR_META_SIZE * vol->bsize);
-	if (metadata == NULL)
-		return ENOMEM;
-
-	rc = hr_fill_meta_from_vol(vol, metadata);
-	if (rc != EOK)
-		goto error;
-
 	/* rndgen */
 	fibril_usleep(1000);
-	rc = uuid_generate(&uuid);
+	errno_t rc = uuid_generate(&uuid);
 	if (rc != EOK)
-		goto error;
+		return rc;
 
 	/* XXX: for now we just copy byte by byte as "encoding" */
-	memcpy(metadata->uuid, &uuid, HR_UUID_LEN);
+	memcpy(md->uuid, &uuid, HR_UUID_LEN);
 	/* uuid_encode(&uuid, metadata->uuid); */
 
-	for (i = 0; i < vol->extent_no; i++) {
-		metadata->index = host2uint32_t_le(i);
-
-		rc = block_write_direct(vol->extents[i].svc_id,
-		    vol->extents[i].blkno - 1, HR_META_SIZE, metadata);
-		if (rc != EOK)
-			goto error;
-
-	}
-
-	memcpy(vol->in_mem_md, metadata, sizeof(hr_metadata_t));
-error:
-	free(metadata);
-	return rc;
-}
-
-errno_t hr_write_meta_to_ext(hr_volume_t *vol, size_t ext)
-{
-	HR_DEBUG("%s()", __func__);
-
-	errno_t rc;
-	hr_metadata_t *metadata;
-
-	/* XXX: use scratchpad */
-	metadata = calloc(1, HR_META_SIZE * vol->bsize);
-	if (metadata == NULL)
-		return ENOMEM;
-
-	rc = hr_fill_meta_from_vol(vol, metadata);
-	if (rc != EOK)
-		goto error;
-
-	metadata->index = host2uint32_t_le(ext);
-
-	rc = block_write_direct(vol->extents[ext].svc_id,
-	    vol->extents[ext].blkno - 1, HR_META_SIZE, metadata);
-	if (rc != EOK)
-		goto error;
-
-error:
-	free(metadata);
-	return rc;
-}
-
-/*
- * Fill metadata members from
- * specified volume.
- *
- * Does not fill extent index and UUID.
- */
-static errno_t hr_fill_meta_from_vol(hr_volume_t *vol, hr_metadata_t *metadata)
-{
-	HR_DEBUG("%s()", __func__);
-
-	size_t meta_blkno = HR_META_SIZE;
-
-	if (vol->level != HR_LVL_1)
-		meta_blkno *= vol->extent_no;
-
-	if (vol->nblocks < meta_blkno) {
-		HR_ERROR("hr_fill_meta_from_vol(): volume \"%s\" does not "
-		    " have enough space to store metada, aborting\n",
-		    vol->devname);
-		return EINVAL;
-	} else if (vol->nblocks == meta_blkno) {
-		HR_ERROR("hr_fill_meta_from_vol(): volume \"%s\" would have "
-		    "zero data blocks after writing metadata, aborting\n",
-		    vol->devname);
-		return EINVAL;
-	}
-
-	/* XXX: use scratchpad */
-	str_cpy(metadata->magic, HR_MAGIC_SIZE, HR_MAGIC_STR);
-	metadata->nblocks = host2uint64_t_le(vol->nblocks);
-	metadata->data_blkno = host2uint64_t_le(vol->data_blkno);
-	metadata->truncated_blkno = host2uint64_t_le(vol->truncated_blkno);
-	metadata->data_offset = host2uint64_t_le(vol->data_offset);
-	metadata->counter = host2uint64_t_le(~(0UL)); /* XXX: unused */
-	metadata->version = host2uint32_t_le(~(0U)); /* XXX: unused */
-	metadata->extent_no = host2uint32_t_le(vol->extent_no);
-	/* index filled separately for each extent */
-	metadata->level = host2uint32_t_le(vol->level);
-	metadata->layout = host2uint32_t_le(vol->layout);
-	metadata->strip_size = host2uint32_t_le(vol->strip_size);
-	metadata->bsize = host2uint32_t_le(vol->bsize);
-	str_cpy(metadata->devname, HR_DEVNAME_LEN, vol->devname);
+	md->nblocks = vol->nblocks;
+	md->data_blkno = vol->data_blkno;
+	md->truncated_blkno = vol->truncated_blkno;
+	md->data_offset = vol->data_offset;
+	md->extent_no = vol->extent_no;
+	md->level = vol->level;
+	md->layout = vol->layout;
+	md->strip_size = vol->strip_size;
+	md->bsize = vol->bsize;
+	memcpy(md->devname, vol->devname, HR_DEVNAME_LEN);
 
 	return EOK;
 }
 
+errno_t hr_metadata_save(hr_volume_t *vol)
+{
+	HR_DEBUG("%s()", __func__);
+
+	errno_t rc = EOK;
+
+	void *md_block = calloc(1, vol->bsize);
+	if (md_block == NULL)
+		return ENOMEM;
+
+	for (size_t i = 0; i < vol->extent_no; i++) {
+		hr_extent_t *ext = &vol->extents[i];
+
+		/* TODO: special case for REBUILD */
+		if (ext->status != HR_EXT_ONLINE)
+			continue;
+
+		vol->in_mem_md->index = i;
+		hr_encode_metadata_to_block(vol->in_mem_md, md_block);
+		rc = hr_write_metadata_block(ext->svc_id, md_block);
+		/*
+		 * XXX: here maybe call vol status event or the state
+		 * callback inside, same with read_block...
+		 *
+		 * also think about using FGE here... maybe a bit more
+		 * code, but faster and gratis state callback :-)
+		 */
+		if (rc != EOK)
+			goto error;
+	}
+
+error:
+	free(md_block);
+	return rc;
+}
+
 bool hr_valid_md_magic(hr_metadata_t *md)
 {
+	HR_DEBUG("%s()", __func__);
+
 	if (str_lcmp(md->magic, HR_MAGIC_STR, HR_MAGIC_SIZE) != 0)
 		return false;
 
 	return true;
 }
 
-errno_t hr_fill_vol_from_meta(hr_volume_t *vol)
+errno_t hr_write_metadata_block(service_id_t dev, const void *block)
 {
 	HR_DEBUG("%s()", __func__);
 
 	errno_t rc;
-	hr_metadata_t *metadata;
+	uint64_t blkno;
+	size_t bsize;
 
-	metadata = calloc(1, HR_META_SIZE * vol->bsize);
-	if (metadata == NULL)
-		return ENOMEM;
-
-	service_id_t assembly_svc_id_order[HR_MAX_EXTENTS] = { 0 };
-	for (size_t i = 0; i < vol->extent_no; i++)
-		assembly_svc_id_order[i] = vol->extents[i].svc_id;
-
-	/*
-	 * XXX: sanitize metadata, for example if truncated_blkno <= extent.blkno
-	 * or bsize == extent.bsize
-	 */
-
-	size_t md_order_indices[HR_MAX_EXTENTS] = { 0 };
-	for (size_t i = 0; i < vol->extent_no; i++) {
-		if (assembly_svc_id_order[i] == 0) {
-			/* set invalid index */
-			md_order_indices[i] = vol->extent_no;
-			continue;
-		}
-		rc = read_metadata(assembly_svc_id_order[i], metadata);
-		if (rc != EOK)
-			goto end;
-		if (!hr_valid_md_magic(metadata))
-			goto end;
-		md_order_indices[i] = uint32_t_le2host(metadata->index);
-	}
-
-	for (size_t i = 0; i < vol->extent_no; i++) {
-		vol->extents[i].svc_id = 0;
-		vol->extents[i].status = HR_EXT_MISSING;
-	}
-
-	/* sort */
-	for (size_t i = 0; i < vol->extent_no; i++) {
-		for (size_t j = 0; j < vol->extent_no; j++) {
-			if (i == md_order_indices[j]) {
-				vol->extents[i].svc_id =
-				    assembly_svc_id_order[j];
-				vol->extents[i].status = HR_EXT_ONLINE;
-			}
-		}
-	}
-
-	/*
-	 * still assume metadata are in sync across extents
-	 */
-
-	if (vol->extent_no != uint32_t_le2host(metadata->extent_no)) {
-		HR_ERROR("number of divices in array differ: specified %zu, "
-		    "metadata states %u",
-		    vol->extent_no, uint32_t_le2host(metadata->extent_no));
-		rc = EINVAL;
-		goto end;
-	}
-
-	/* TODO: handle version */
-	vol->level = uint32_t_le2host(metadata->level);
-	vol->layout = (uint8_t)uint32_t_le2host(metadata->layout);
-	vol->strip_size = uint32_t_le2host(metadata->strip_size);
-	vol->nblocks = uint64_t_le2host(metadata->nblocks);
-	vol->data_blkno = uint64_t_le2host(metadata->data_blkno);
-	vol->data_offset = uint64_t_le2host(metadata->data_offset);
-	vol->bsize = uint32_t_le2host(metadata->bsize);
-	vol->counter = uint64_t_le2host(0x00); /* unused */
-
-	if (str_cmp(metadata->devname, vol->devname) != 0) {
-		HR_WARN("devname on metadata (%s) and config (%s) differ, "
-		    "using config", metadata->devname, vol->devname);
-	}
-end:
-	free(metadata);
-	return rc;
-}
-
-/* XXX: rewrite with read_metadata_block() */
-static errno_t read_metadata(service_id_t dev, hr_metadata_t *metadata)
-{
-	errno_t rc;
-	uint64_t nblocks;
-
-	rc = block_get_nblocks(dev, &nblocks);
+	rc = block_get_bsize(dev, &bsize);
 	if (rc != EOK)
 		return rc;
 
-	if (nblocks < HR_META_SIZE)
+	if (bsize < sizeof(hr_metadata_t))
 		return EINVAL;
 
-	rc = block_read_direct(dev, nblocks - 1, HR_META_SIZE, metadata);
+	rc = block_get_nblocks(dev, &blkno);
 	if (rc != EOK)
 		return rc;
 
-	return EOK;
+	if (blkno < HR_META_SIZE)
+		return EINVAL;
+
+	rc = block_write_direct(dev, blkno - 1, HR_META_SIZE, block);
+	/*
+	 * XXX: here maybe call vol status event or the state callback...
+	 *
+	 * but need to pass vol pointer
+	 */
+
+	return rc;
 }
 
 errno_t hr_get_metadata_block(service_id_t dev, void **rblock)
 {
 	HR_DEBUG("%s()", __func__);
+
 	errno_t rc;
 	uint64_t blkno;
 	size_t bsize;
@@ -306,6 +192,11 @@ errno_t hr_get_metadata_block(service_id_t dev, void **rblock)
 		return ENOMEM;
 
 	rc = block_read_direct(dev, blkno - 1, HR_META_SIZE, block);
+	/*
+	 * XXX: here maybe call vol status event or the state callback...
+	 *
+	 * but need to pass vol pointer
+	 */
 	if (rc != EOK) {
 		free(block);
 		return rc;
@@ -320,8 +211,42 @@ errno_t hr_get_metadata_block(service_id_t dev, void **rblock)
 	return EOK;
 }
 
-void hr_decode_metadata_from_block(void *block, hr_metadata_t *metadata)
+void hr_encode_metadata_to_block(hr_metadata_t *metadata, void *block)
 {
+	HR_DEBUG("%s()", __func__);
+
+	/*
+	 * Use scratch metadata for easier encoding without the need
+	 * for manualy specifying offsets.
+	 */
+	hr_metadata_t scratch_md;
+
+	memcpy(scratch_md.magic, metadata->magic, HR_MAGIC_SIZE);
+	memcpy(scratch_md.uuid, metadata->uuid, HR_UUID_LEN);
+	/* uuid_decode((uint8_t *)scratch_md.uuid, (uuid_t *)metadata->uuid); */
+
+	scratch_md.nblocks = host2uint64_t_le(metadata->nblocks);
+	scratch_md.data_blkno = host2uint64_t_le(metadata->data_blkno);
+	scratch_md.truncated_blkno = host2uint64_t_le(
+	    metadata->truncated_blkno);
+	scratch_md.data_offset = host2uint64_t_le(metadata->data_offset);
+	scratch_md.counter = host2uint64_t_le(metadata->counter);
+	scratch_md.version = host2uint32_t_le(metadata->version);
+	scratch_md.extent_no = host2uint32_t_le(metadata->extent_no);
+	scratch_md.index = host2uint32_t_le(metadata->index);
+	scratch_md.level = host2uint32_t_le(metadata->level);
+	scratch_md.layout = host2uint32_t_le(metadata->layout);
+	scratch_md.strip_size = host2uint32_t_le(metadata->strip_size);
+	scratch_md.bsize = host2uint32_t_le(metadata->bsize);
+	memcpy(scratch_md.devname, metadata->devname, HR_DEVNAME_LEN);
+
+	memcpy(block, &scratch_md, sizeof(hr_metadata_t));
+}
+
+void hr_decode_metadata_from_block(const void *block, hr_metadata_t *metadata)
+{
+	HR_DEBUG("%s()", __func__);
+
 	/*
 	 * Use scratch metadata for easier decoding without the need
 	 * for manualy specifying offsets.
@@ -351,6 +276,8 @@ void hr_decode_metadata_from_block(void *block, hr_metadata_t *metadata)
 
 void hr_metadata_dump(hr_metadata_t *metadata)
 {
+	HR_DEBUG("%s()", __func__);
+
 	printf("\tmagic: %s\n", metadata->magic);
 	printf("\tUUID: ");
 	for (size_t i = 0; i < HR_UUID_LEN; ++i) {
