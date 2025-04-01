@@ -86,6 +86,11 @@ errno_t hr_metadata_init(hr_volume_t *vol, hr_metadata_t *md)
 	return EOK;
 }
 
+/*
+ * TODO: think about thread safety, if hr_metadata_save() can
+ * be called from multiple threads, and if, maybe will need
+ * md_lock... or whatever, but dont want to stall I/Os...
+ */
 errno_t hr_metadata_save(hr_volume_t *vol)
 {
 	HR_DEBUG("%s()", __func__);

@@ -822,6 +822,24 @@ static errno_t hr_util_assemble_from_matching_list(list_t *list)
 			vol->extents[i].status = HR_EXT_MISSING;
 	}
 
+	/*
+	 * TODO: something like mark md dirty or whatever, just sync the
+	 * vol->counter with vol->in_mem_md->counter, or merge them and only
+	 * keep the vol->in_mem_md->counter...
+	 *
+	 * XXX: if thats the only thing that can change in metadata
+	 * during volume runtime, then whatever, but if more
+	 * things will need to be synced, think of something more clever
+	 *
+	 * TODO: remove from here and increment it the "first" time (if nothing
+	 * happens - no state changes, no rebuild, etc) - only after the first
+	 * write... but for now leave it here
+	 */
+	vol->counter++;
+	vol->in_mem_md->counter = vol->counter;
+
+	hr_metadata_save(vol);
+
 	rc = vol->hr_ops.create(vol);
 	if (rc != EOK)
 		goto error;
