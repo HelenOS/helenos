@@ -817,6 +817,11 @@ static errno_t hr_util_assemble_from_matching_list(list_t *list)
 			vol->extents[iter->md->index].status = HR_EXT_INVALID;
 	}
 
+	for (size_t i = 0; i < vol->extent_no; i++) {
+		if (vol->extents[i].status == HR_EXT_NONE)
+			vol->extents[i].status = HR_EXT_MISSING;
+	}
+
 	rc = vol->hr_ops.create(vol);
 	if (rc != EOK)
 		goto error;
