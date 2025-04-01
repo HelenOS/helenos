@@ -71,9 +71,17 @@ typedef struct hr_volume {
 	fibril_mutex_t	 range_lock_list_lock;	/* range locks list lock */
 	hr_fpool_t	*fge;			/* fibril pool */
 
-	uint32_t	 metadata_version; /* XXX: yet unused */
+	/*
+	 * TODO: also print in info, doesn't have
+	 * to be part of hr_volume_t but just the info
+	 * that is passed to be printed
+	 *
+	 * Probably just defer this decition until foreign md
+	 * will be handled.
+	 */
+	uint32_t	 metadata_version;
 
-	hr_metadata_t	*in_mem_md; /* TODO: implement */
+	hr_metadata_t	*in_mem_md;
 
 	/* invariants */
 	size_t		 extent_no;		/* number of extents */
@@ -101,7 +109,6 @@ typedef struct hr_volume {
 	/* XXX: atomic_uint_least64_t? */
 	_Atomic uint64_t rebuild_blk;		/* rebuild position */
 	_Atomic int	 open_cnt;		/* open/close() counter */
-	uint64_t	 counter;		/* TODO: metadata syncing */
 	hr_vol_status_t	 status;		/* volume status */
 } hr_volume_t;
 

@@ -791,7 +791,6 @@ static errno_t hr_util_assemble_from_matching_list(list_t *list)
 	vol->data_blkno = main_md->data_blkno;
 	vol->truncated_blkno = main_md->truncated_blkno;
 	vol->data_offset = main_md->data_offset;
-	vol->counter = main_md->counter;
 	vol->metadata_version = main_md->version;
 	vol->extent_no = main_md->extent_no;
 	/* vol->level = main_md->level; */
@@ -823,9 +822,10 @@ static errno_t hr_util_assemble_from_matching_list(list_t *list)
 	}
 
 	/*
-	 * TODO: something like mark md dirty or whatever, just sync the
-	 * vol->counter with vol->in_mem_md->counter, or merge them and only
-	 * keep the vol->in_mem_md->counter...
+	 * TODO: something like mark md dirty or whatever
+	 *	- probably will be handled by each md type differently,
+	 *	  by specific function pointers
+	 *	- deal with this when foreign md will be handled
 	 *
 	 * XXX: if thats the only thing that can change in metadata
 	 * during volume runtime, then whatever, but if more
@@ -835,8 +835,7 @@ static errno_t hr_util_assemble_from_matching_list(list_t *list)
 	 * happens - no state changes, no rebuild, etc) - only after the first
 	 * write... but for now leave it here
 	 */
-	vol->counter++;
-	vol->in_mem_md->counter = vol->counter;
+	vol->in_mem_md->counter++;
 
 	hr_metadata_save(vol);
 

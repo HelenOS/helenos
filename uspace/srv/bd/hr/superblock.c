@@ -59,7 +59,6 @@ errno_t hr_metadata_init(hr_volume_t *vol, hr_metadata_t *md)
 	vol->metadata_version = md->version;
 
 	md->counter = 0;
-	vol->counter = md->counter;
 
 	uuid_t uuid;
 	/* rndgen */
