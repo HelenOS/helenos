@@ -227,12 +227,14 @@ static errno_t print_vol_info(size_t index, hr_vol_info_t *vol_info)
 		printf("extents: [status] [index] [devname]\n");
 	for (i = 0; i < vol_info->extent_no; i++) {
 		ext = &vol_info->extents[i];
-		if (ext->status == HR_EXT_MISSING) {
+		if (ext->status == HR_EXT_MISSING || ext->status == HR_EXT_NONE) {
 			devname = (char *) "MISSING-devname";
 		} else {
 			rc = loc_service_get_name(ext->svc_id, &devname);
-			if (rc != EOK)
-				return rc;
+			if (rc != EOK) {
+				printf("loc_service_get_name() failed, skipping...\n");
+				continue;
+			}
 		}
 		if (vol_info->level == HR_LVL_4) {
 			if ((i == 0 && vol_info->layout == HR_RLQ_RAID4_0) ||
