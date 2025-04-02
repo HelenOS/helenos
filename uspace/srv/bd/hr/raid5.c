@@ -38,6 +38,7 @@
 #include <block.h>
 #include <errno.h>
 #include <hr.h>
+#include <inttypes.h>
 #include <io/log.h>
 #include <ipc/hr.h>
 #include <ipc/services.h>
@@ -769,7 +770,7 @@ static errno_t hr_raid5_rebuild(void *arg)
 
 	hr_extent_t *rebuild_ext = &vol->extents[bad];
 
-	HR_DEBUG("hr_raid5_rebuild(): starting rebuild on (%lu)\n",
+	HR_DEBUG("hr_raid5_rebuild(): starting rebuild on (%" PRIun ")\n",
 	    rebuild_ext->svc_id);
 
 	hr_update_ext_status(vol, bad, HR_EXT_REBUILD);
@@ -803,8 +804,9 @@ static errno_t hr_raid5_rebuild(void *arg)
 				    ba, cnt, buf);
 			if (rc != EOK) {
 				hr_raid5_handle_extent_error(vol, i, rc);
-				HR_ERROR("rebuild on \"%s\" (%lu), failed due "
-				    "to a failed ONLINE extent, number %lu\n",
+				HR_ERROR("rebuild on \"%s\" (%" PRIun "), "
+				    "failed due to a failed ONLINE extent, "
+				    "number %zu\n",
 				    vol->devname, vol->svc_id, i);
 				goto end;
 			}
@@ -818,8 +820,8 @@ static errno_t hr_raid5_rebuild(void *arg)
 		rc = block_write_direct(rebuild_ext->svc_id, ba, cnt, xorbuf);
 		if (rc != EOK) {
 			hr_raid5_handle_extent_error(vol, bad, rc);
-			HR_ERROR("rebuild on \"%s\" (%lu), failed due to "
-			    "the rebuilt extent number %lu failing\n",
+			HR_ERROR("rebuild on \"%s\" (%" PRIun "), failed due to "
+			    "the rebuilt extent number %zu failing\n",
 			    vol->devname, vol->svc_id, bad);
 			goto end;
 		}
@@ -837,8 +839,8 @@ static errno_t hr_raid5_rebuild(void *arg)
 		fibril_rwlock_write_lock(&vol->states_lock);
 	}
 
-	HR_DEBUG("hr_raid5_rebuild(): rebuild finished on \"%s\" (%lu), "
-	    "extent number %lu\n", vol->devname, vol->svc_id, hotspare_idx);
+	HR_DEBUG("hr_raid5_rebuild(): rebuild finished on \"%s\" (%" PRIun "), "
+	    "extent number %zu\n", vol->devname, vol->svc_id, hotspare_idx);
 
 	hr_update_ext_status(vol, bad, HR_EXT_ONLINE);
 

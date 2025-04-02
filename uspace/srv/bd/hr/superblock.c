@@ -36,6 +36,7 @@
 #include <block.h>
 #include <byteorder.h>
 #include <errno.h>
+#include <inttypes.h>
 #include <io/log.h>
 #include <loc.h>
 #include <mem.h>
@@ -290,18 +291,18 @@ void hr_metadata_dump(hr_metadata_t *metadata)
 			printf(" ");
 	}
 	printf("\n");
-	printf("\tnblocks: %lu\n", metadata->nblocks);
-	printf("\tdata_blkno: %lu\n", metadata->data_blkno);
-	printf("\ttruncated_blkno: %lu\n", metadata->truncated_blkno);
-	printf("\tdata_offset: %lu\n", metadata->data_offset);
-	printf("\tcounter: %lu\n", metadata->counter);
-	printf("\tversion: %u\n", metadata->version);
-	printf("\textent_no: %u\n", metadata->extent_no);
-	printf("\tindex: %u\n", metadata->index);
-	printf("\tlevel: %u\n", metadata->level);
-	printf("\tlayout: %u\n", metadata->layout);
-	printf("\tstrip_size: %u\n", metadata->strip_size);
-	printf("\tbsize: %u\n", metadata->bsize);
+	printf("\tnblocks: %" PRIu64 "\n", metadata->nblocks);
+	printf("\tdata_blkno: %" PRIu64 "\n", metadata->data_blkno);
+	printf("\ttruncated_blkno: %" PRIu64 "\n", metadata->truncated_blkno);
+	printf("\tdata_offset: %" PRIu64 "\n", metadata->data_offset);
+	printf("\tcounter: %" PRIu64 "\n", metadata->counter);
+	printf("\tversion: %" PRIu32 "\n", metadata->version);
+	printf("\textent_no: %" PRIu32 "\n", metadata->extent_no);
+	printf("\tindex: %" PRIu32 "\n", metadata->index);
+	printf("\tlevel: %" PRIu32 "\n", metadata->level);
+	printf("\tlayout: %" PRIu32 "\n", metadata->layout);
+	printf("\tstrip_size: %" PRIu32 "\n", metadata->strip_size);
+	printf("\tbsize: %" PRIu32 "\n", metadata->bsize);
 	printf("\tdevname: %s\n", metadata->devname);
 }
 

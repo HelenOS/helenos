@@ -36,6 +36,7 @@
 #include <block.h>
 #include <errno.h>
 #include <hr.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <str_error.h>
 
@@ -50,8 +51,22 @@ errno_t hr_io_worker(void *arg)
 	size_t ext_idx = io->extent;
 	errno_t rc;
 
-	HR_DEBUG("WORKER on extent: %lu, ba: %lu, cnt: %lu\n",
-	    io->extent, io->ba, io->cnt);
+	const char *debug_type_str = NULL;
+	switch (io->type) {
+	case HR_BD_SYNC:
+		debug_type_str = "SYNC";
+		break;
+	case HR_BD_READ:
+		debug_type_str = "READ";
+		break;
+	case HR_BD_WRITE:
+		debug_type_str = "WRITE";
+		break;
+	}
+
+	HR_DEBUG("%s WORKER (%p) on extent: %zu, ba: %" PRIu64 ", "
+	    "cnt: %" PRIu64 "\n",
+	    debug_type_str, io, io->extent, io->ba, io->cnt);
 
 	switch (io->type) {
 	case HR_BD_SYNC:
@@ -72,6 +87,8 @@ errno_t hr_io_worker(void *arg)
 		return EINVAL;
 	}
 
+	HR_DEBUG("WORKER (%p) rc: %s\n", io, str_error(rc));
+
 	/*
 	 * We don't have to invalidate extents who got ENOMEM
 	 * on READ/SYNC. But when we get ENOMEM on a WRITE, we have
@@ -80,8 +97,6 @@ errno_t hr_io_worker(void *arg)
 	 */
 	if (rc != EOK && (rc != ENOMEM || io->type == HR_BD_WRITE))
 		io->state_callback(io->vol, io->extent, rc);
-
-	HR_DEBUG("WORKER rc: %s\n", str_error(rc));
 
 	return rc;
 }

@@ -194,7 +194,7 @@ static errno_t print_vol_info(size_t index, hr_vol_info_t *vol_info)
 
 	printf("--- vol %zu ---\n", index);
 
-	printf("svc_id: %lu\n", vol_info->svc_id);
+	printf("svc_id: %" PRIun "\n", vol_info->svc_id);
 
 	rc = loc_service_get_name(vol_info->svc_id, &devname);
 	if (rc != EOK)
@@ -210,15 +210,15 @@ static errno_t print_vol_info(size_t index, hr_vol_info_t *vol_info)
 	}
 	if (vol_info->level == HR_LVL_0 || vol_info->level == HR_LVL_4) {
 		if (vol_info->strip_size / 1024 < 1)
-			printf("strip size in bytes: %u\n",
+			printf("strip size in bytes: %" PRIu32 "\n",
 			    vol_info->strip_size);
 		else
-			printf("strip size: %uK\n",
+			printf("strip size: %" PRIu32 "K\n",
 			    vol_info->strip_size / 1024);
 	}
-	printf("size in bytes: %luMiB\n",
+	printf("size in bytes: %" PRIu64 "MiB\n",
 	    vol_info->nblocks * vol_info->bsize / 1024 / 1024);
-	printf("size in blocks: %lu\n", vol_info->nblocks);
+	printf("size in blocks: %" PRIu64 "\n", vol_info->nblocks);
 	printf("block size: %zu\n", vol_info->bsize);
 
 	if (vol_info->level == HR_LVL_4)

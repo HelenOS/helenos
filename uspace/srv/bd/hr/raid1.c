@@ -37,6 +37,7 @@
 #include <block.h>
 #include <errno.h>
 #include <hr.h>
+#include <inttypes.h>
 #include <io/log.h>
 #include <ipc/hr.h>
 #include <ipc/services.h>
@@ -521,8 +522,8 @@ static errno_t hr_raid1_rebuild(void *arg)
 		old_percent = percent;
 	}
 
-	HR_DEBUG("hr_raid1_rebuild(): rebuild finished on \"%s\" (%lu), "
-	    "extent no. %lu\n", vol->devname, vol->svc_id, rebuild_idx);
+	HR_DEBUG("hr_raid1_rebuild(): rebuild finished on \"%s\" (%" PRIun "), "
+	    "extent no. %zu\n", vol->devname, vol->svc_id, rebuild_idx);
 
 	fibril_rwlock_write_lock(&vol->states_lock);
 
@@ -615,8 +616,8 @@ static errno_t init_rebuild(hr_volume_t *vol, size_t *rebuild_idx)
 
 	hr_extent_t *rebuild_ext = &vol->extents[bad];
 
-	HR_DEBUG("hr_raid1_rebuild(): starting REBUILD on extent no. %lu (%lu)"
-	    "\n", bad, rebuild_ext->svc_id);
+	HR_DEBUG("hr_raid1_rebuild(): starting REBUILD on extent no. %zu "
+	    "(%"  PRIun  ")\n", bad, rebuild_ext->svc_id);
 
 	atomic_store_explicit(&vol->rebuild_blk, 0, memory_order_relaxed);
 
@@ -686,16 +687,16 @@ static errno_t hr_raid1_restore_blocks(hr_volume_t *vol, size_t rebuild_idx,
 
 		if (i + 1 >= vol->extent_no) {
 			if (rc != ENOMEM) {
-				HR_ERROR("rebuild on \"%s\" (%lu), failed due "
-				    "to too many failed extents\n",
+				HR_ERROR("rebuild on \"%s\" (%" PRIun "), "
+				    "failed due to too many failed extents\n",
 				    vol->devname, vol->svc_id);
 			}
 
 			/* for now we have to invalidate the rebuild extent */
 			if (rc == ENOMEM) {
-				HR_ERROR("rebuild on \"%s\" (%lu), failed due "
-				    "to too many failed reads, because of not "
-				    "enough memory\n",
+				HR_ERROR("rebuild on \"%s\" (%" PRIun "), "
+				    "failed due to too many failed reads, "
+				    "because of not enough memory\n",
 				    vol->devname, vol->svc_id);
 				hr_raid1_ext_state_callback(vol, rebuild_idx,
 				    ENOMEM);
@@ -717,8 +718,8 @@ static errno_t hr_raid1_restore_blocks(hr_volume_t *vol, size_t rebuild_idx,
 		 */
 		hr_raid1_ext_state_callback(vol, rebuild_idx, rc);
 
-		HR_ERROR("rebuild on \"%s\" (%lu), failed due to "
-		    "the rebuilt extent no. %lu WRITE (rc: %s)\n",
+		HR_ERROR("rebuild on \"%s\" (%" PRIun "), failed due to "
+		    "the rebuilt extent no. %zu WRITE (rc: %s)\n",
 		    vol->devname, vol->svc_id, rebuild_idx, str_error(rc));
 
 		return rc;

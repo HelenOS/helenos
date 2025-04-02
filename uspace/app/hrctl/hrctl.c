@@ -288,7 +288,7 @@ int main(int argc, char **argv)
 				printf("hrctl: auto assemble rc: %s\n",
 				    str_error(rc));
 			} else {
-				printf("hrctl: auto assembled %lu volumes\n",
+				printf("hrctl: auto assembled %zu volumes\n",
 				    cnt);
 			}
 			return rc;
@@ -430,7 +430,7 @@ skip:
 			/* XXX: here have own error codes */
 			printf("hrctl: auto assemble rc: %s\n", str_error(rc));
 		} else {
-			printf("hrctl: auto assembled %lu volumes\n",
+			printf("hrctl: auto assembled %zu volumes\n",
 			    assembled_cnt);
 		}
 

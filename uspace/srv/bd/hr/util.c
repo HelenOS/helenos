@@ -38,6 +38,7 @@
 #include <errno.h>
 #include <fibril_synch.h>
 #include <hr.h>
+#include <inttypes.h>
 #include <io/log.h>
 #include <loc.h>
 #include <mem.h>
@@ -233,7 +234,8 @@ errno_t hr_init_extents_from_cfg(hr_volume_t *vol, hr_config_t *cfg)
 	HR_DEBUG("%s()", __func__);
 
 	errno_t rc;
-	size_t i, blkno, bsize;
+	uint64_t blkno;
+	size_t i, bsize;
 	size_t last_bsize = 0;
 
 	for (i = 0; i < cfg->dev_no; i++) {
@@ -243,10 +245,11 @@ errno_t hr_init_extents_from_cfg(hr_volume_t *vol, hr_config_t *cfg)
 			goto error;
 		}
 
-		HR_DEBUG("%s(): block_init() on (%lu)\n", __func__, svc_id);
+		HR_DEBUG("%s(): block_init() on (%" PRIun ")\n", __func__,
+		    svc_id);
 		rc = block_init(svc_id);
 		if (rc != EOK) {
-			HR_DEBUG("%s(): initing (%lu) failed, aborting\n",
+			HR_DEBUG("%s(): initing (%" PRIun ") failed, aborting\n",
 			    __func__, svc_id);
 			goto error;
 		}
@@ -297,7 +300,7 @@ void hr_fini_devs(hr_volume_t *vol)
 
 	for (i = 0; i < vol->extent_no; i++) {
 		if (vol->extents[i].svc_id != 0) {
-			HR_DEBUG("hr_fini_devs(): block_fini() on (%lu)\n",
+			HR_DEBUG("hr_fini_devs(): block_fini() on (%" PRIun ")\n",
 			    vol->extents[i].svc_id);
 			block_fini(vol->extents[i].svc_id);
 		}
@@ -305,7 +308,7 @@ void hr_fini_devs(hr_volume_t *vol)
 
 	for (i = 0; i < vol->hotspare_no; i++) {
 		if (vol->hotspares[i].svc_id != 0) {
-			HR_DEBUG("hr_fini_devs(): block_fini() on (%lu)\n",
+			HR_DEBUG("hr_fini_devs(): block_fini() on (%" PRIun ")\n",
 			    vol->hotspares[i].svc_id);
 			block_fini(vol->hotspares[i].svc_id);
 		}
@@ -369,33 +372,34 @@ void hr_add_ba_offset(hr_volume_t *vol, uint64_t *ba)
 	*ba = *ba + vol->data_offset;
 }
 
-void hr_update_ext_status(hr_volume_t *vol, size_t extent, hr_ext_status_t s)
+void hr_update_ext_status(hr_volume_t *vol, size_t ext_idx, hr_ext_status_t s)
 {
 	if (vol->level != HR_LVL_0)
 		assert(fibril_rwlock_is_locked(&vol->extents_lock));
 
 	assert(fibril_rwlock_is_write_locked(&vol->states_lock));
 
-	assert(extent < vol->extent_no);
+	assert(ext_idx < vol->extent_no);
 
-	hr_ext_status_t old = vol->extents[extent].status;
-	HR_WARN("\"%s\": changing extent %lu state: %s -> %s\n",
-	    vol->devname, extent, hr_get_ext_status_msg(old),
+	hr_ext_status_t old = vol->extents[ext_idx].status;
+	HR_WARN("\"%s\": changing extent %zu state: %s -> %s\n",
+	    vol->devname, ext_idx, hr_get_ext_status_msg(old),
 	    hr_get_ext_status_msg(s));
-	vol->extents[extent].status = s;
+	vol->extents[ext_idx].status = s;
 }
 
-void hr_update_hotspare_status(hr_volume_t *vol, size_t hs, hr_ext_status_t s)
+void hr_update_hotspare_status(hr_volume_t *vol, size_t hs_idx,
+    hr_ext_status_t s)
 {
 	assert(fibril_mutex_is_locked(&vol->hotspare_lock));
 
-	assert(hs < vol->hotspare_no);
+	assert(hs_idx < vol->hotspare_no);
 
-	hr_ext_status_t old = vol->hotspares[hs].status;
-	HR_WARN("\"%s\": changing hotspare %lu state: %s -> %s\n",
-	    vol->devname, hs, hr_get_ext_status_msg(old),
+	hr_ext_status_t old = vol->hotspares[hs_idx].status;
+	HR_WARN("\"%s\": changing hotspare %zu state: %s -> %s\n",
+	    vol->devname, hs_idx, hr_get_ext_status_msg(old),
 	    hr_get_ext_status_msg(s));
-	vol->hotspares[hs].status = s;
+	vol->hotspares[hs_idx].status = s;
 }
 
 void hr_update_vol_status(hr_volume_t *vol, hr_vol_status_t new)
@@ -407,29 +411,30 @@ void hr_update_vol_status(hr_volume_t *vol, hr_vol_status_t new)
 	vol->status = new;
 }
 
-void hr_update_ext_svc_id(hr_volume_t *vol, size_t extent, service_id_t new)
+void hr_update_ext_svc_id(hr_volume_t *vol, size_t ext_idx, service_id_t new)
 {
 	if (vol->level != HR_LVL_0)
 		assert(fibril_rwlock_is_write_locked(&vol->extents_lock));
 
-	assert(extent < vol->extent_no);
+	assert(ext_idx < vol->extent_no);
 
-	service_id_t old = vol->extents[extent].svc_id;
-	HR_WARN("\"%s\": changing extent no. %lu svc_id: (%lu) -> (%lu)\n",
-	    vol->devname, extent, old, new);
-	vol->extents[extent].svc_id = new;
+	service_id_t old = vol->extents[ext_idx].svc_id;
+	HR_WARN("\"%s\": changing extent no. %zu svc_id: (%" PRIun ") -> "
+	    "(%" PRIun ")\n", vol->devname, ext_idx, old, new);
+	vol->extents[ext_idx].svc_id = new;
 }
 
-void hr_update_hotspare_svc_id(hr_volume_t *vol, size_t hs, service_id_t new)
+void hr_update_hotspare_svc_id(hr_volume_t *vol, size_t hs_idx,
+    service_id_t new)
 {
 	assert(fibril_mutex_is_locked(&vol->hotspare_lock));
 
-	assert(hs < vol->hotspare_no);
+	assert(hs_idx < vol->hotspare_no);
 
-	service_id_t old = vol->hotspares[hs].svc_id;
-	HR_WARN("\"%s\": changing hotspare no. %lu svc_id: (%lu) -> (%lu)\n",
-	    vol->devname, hs, old, new);
-	vol->hotspares[hs].svc_id = new;
+	service_id_t old = vol->hotspares[hs_idx].svc_id;
+	HR_WARN("\"%s\": changing hotspare no. %zu svc_id: (%" PRIun ") -> "
+	    "(%" PRIun ")\n", vol->devname, hs_idx, old, new);
+	vol->hotspares[hs_idx].svc_id = new;
 }
 
 /*
@@ -804,7 +809,7 @@ static errno_t hr_util_assemble_from_matching_list(list_t *list)
 	list_foreach(*list, link, struct svc_id_linked, iter) {
 		vol->extents[iter->md->index].svc_id = iter->svc_id;
 
-		size_t blkno;
+		uint64_t blkno;
 		rc = block_get_nblocks(iter->svc_id, &blkno);
 		if (rc != EOK)
 			goto error;
@@ -1048,7 +1053,7 @@ errno_t hr_util_add_hotspare(hr_volume_t *vol, service_id_t hotspare)
 	if (rc != EOK)
 		goto error;
 
-	size_t hs_blkno;
+	uint64_t hs_blkno;
 	rc = block_get_nblocks(hotspare, &hs_blkno);
 	if (rc != EOK) {
 		block_fini(hotspare);
