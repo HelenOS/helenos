@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'block', 'fdisk', 'futil', 'sif' ]
+deps = [ 'block', 'fdisk', 'futil', 'sif', 'system' ]
 src = files(
 	'rdimg.c',
 	'sysinst.c',

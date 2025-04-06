@@ -46,6 +46,7 @@
 #include <stdlib.h>
 #include <str.h>
 #include <str_error.h>
+#include <system.h>
 #include <vfs/vfs.h>
 #include <vol.h>
 
@@ -93,6 +94,51 @@ static const char *sys_dirs[] = {
 	"/data",
 	NULL
 };
+
+static bool restart = false;
+
+static fibril_mutex_t shutdown_lock;
+static fibril_condvar_t shutdown_cv;
+static bool shutdown_stopped;
+static bool shutdown_failed;
+
+static void sysinst_shutdown_complete(void *);
+static void sysinst_shutdown_failed(void *);
+
+static system_cb_t sysinst_system_cb = {
+	.shutdown_complete = sysinst_shutdown_complete,
+	.shutdown_failed = sysinst_shutdown_failed
+};
+
+/** System shutdown complete.
+ *
+ * @param arg Argument (shutdown_t *)
+ */
+static void sysinst_shutdown_complete(void *arg)
+{
+	(void)arg;
+
+	fibril_mutex_lock(&shutdown_lock);
+	shutdown_stopped = true;
+	shutdown_failed = false;
+	fibril_condvar_broadcast(&shutdown_cv);
+	fibril_mutex_unlock(&shutdown_lock);
+}
+
+/** System shutdown failed.
+ *
+ * @param arg Argument (not used)
+ */
+static void sysinst_shutdown_failed(void *arg)
+{
+	(void)arg;
+
+	fibril_mutex_lock(&shutdown_lock);
+	shutdown_stopped = true;
+	shutdown_failed = true;
+	fibril_condvar_broadcast(&shutdown_cv);
+	fibril_mutex_unlock(&shutdown_lock);
+}
 
 /** Check the if the destination device exists.
  *
@@ -486,6 +532,57 @@ out:
 	return rc;
 }
 
+/** Restart the system.
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t sysinst_restart(void)
+{
+	errno_t rc;
+	system_t *system;
+
+	fibril_mutex_initialize(&shutdown_lock);
+	fibril_condvar_initialize(&shutdown_cv);
+	shutdown_stopped = false;
+	shutdown_failed = false;
+
+	rc = system_open(SYSTEM_DEFAULT, &sysinst_system_cb, NULL, &system);
+	if (rc != EOK) {
+		printf("Failed opening system control service.\n");
+		return rc;
+	}
+
+	rc = system_restart(system);
+	if (rc != EOK) {
+		system_close(system);
+		printf("Failed requesting system restart.\n");
+		return rc;
+	}
+
+	fibril_mutex_lock(&shutdown_lock);
+	printf("The system is shutting down...\n");
+	while (!shutdown_stopped)
+		fibril_condvar_wait(&shutdown_cv, &shutdown_lock);
+
+	if (shutdown_failed) {
+		printf("Shutdown failed.\n");
+		system_close(system);
+		return rc;
+	}
+
+	printf("Shutdown complete. It is now safe to remove power.\n");
+
+	/* Sleep forever */
+	while (true)
+		fibril_condvar_wait(&shutdown_cv, &shutdown_lock);
+
+	fibril_mutex_unlock(&shutdown_lock);
+
+	system_close(system);
+	return 0;
+
+}
+
 /** Install system to a device.
  *
  * @param dev Device to install to.
@@ -525,6 +622,10 @@ static errno_t sysinst_install(const char *dev)
 	if (rc != EOK)
 		return rc;
 
+	rc = sysinst_restart();
+	if (rc != EOK)
+		return rc;
+
 	return EOK;
 }
 
@@ -533,11 +634,15 @@ int main(int argc, char *argv[])
 	unsigned i;
 	errno_t rc;
 
+	if (argc > 1 && str_cmp(argv[1], "-r") == 0)
+		restart = true;
+
 	i = 0;
 	while (default_devs[i] != NULL) {
 		rc = sysinst_check_dev(default_devs[i]);
 		if (rc == EOK)
 			break;
+		++i;
 	}
 
 	if (default_devs[i] == NULL) {
