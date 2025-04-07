@@ -51,24 +51,25 @@
  */
 typedef struct nic_addr_entry {
 	ht_link_t link;
+	size_t hash;
 	uint8_t len;
-	uint8_t addr[1];
+	uint8_t addr[];
 } nic_addr_entry_t;
 
 /*
  * Hash table helper functions
  */
 typedef struct {
+	size_t hash;
 	size_t len;
 	const uint8_t *addr;
 } addr_key_t;
 
-static bool nic_addr_key_equal(const void *key_arg, const ht_link_t *item)
+static bool nic_addr_key_equal(const void *key_arg, size_t hash, const ht_link_t *item)
 {
 	const addr_key_t *key = key_arg;
 	nic_addr_entry_t *entry = member_to_inst(item, nic_addr_entry_t, link);
-
-	return memcmp(entry->addr, key->addr, entry->len) == 0;
+	return entry->hash == hash && memcmp(entry->addr, key->addr, entry->len) == 0;
 }
 
 static size_t addr_hash(size_t len, const uint8_t *addr)
@@ -85,19 +86,18 @@ static size_t addr_hash(size_t len, const uint8_t *addr)
 static size_t nic_addr_key_hash(const void *k)
 {
 	const addr_key_t *key = k;
-	return addr_hash(key->len, key->addr);
+	return key->hash ? key->hash : addr_hash(key->len, key->addr);
 }
 
 static size_t nic_addr_hash(const ht_link_t *item)
 {
 	nic_addr_entry_t *entry = member_to_inst(item, nic_addr_entry_t, link);
-	return addr_hash(entry->len, entry->addr);
+	return entry->hash;
 }
 
 static void nic_addr_removed(ht_link_t *item)
 {
 	nic_addr_entry_t *entry = member_to_inst(item, nic_addr_entry_t, link);
-
 	free(entry);
 }
 
@@ -172,18 +172,20 @@ errno_t nic_addr_db_insert(nic_addr_db_t *db, const uint8_t *addr)
 
 	addr_key_t key = {
 		.len = db->addr_len,
-		.addr = addr
+		.addr = addr,
+		.hash = addr_hash(db->addr_len, addr),
 	};
 
 	if (hash_table_find(&db->set, &key))
 		return EEXIST;
 
-	nic_addr_entry_t *entry = malloc(sizeof(nic_addr_entry_t) + db->addr_len - 1);
+	nic_addr_entry_t *entry = malloc(offsetof(nic_addr_entry_t, addr) + db->addr_len);
 	if (entry == NULL)
 		return ENOMEM;
 
 	entry->len = (uint8_t) db->addr_len;
 	memcpy(entry->addr, addr, db->addr_len);
+	entry->hash = key.hash;
 
 	hash_table_insert(&db->set, &entry->link);
 	return EOK;

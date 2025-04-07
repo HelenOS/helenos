@@ -114,7 +114,7 @@ open_nodes_hash(const ht_link_t *item)
 }
 
 static bool
-open_nodes_key_equal(const void *key, const ht_link_t *item)
+open_nodes_key_equal(const void *key, size_t hash, const ht_link_t *item)
 {
 	const node_key_t *node_key = key;
 	struct mfs_node *mnode = hash_table_get_inst(item, struct mfs_node, link);

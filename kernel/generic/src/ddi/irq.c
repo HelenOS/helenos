@@ -74,7 +74,7 @@ hash_table_t irq_uspace_hash_table;
 static size_t irq_ht_hash(const ht_link_t *);
 static size_t irq_ht_key_hash(const void *);
 static bool irq_ht_equal(const ht_link_t *, const ht_link_t *);
-static bool irq_ht_key_equal(const void *, const ht_link_t *);
+static bool irq_ht_key_equal(const void *, size_t, const ht_link_t *);
 
 static const hash_table_ops_t irq_ht_ops = {
 	.hash = irq_ht_hash,
@@ -140,10 +140,8 @@ static irq_t *
 irq_dispatch_and_lock_table(hash_table_t *h, irq_spinlock_t *l, inr_t inr)
 {
 	irq_spinlock_lock(l, false);
-	ht_link_t *first = hash_table_find(h, &inr);
-	for (ht_link_t *lnk = first; lnk;
-	    lnk = hash_table_find_next(h, first, lnk)) {
-		irq_t *irq = hash_table_get_inst(lnk, irq_t, link);
+
+	hash_table_foreach(h, &inr, link, irq_t, irq) {
 		irq_spinlock_lock(&irq->lock, false);
 		if (irq->claim(irq) == IRQ_ACCEPT) {
 			/* leave irq locked */
@@ -152,6 +150,7 @@ irq_dispatch_and_lock_table(hash_table_t *h, irq_spinlock_t *l, inr_t inr)
 		}
 		irq_spinlock_unlock(&irq->lock, false);
 	}
+
 	irq_spinlock_unlock(l, false);
 
 	return NULL;
@@ -222,7 +221,7 @@ bool irq_ht_equal(const ht_link_t *item1, const ht_link_t *item2)
 }
 
 /** Return true if the key is equal to the item's lookup key. */
-bool irq_ht_key_equal(const void *key, const ht_link_t *item)
+bool irq_ht_key_equal(const void *key, size_t hash, const ht_link_t *item)
 {
 	const inr_t *inr = key;
 	irq_t *irq = hash_table_get_inst(item, irq_t, link);

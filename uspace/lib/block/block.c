@@ -253,7 +253,7 @@ static size_t cache_hash(const ht_link_t *item)
 	return b->lba;
 }
 
-static bool cache_key_equal(const void *key, const ht_link_t *item)
+static bool cache_key_equal(const void *key, size_t hash, const ht_link_t *item)
 {
 	const aoff64_t *lba = key;
 	block_t *b = hash_table_get_inst(item, block_t, hash_link);

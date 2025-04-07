@@ -36,7 +36,6 @@
  */
 
 #include "fat.h"
-#include "../../vfs/vfs.h"
 #include <errno.h>
 #include <str.h>
 #include <adt/hash_table.h>
@@ -138,7 +137,7 @@ static size_t pos_hash(const ht_link_t *item)
 	return pos_key_hash(&pkey);
 }
 
-static bool pos_key_equal(const void *key, const ht_link_t *item)
+static bool pos_key_equal(const void *key, size_t hash, const ht_link_t *item)
 {
 	const pos_key_t *pos = key;
 	fat_idx_t *fidx = hash_table_get_inst(item, fat_idx_t, uph_link);
@@ -179,7 +178,8 @@ static size_t idx_hash(const ht_link_t *item)
 	return hash_combine(fidx->service_id, fidx->index);
 }
 
-static bool idx_key_equal(const void *key_arg, const ht_link_t *item)
+static bool idx_key_equal(const void *key_arg, size_t hash,
+    const ht_link_t *item)
 {
 	fat_idx_t *fidx = hash_table_get_inst(item, fat_idx_t, uih_link);
 	const idx_key_t *key = key_arg;

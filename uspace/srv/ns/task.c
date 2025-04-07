@@ -65,7 +65,7 @@ static size_t task_hash(const ht_link_t *item)
 	return ht->id;
 }
 
-static bool task_key_equal(const void *key, const ht_link_t *item)
+static bool task_key_equal(const void *key, size_t hash, const ht_link_t *item)
 {
 	const task_id_t *tid = key;
 	hashed_task_t *ht = hash_table_get_inst(item, hashed_task_t, link);
@@ -110,7 +110,7 @@ static size_t p2i_hash(const ht_link_t *item)
 	return entry->label;
 }
 
-static bool p2i_key_equal(const void *key, const ht_link_t *item)
+static bool p2i_key_equal(const void *key, size_t hash, const ht_link_t *item)
 {
 	const sysarg_t *label = key;
 	p2i_entry_t *entry = hash_table_get_inst(item, p2i_entry_t, link);

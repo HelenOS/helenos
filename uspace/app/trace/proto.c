@@ -68,7 +68,7 @@ static size_t srv_proto_hash(const ht_link_t *item)
 	return sp->srv;
 }
 
-static bool srv_proto_key_equal(const void *key, const ht_link_t *item)
+static bool srv_proto_key_equal(const void *key, size_t hash, const ht_link_t *item)
 {
 	const int *n = key;
 	srv_proto_t *sp = hash_table_get_inst(item, srv_proto_t, link);
@@ -95,7 +95,7 @@ static size_t method_oper_hash(const ht_link_t *item)
 	return mo->method;
 }
 
-static bool method_oper_key_equal(const void *key, const ht_link_t *item)
+static bool method_oper_key_equal(const void *key, size_t hash, const ht_link_t *item)
 {
 	const int *n = key;
 	method_oper_t *mo = hash_table_get_inst(item, method_oper_t, link);

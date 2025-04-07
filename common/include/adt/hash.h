@@ -107,4 +107,41 @@ static inline size_t hash_combine(size_t seed, size_t hash)
 	return seed;
 }
 
+/** Hash a NUL-terminated string.
+ * The algorithm may change in the future, so never use it for hashes
+ * that will be stored to a file or sent over a network.
+ */
+static inline size_t hash_string(const char *str)
+{
+	/* djb2 hash + extra mixing at the end */
+
+	char c;
+	size_t hash = 5381;
+
+	while ((c = *(str++)))
+		hash = (hash << 5) + hash + c;
+
+	return hash_mix(hash);
+}
+
+/** Hash an arbitrarily sized sequence of bytes.
+ * The algorithm may change in the future, so never use it for hashes
+ * that will be stored to a file or sent over a network.
+ */
+static inline size_t hash_bytes(const void *b, size_t len)
+{
+	/* djb2 hash + extra mixing at the end */
+
+	// TODO: work in bigger chunks for faster hashing
+
+	const char *str = b;
+
+	size_t hash = 5381;
+
+	for (size_t i = 0; i < len; i++)
+		hash = (hash << 5) + hash + str[i];
+
+	return hash_mix(hash);
+}
+
 #endif
