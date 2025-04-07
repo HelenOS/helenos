@@ -135,7 +135,7 @@
 
 #define list_pop(list, type, member) \
 	((type *) list_pop_internal(list, \
-	    (list_link_to_void(&(((type *) NULL)->member)) - NULL)))
+	    (list_link_to_void(&((type) {}).member), offsetof(type, member))))
 
 #endif  /* !__cplusplus */
 
