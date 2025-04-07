@@ -99,19 +99,19 @@ static void set_clicked(ui_pbutton_t *button, void *arg)
 {
 	date_cfg_t *date_cfg = (date_cfg_t *) arg;
 	errno_t rc;
-	
+
 	rc = parse_date_time(date_cfg);
 	if (rc != EOK) {
 		printf("Error parsing date/time. Please use format DD/MM/YYYY and HH:MM:SS\n");
 		return;
 	}
-	
+
 	rc = set_system_time(&date_cfg->current_time);
 	if (rc != EOK) {
 		printf("Error setting system time.\n");
 		return;
 	}
-	
+
 	update_time_display(date_cfg);
 }
 
@@ -128,42 +128,42 @@ static errno_t get_current_time(struct tm *t)
 	service_id_t svc_id;
 	char *svc_name = NULL;
 	errno_t rc;
-	
+
 	rc = loc_category_get_id("clock", &cat_id, IPC_FLAG_BLOCKING);
 	if (rc != EOK)
 		return rc;
-		
+
 	rc = loc_category_get_svcs(cat_id, &svc_ids, &svc_cnt);
 	if (rc != EOK)
 		return rc;
-		
+
 	if (svc_cnt == 0) {
 		free(svc_ids);
 		return ENOENT;
 	}
-	
+
 	rc = loc_service_get_name(svc_ids[0], &svc_name);
 	if (rc != EOK) {
 		free(svc_ids);
 		return rc;
 	}
-	
+
 	rc = loc_service_get_id(svc_name, &svc_id, 0);
 	if (rc != EOK) {
 		free(svc_name);
 		free(svc_ids);
 		return rc;
 	}
-	
+
 	async_sess_t *sess = loc_service_connect(svc_id, INTERFACE_DDF, 0);
 	if (!sess) {
 		free(svc_name);
 		free(svc_ids);
 		return EIO;
 	}
-	
+
 	rc = clock_dev_time_get(sess, t);
-	
+
 	free(svc_name);
 	free(svc_ids);
 	return rc;
@@ -182,42 +182,42 @@ static errno_t set_system_time(struct tm *t)
 	service_id_t svc_id;
 	char *svc_name = NULL;
 	errno_t rc;
-	
+
 	rc = loc_category_get_id("clock", &cat_id, IPC_FLAG_BLOCKING);
 	if (rc != EOK)
 		return rc;
-		
+
 	rc = loc_category_get_svcs(cat_id, &svc_ids, &svc_cnt);
 	if (rc != EOK)
 		return rc;
-		
+
 	if (svc_cnt == 0) {
 		free(svc_ids);
 		return ENOENT;
 	}
-	
+
 	rc = loc_service_get_name(svc_ids[0], &svc_name);
 	if (rc != EOK) {
 		free(svc_ids);
 		return rc;
 	}
-	
+
 	rc = loc_service_get_id(svc_name, &svc_id, 0);
 	if (rc != EOK) {
 		free(svc_name);
 		free(svc_ids);
 		return rc;
 	}
-	
+
 	async_sess_t *sess = loc_service_connect(svc_id, INTERFACE_DDF, 0);
 	if (!sess) {
 		free(svc_name);
 		free(svc_ids);
 		return EIO;
 	}
-	
+
 	rc = clock_dev_time_set(sess, t);
-	
+
 	free(svc_name);
 	free(svc_ids);
 	return rc;
@@ -231,17 +231,17 @@ static void update_time_display(date_cfg_t *date_cfg)
 {
 	char date_str[32];
 	char time_str[32];
-	
+
 	snprintf(date_str, sizeof(date_str), "%02d/%02d/%d",
 	    date_cfg->current_time.tm_mday,
 	    date_cfg->current_time.tm_mon + 1,
 	    1900 + date_cfg->current_time.tm_year);
-	    
+
 	snprintf(time_str, sizeof(time_str), "%02d:%02d:%02d",
 	    date_cfg->current_time.tm_hour,
 	    date_cfg->current_time.tm_min,
 	    date_cfg->current_time.tm_sec);
-	    
+
 	ui_entry_set_text(date_cfg->date_entry, date_str);
 	ui_entry_set_text(date_cfg->time_entry, time_str);
 }
@@ -257,26 +257,26 @@ static errno_t parse_date_time(date_cfg_t *date_cfg)
 	const char *time_str = ui_entry_get_text(date_cfg->time_entry);
 	int day, month, year;
 	int hour, min, sec;
-	
+
 	if (sscanf(date_str, "%d/%d/%d", &day, &month, &year) != 3)
 		return EINVAL;
-		
+
 	if (sscanf(time_str, "%d:%d:%d", &hour, &min, &sec) != 3)
 		return EINVAL;
-		
+
 	if (day < 1 || day > 31 || month < 1 || month > 12 || year < 1900)
 		return EINVAL;
-		
+
 	if (hour < 0 || hour > 23 || min < 0 || min > 59 || sec < 0 || sec > 59)
 		return EINVAL;
-		
+
 	date_cfg->current_time.tm_mday = day;
 	date_cfg->current_time.tm_mon = month - 1;
 	date_cfg->current_time.tm_year = year - 1900;
 	date_cfg->current_time.tm_hour = hour;
 	date_cfg->current_time.tm_min = min;
 	date_cfg->current_time.tm_sec = sec;
-	
+
 	return EOK;
 }
 
@@ -309,8 +309,8 @@ static errno_t date_cfg(const char *display_spec)
 	} else {
 		params.rect.p0.x = 0;
 		params.rect.p0.y = 0;
-		params.rect.p1.x = 350; 
-		params.rect.p1.y = 275;  
+		params.rect.p1.x = 350;
+		params.rect.p1.y = 275;
 	}
 
 	memset((void *) &date_cfg, 0, sizeof(date_cfg));
