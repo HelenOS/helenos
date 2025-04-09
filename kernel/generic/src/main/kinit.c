@@ -107,8 +107,6 @@ void kinit(void *arg)
 
 #ifdef CONFIG_SMP
 	if (config.cpu_count > 1) {
-		semaphore_initialize(&ap_completion_semaphore, 0);
-
 		/*
 		 * Create the kmp thread and wait for its completion.
 		 * cpu1 through cpuN-1 will come up consecutively and
