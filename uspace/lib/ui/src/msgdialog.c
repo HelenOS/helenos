@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -124,7 +124,7 @@ errno_t ui_msg_dialog_create(ui_t *ui, ui_msg_dialog_params_t *params,
 	} else {
 		wparams.rect.p0.x = 0;
 		wparams.rect.p0.y = 0;
-		wparams.rect.p1.x = 400;
+		wparams.rect.p1.x = 440;
 		wparams.rect.p1.y = 110;
 	}
 
@@ -153,7 +153,7 @@ errno_t ui_msg_dialog_create(ui_t *ui, ui_msg_dialog_params_t *params,
 	} else {
 		rect.p0.x = 10;
 		rect.p0.y = 35;
-		rect.p1.x = 390;
+		rect.p1.x = 430;
 		rect.p1.y = 50;
 	}
 

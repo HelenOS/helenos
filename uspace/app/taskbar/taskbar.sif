@@ -32,6 +32,8 @@
 </entry>
 <entry caption="~F~disk Disk Editor" cmd="/app/fdisk" terminal="y">
 </entry>
+<entry caption="Insta~l~l HelenOS to Disk" cmd="/app/sysinst -d %d" terminal="n">
+</entry>
 <entry separator="y">
 </entry>
 <entry caption="~A~bout HelenOS" cmd="/app/aboutos -d %d" terminal="n">

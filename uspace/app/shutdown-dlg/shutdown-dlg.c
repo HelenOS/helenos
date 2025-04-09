@@ -237,7 +237,7 @@ static errno_t shutdown_failed_msg_create(shutdown_dlg_t *sddlg)
 /** Shutdown confirm dialog OK button press.
  *
  * @param dialog Message dialog
- * @param arg Argument (ui_demo_t *)
+ * @param arg Argument (shutdown_dlg_t *)
  * @param earg Entry argument
  */
 static void shutdown_confirm_bok(ui_select_dialog_t *dialog, void *arg,
@@ -253,7 +253,7 @@ static void shutdown_confirm_bok(ui_select_dialog_t *dialog, void *arg,
 /** Shutdown confirm dialog Cancel button press.
  *
  * @param dialog Message dialog
- * @param arg Argument (ui_demo_t *)
+ * @param arg Argument (shutdown_dlg_t *)
  */
 static void shutdown_confirm_bcancel(ui_select_dialog_t *dialog, void *arg)
 {
@@ -266,7 +266,7 @@ static void shutdown_confirm_bcancel(ui_select_dialog_t *dialog, void *arg)
 /** Shutdown confirm message dialog close request.
  *
  * @param dialog Message dialog
- * @param arg Argument (ui_demo_t *)
+ * @param arg Argument (shutdown_dlg_t *)
  */
 static void shutdown_confirm_close(ui_select_dialog_t *dialog, void *arg)
 {
@@ -279,7 +279,7 @@ static void shutdown_confirm_close(ui_select_dialog_t *dialog, void *arg)
 /** Shutdown faield message dialog button press.
  *
  * @param dialog Message dialog
- * @param arg Argument (ui_demo_t *)
+ * @param arg Argument (shutdown_dlg_t *)
  * @param bnum Button number
  */
 static void shutdown_failed_msg_button(ui_msg_dialog_t *dialog,
@@ -294,7 +294,7 @@ static void shutdown_failed_msg_button(ui_msg_dialog_t *dialog,
 /** Shutdown failed message dialog close request.
  *
  * @param dialog Message dialog
- * @param arg Argument (ui_demo_t *)
+ * @param arg Argument (shutdown_dlg_t *)
  */
 static void shutdown_failed_msg_close(ui_msg_dialog_t *dialog, void *arg)
 {
@@ -479,16 +479,10 @@ static errno_t shutdown_dlg(const char *display_spec)
 	sddlg.ui = ui;
 
 	ui_wnd_params_init(&params);
-	params.caption = "Shut down background";
+	params.caption = "Shutdown";
 	params.style &= ~ui_wds_decorated;
 	params.placement = ui_wnd_place_full_screen;
 	params.flags |= ui_wndf_topmost | ui_wndf_nofocus;
-	/*
-	 * params.rect.p0.x = 0;
-	 * params.rect.p0.y = 0;
-	 * params.rect.p1.x = 1;
-	 * params.rect.p1.y = 1;
-	 */
 
 	rc = ui_window_create(sddlg.ui, &params, &sddlg.bgwindow);
 	if (rc != EOK) {

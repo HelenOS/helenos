@@ -34,6 +34,7 @@
 
 #include <errno.h>
 #include <fibril.h>
+#include <io/log.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
@@ -59,14 +60,16 @@ static errno_t rd_img_part_by_label(vol_t *vol, const char *label,
 
 	rc = vol_get_parts(vol, &part_ids, &nparts);
 	if (rc != EOK) {
-		printf("Error getting list of volumes.\n");
+		log_msg(LOG_DEFAULT, LVL_ERROR,
+		    "Error getting list of volumes.");
 		goto out;
 	}
 
 	for (i = 0; i < nparts; i++) {
 		rc = vol_part_info(vol, part_ids[i], &vinfo);
 		if (rc != EOK) {
-			printf("Error getting volume information.\n");
+			log_msg(LOG_DEFAULT, LVL_ERROR,
+			    "Error getting volume information.");
 			rc = EIO;
 			goto out;
 		}
@@ -105,7 +108,8 @@ errno_t rd_img_open(const char *imgpath, char **rpath, rd_img_t **rimg)
 	int retval;
 	int cnt;
 
-	printf("rd_img_open: begin\n");
+	log_msg(LOG_DEFAULT, LVL_NOTE, "rd_img_open: begin");
+
 	rdpath = str_dup("/vol/" RD_LABEL);
 	if (rdpath == NULL) {
 		rc = ENOMEM;
@@ -118,14 +122,14 @@ errno_t rd_img_open(const char *imgpath, char **rpath, rd_img_t **rimg)
 		goto error;
 	}
 
-	printf("rd_img_open: spawn file_bd\n");
+	log_msg(LOG_DEFAULT, LVL_NOTE, "rd_img_open: spawn file_bd");
 	rc = task_spawnl(&id, &wait, FILE_BD, FILE_BD, imgpath, RD_SVC, NULL);
 	if (rc != EOK) {
 		rc = EIO;
 		goto error;
 	}
 
-	printf("rd_img_open: wait for file_bd\n");
+	log_msg(LOG_DEFAULT, LVL_NOTE, "rd_img_open: wait for file_bd");
 	rc = task_wait(&wait, &texit, &retval);
 	if (rc != EOK || texit != TASK_EXIT_NORMAL) {
 		rc = EIO;
@@ -133,7 +137,8 @@ errno_t rd_img_open(const char *imgpath, char **rpath, rd_img_t **rimg)
 	}
 
 	/* Wait for the RAM disk to become available */
-	printf("rd_img_open: wait for RAM disk to be mounted\n");
+	log_msg(LOG_DEFAULT, LVL_NOTE,
+	    "rd_img_open: wait for RAM disk to be mounted");
 	cnt = 10;
 	while (cnt > 0) {
 		rc = vfs_stat_path(rdpath, &stat);
@@ -145,7 +150,7 @@ errno_t rd_img_open(const char *imgpath, char **rpath, rd_img_t **rimg)
 	}
 
 	if (cnt == 0) {
-		printf("rd_img_open: ran out of time\n");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "rd_img_open: ran out of time");
 		rc = EIO;
 		goto error;
 	}
@@ -153,7 +158,7 @@ errno_t rd_img_open(const char *imgpath, char **rpath, rd_img_t **rimg)
 	img->filebd_tid = id;
 	*rimg = img;
 	*rpath = rdpath;
-	printf("rd_img_open: success\n");
+	log_msg(LOG_DEFAULT, LVL_NOTE, "rd_img_open: success");
 	return EOK;
 error:
 	if (rdpath != NULL)
@@ -172,27 +177,30 @@ errno_t rd_img_close(rd_img_t *img)
 	service_id_t rd_svcid;
 	vol_t *vol = NULL;
 
-	printf("rd_img_close: begin\n");
+	log_msg(LOG_DEFAULT, LVL_NOTE, "rd_img_close: begin");
 
 	rc = vol_create(&vol);
 	if (rc != EOK) {
-		printf("Error opening volume management service.\n");
+		log_msg(LOG_DEFAULT, LVL_ERROR,
+		    "Error opening volume management service.");
 		rc = EIO;
 		goto error;
 	}
 
-	printf("rd_img_close: Find RAM disk volume.\n");
+	log_msg(LOG_DEFAULT, LVL_NOTE, "rd_img_close: Find RAM disk volume.");
 	rc = rd_img_part_by_label(vol, RD_LABEL, &rd_svcid);
 	if (rc != EOK) {
-		printf("Error getting RAM disk service ID.\n");
+		log_msg(LOG_DEFAULT, LVL_ERROR,
+		    "Error getting RAM disk service ID.");
 		rc = EIO;
 		goto error;
 	}
 
-	printf("rd_img_close: eject RAM disk volume\n");
+	log_msg(LOG_DEFAULT, LVL_NOTE, "rd_img_close: eject RAM disk volume");
 	rc = vol_part_eject(vol, rd_svcid, vef_none);
 	if (rc != EOK) {
-		printf("Error ejecting RAM disk volume.\n");
+		log_msg(LOG_DEFAULT, LVL_ERROR,
+		    "Error ejecting RAM disk volume.");
 		rc = EIO;
 		goto error;
 	}
@@ -201,13 +209,13 @@ errno_t rd_img_close(rd_img_t *img)
 
 	rc = task_kill(img->filebd_tid);
 	if (rc != EOK) {
-		printf("Error killing file_bd.\n");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Error killing file_bd.");
 		rc = EIO;
 		goto error;
 	}
 
 	free(img);
-	printf("rd_img_close: success\n");
+	log_msg(LOG_DEFAULT, LVL_NOTE, "rd_img_close: success");
 	return EOK;
 error:
 	free(img);

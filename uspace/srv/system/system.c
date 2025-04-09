@@ -327,6 +327,7 @@ static errno_t init_sysvol(void)
 	size_t nvols;
 	size_t nparts;
 	bool sv_mounted;
+	futil_t *futil = NULL;
 	size_t i;
 	errno_t rc;
 	bool found_cfg;
@@ -379,9 +380,16 @@ static errno_t init_sysvol(void)
 		}
 
 		/* Copy initial configuration files */
-		rc = futil_rcopy_contents("/cfg", "/w/cfg");
+		rc = futil_create(NULL, NULL, &futil);
 		if (rc != EOK)
 			goto error;
+
+		rc = futil_rcopy_contents(futil, "/cfg", "/w/cfg");
+		if (rc != EOK)
+			goto error;
+
+		futil_destroy(futil);
+		futil = NULL;
 	} else {
 		printf("%s: System volume is configured.\n", NAME);
 
@@ -428,6 +436,8 @@ error:
 		free(volume_ids);
 	if (part_ids != NULL)
 		free(part_ids);
+	if (futil != NULL)
+		futil_destroy(futil);
 
 	return rc;
 }
