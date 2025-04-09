@@ -84,6 +84,23 @@ typedef struct {
 #define hash_table_get_inst(item, type, member) \
 	member_to_inst((item), type, member)
 
+/** Iterate over all entries associated with a given key.
+ * For iterating over all entries regardless of key, use hash_table_apply().
+ *
+ * Example:
+ * struct ht_entry {
+ *     ht_link_t my_link_member;
+ *     void *data;
+ *     int my_key;
+ * }
+ *
+ * hash_table_t *table = ...;
+ * int key = ...;
+ *
+ * hash_table_foreach(table, &key, my_link_member, struct ht_entry, item) {
+ *     _print_entry_data(item->data);
+ * }
+ */
 #define hash_table_foreach(ht, key, member, itype, iterator) \
 	for (itype *iterator = NULL; \
 	    iterator == NULL; iterator = (itype *) INTPTR_MAX) \
