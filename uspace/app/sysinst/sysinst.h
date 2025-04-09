@@ -26,26 +26,42 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup futil
+/** @addtogroup sysinst
  * @{
  */
 /**
- * @file
- * @brief
+ * @file System installer
  */
 
-#ifndef FUTIL_H
-#define FUTIL_H
+#ifndef SYSINST_H
+#define SYSINST_H
 
-#include <errno.h>
-#include <stddef.h>
-#include "types/futil.h"
+#include <futil.h>
+#include <gfx/color.h>
+#include <system.h>
+#include <ui/fixed.h>
+#include <ui/label.h>
+#include <ui/ui.h>
+#include <ui/window.h>
 
-extern errno_t futil_create(futil_cb_t *, void *, futil_t **);
-extern void futil_destroy(futil_t *);
-extern errno_t futil_copy_file(futil_t *, const char *, const char *);
-extern errno_t futil_rcopy_contents(futil_t *, const char *, const char *);
-extern errno_t futil_get_file(futil_t *, const char *, void **, size_t *);
+/** Installation progress window. */
+typedef struct {
+	ui_window_t *window;
+	ui_fixed_t *fixed;
+	ui_label_t *label;
+	ui_label_t *action;
+} sysinst_progress_t;
+
+/** System installer. */
+typedef struct {
+	ui_t *ui;
+	ui_window_t *bgwindow;
+	gfx_color_t *bg_color;
+	sysinst_progress_t *progress;
+	system_t *system;
+	futil_t *futil;
+	char errmsg[128];
+} sysinst_t;
 
 #endif
 

@@ -34,18 +34,23 @@
  * @brief
  */
 
-#ifndef FUTIL_H
-#define FUTIL_H
+#ifndef TYPES_FUTIL_H
+#define TYPES_FUTIL_H
 
-#include <errno.h>
-#include <stddef.h>
-#include "types/futil.h"
+/** File utility callbacks */
+typedef struct {
+	/** Copying file */
+	void (*copy_file)(void *, const char *, const char *);
+	/** Creating directory */
+	void (*create_dir)(void *, const char *);
+} futil_cb_t;
 
-extern errno_t futil_create(futil_cb_t *, void *, futil_t **);
-extern void futil_destroy(futil_t *);
-extern errno_t futil_copy_file(futil_t *, const char *, const char *);
-extern errno_t futil_rcopy_contents(futil_t *, const char *, const char *);
-extern errno_t futil_get_file(futil_t *, const char *, void **, size_t *);
+typedef struct {
+	/** Callback functions */
+	futil_cb_t *cb;
+	/** Argument to callback functions */
+	void *cb_arg;
+} futil_t;
 
 #endif
 
