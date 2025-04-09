@@ -62,14 +62,17 @@
 #include <str.h>
 #include <proc/thread.h> /* THREAD */
 
-zones_t zones;
+zones_t zones = {
+	.count = 0,
+	.lock = IRQ_SPINLOCK_INITIALIZER("frame.zones.lock"),
+};
 
 /*
  * Synchronization primitives used to sleep when there is no memory
  * available.
  */
-static mutex_t mem_avail_mtx;
-static condvar_t mem_avail_cv;
+static MUTEX_INITIALIZE(mem_avail_mtx, MUTEX_ACTIVE);
+static CONDVAR_INITIALIZE(mem_avail_cv);
 static size_t mem_avail_req = 0;  /**< Number of frames requested. */
 static size_t mem_avail_gen = 0;  /**< Generation counter. */
 
@@ -1107,13 +1110,6 @@ _NO_TRACE void frame_mark_unavailable(pfn_t start, size_t count)
  */
 void frame_init(void)
 {
-	if (config.cpu_active == 1) {
-		zones.count = 0;
-		irq_spinlock_initialize(&zones.lock, "frame.zones.lock");
-		mutex_initialize(&mem_avail_mtx, MUTEX_ACTIVE);
-		condvar_initialize(&mem_avail_cv);
-	}
-
 	/* Tell the architecture to create some memory */
 	frame_low_arch_init();
 

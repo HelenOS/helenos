@@ -55,6 +55,16 @@ typedef struct {
 	unsigned nesting;
 } mutex_t;
 
+#define MUTEX_INITIALIZER(name, mtype) (mutex_t) { \
+	.type = (mtype), \
+	.sem = SEMAPHORE_INITIALIZER((name).sem, 1), \
+	.owner = NULL, \
+	.nesting = 0, \
+}
+
+#define MUTEX_INITIALIZE(name, mtype) \
+	mutex_t name = MUTEX_INITIALIZER(name, mtype)
+
 extern void mutex_initialize(mutex_t *, mutex_type_t);
 extern bool mutex_locked(mutex_t *);
 extern errno_t mutex_trylock(mutex_t *);

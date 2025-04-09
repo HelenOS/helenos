@@ -52,10 +52,7 @@
  */
 void mutex_initialize(mutex_t *mtx, mutex_type_t type)
 {
-	mtx->type = type;
-	mtx->owner = NULL;
-	mtx->nesting = 0;
-	semaphore_initialize(&mtx->sem, 1);
+	*mtx = MUTEX_INITIALIZER(*mtx, type);
 }
 
 /** Find out whether the mutex is currently locked.

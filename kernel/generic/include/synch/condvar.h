@@ -45,6 +45,13 @@ typedef struct {
 	waitq_t wq;
 } condvar_t;
 
+#define CONDVAR_INITIALIZER(name) (condvar_t) { \
+	.wq = WAITQ_INITIALIZER((name).wq), \
+}
+
+#define CONDVAR_INITIALIZE(name) \
+	condvar_t name = CONDVAR_INITIALIZER(name)
+
 #ifdef CONFIG_SMP
 #define _condvar_wait_timeout_spinlock(cv, lock, usec, flags) \
 	_condvar_wait_timeout_spinlock_impl((cv), (lock), (usec), (flags))

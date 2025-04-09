@@ -89,7 +89,7 @@ static load_t load_exp[LOAD_STEPS] = { 1884, 2014, 2037 };
 static load_t avenrdy[LOAD_STEPS] = { 0, 0, 0 };
 
 /** Load calculation lock */
-static mutex_t load_lock;
+static MUTEX_INITIALIZE(load_lock, MUTEX_PASSIVE);
 
 /** Get statistics of all CPUs
  *
@@ -845,8 +845,6 @@ void kload(void *arg)
  */
 void stats_init(void)
 {
-	mutex_initialize(&load_lock, MUTEX_PASSIVE);
-
 	sysinfo_set_item_gen_data("system.cpus", NULL, get_stats_cpus, NULL);
 	sysinfo_set_item_gen_data("system.physmem", NULL, get_stats_physmem, NULL);
 	sysinfo_set_item_gen_data("system.load", NULL, get_stats_load, NULL);

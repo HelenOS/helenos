@@ -69,9 +69,7 @@
  */
 void waitq_initialize(waitq_t *wq)
 {
-	memsetb(wq, sizeof(*wq), 0);
-	irq_spinlock_initialize(&wq->lock, "wq.lock");
-	list_initialize(&wq->sleepers);
+	*wq = WAITQ_INITIALIZER(*wq);
 }
 
 /**
@@ -80,8 +78,7 @@ void waitq_initialize(waitq_t *wq)
  */
 void waitq_initialize_with_count(waitq_t *wq, int count)
 {
-	waitq_initialize(wq);
-	wq->wakeup_balance = count;
+	*wq = WAITQ_INITIALIZER_WITH_COUNT(*wq, count);
 }
 
 #define PARAM_NON_BLOCKING(flags, usec) \
