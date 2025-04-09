@@ -59,7 +59,7 @@
 #include <arch/asm.h>
 
 /** This lock protects the @c pareas ordered dictionary. */
-static mutex_t pareas_lock;
+static MUTEX_INITIALIZE(pareas_lock, MUTEX_PASSIVE);
 
 /** Ordered dictionary of enabled physical memory areas by base address. */
 static odict_t pareas;
@@ -73,7 +73,6 @@ static int pareas_cmp(void *, void *);
 void ddi_init(void)
 {
 	odict_initialize(&pareas, pareas_getkey, pareas_cmp);
-	mutex_initialize(&pareas_lock, MUTEX_PASSIVE);
 }
 
 /** Initialize physical area structure.

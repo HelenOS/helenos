@@ -51,7 +51,7 @@
  */
 void semaphore_initialize(semaphore_t *sem, int val)
 {
-	waitq_initialize_with_count(&sem->wq, val);
+	*sem = SEMAPHORE_INITIALIZER(*sem, val);
 }
 
 errno_t semaphore_trydown(semaphore_t *sem)

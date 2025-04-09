@@ -56,7 +56,7 @@ static sysinfo_item_t *global_root = NULL;
 static slab_cache_t *sysinfo_item_cache;
 
 /** Sysinfo lock */
-static mutex_t sysinfo_lock;
+static MUTEX_INITIALIZE(sysinfo_lock, MUTEX_ACTIVE);
 
 /** Sysinfo item constructor
  *
@@ -101,8 +101,6 @@ void sysinfo_init(void)
 	sysinfo_item_cache = slab_cache_create("sysinfo_item_t",
 	    sizeof(sysinfo_item_t), 0, sysinfo_item_constructor,
 	    sysinfo_item_destructor, SLAB_CACHE_MAGDEFERRED);
-
-	mutex_initialize(&sysinfo_lock, MUTEX_ACTIVE);
 }
 
 /** Recursively find an item in sysinfo tree

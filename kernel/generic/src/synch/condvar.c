@@ -47,7 +47,7 @@
  */
 void condvar_initialize(condvar_t *cv)
 {
-	waitq_initialize(&cv->wq);
+	*cv = CONDVAR_INITIALIZER(*cv);
 }
 
 /** Signal the condition has become true to the first waiting thread by waking
