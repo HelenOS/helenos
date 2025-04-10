@@ -71,7 +71,7 @@ zones_t zones = {
  * Synchronization primitives used to sleep when there is no memory
  * available.
  */
-static MUTEX_INITIALIZE(mem_avail_mtx, MUTEX_ACTIVE);
+static IRQ_SPINLOCK_INITIALIZE(mem_avail_lock);
 static CONDVAR_INITIALIZE(mem_avail_cv);
 static size_t mem_avail_req = 0;  /**< Number of frames requested. */
 static size_t mem_avail_gen = 0;  /**< Generation counter. */
@@ -950,12 +950,8 @@ loop:
 		    "%zu available.", THREAD->tid, count, avail);
 #endif
 
-		/*
-		 * Since the mem_avail_mtx is an active mutex, we need to
-		 * disable interrupts to prevent deadlock with TLB shootdown.
-		 */
-		ipl_t ipl = interrupts_disable();
-		mutex_lock(&mem_avail_mtx);
+		/* Disabled interrupts needed to prevent deadlock with TLB shootdown. */
+		irq_spinlock_lock(&mem_avail_lock, true);
 
 		if (mem_avail_req > 0)
 			mem_avail_req = min(mem_avail_req, count);
@@ -965,10 +961,9 @@ loop:
 		size_t gen = mem_avail_gen;
 
 		while (gen == mem_avail_gen)
-			condvar_wait(&mem_avail_cv, &mem_avail_mtx);
+			condvar_wait(&mem_avail_cv, &mem_avail_lock);
 
-		mutex_unlock(&mem_avail_mtx);
-		interrupts_restore(ipl);
+		irq_spinlock_unlock(&mem_avail_lock, true);
 
 #ifdef CONFIG_DEBUG
 		log(LF_OTHER, LVL_DEBUG, "Thread %" PRIu64 " woken up.",
@@ -1026,15 +1021,10 @@ void frame_free_generic(uintptr_t start, size_t count, frame_flags_t flags)
 
 	irq_spinlock_unlock(&zones.lock, true);
 
-	/*
-	 * Signal that some memory has been freed.
-	 * Since the mem_avail_mtx is an active mutex,
-	 * we need to disable interruptsto prevent deadlock
-	 * with TLB shootdown.
-	 */
+	/* Signal that some memory has been freed. */
 
-	ipl_t ipl = interrupts_disable();
-	mutex_lock(&mem_avail_mtx);
+	/* Disabled interrupts needed to prevent deadlock with TLB shootdown. */
+	irq_spinlock_lock(&mem_avail_lock, true);
 
 	if (mem_avail_req > 0)
 		mem_avail_req -= min(mem_avail_req, freed);
@@ -1044,8 +1034,7 @@ void frame_free_generic(uintptr_t start, size_t count, frame_flags_t flags)
 		condvar_broadcast(&mem_avail_cv);
 	}
 
-	mutex_unlock(&mem_avail_mtx);
-	interrupts_restore(ipl);
+	irq_spinlock_unlock(&mem_avail_lock, true);
 
 	if (!(flags & FRAME_NO_RESERVE))
 		reserve_free(freed);
