@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -1354,16 +1354,16 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	if (i >= argc || str_cmp(argv[i], "display") == 0) {
-		rc = demo_display(display_svc);
+	if (i >= argc || str_cmp(argv[i], "ui") == 0) {
+		rc = demo_ui(ui_display_spec);
 		if (rc != EOK)
 			return 1;
 	} else if (str_cmp(argv[i], "console") == 0) {
 		rc = demo_console();
 		if (rc != EOK)
 			return 1;
-	} else if (str_cmp(argv[i], "ui") == 0) {
-		rc = demo_ui(ui_display_spec);
+	} else if (str_cmp(argv[i], "display") == 0) {
+		rc = demo_display(display_svc);
 		if (rc != EOK)
 			return 1;
 	} else {
