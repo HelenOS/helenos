@@ -83,7 +83,7 @@ void spinlock_lock(spinlock_t *lock)
 		 * We need to be careful about particular locks
 		 * which are directly used to report deadlocks
 		 * via printf() (and recursively other functions).
-		 * This conserns especially printf_lock and the
+		 * This concerns especially printf_lock and the
 		 * framebuffer lock.
 		 *
 		 * Any lock whose name is prefixed by "*" will be
