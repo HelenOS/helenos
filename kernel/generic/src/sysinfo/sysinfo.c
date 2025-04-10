@@ -56,7 +56,7 @@ static sysinfo_item_t *global_root = NULL;
 static slab_cache_t *sysinfo_item_cache;
 
 /** Sysinfo lock */
-static MUTEX_INITIALIZE(sysinfo_lock, MUTEX_ACTIVE);
+static IRQ_SPINLOCK_INITIALIZE(sysinfo_lock);
 
 /** Sysinfo item constructor
  *
@@ -326,7 +326,7 @@ void sysinfo_set_item_val(const char *name, sysinfo_item_t **root,
     sysarg_t val)
 {
 	/* Protect sysinfo tree consistency */
-	mutex_lock(&sysinfo_lock);
+	irq_spinlock_lock(&sysinfo_lock, true);
 
 	if (root == NULL)
 		root = &global_root;
@@ -339,7 +339,7 @@ void sysinfo_set_item_val(const char *name, sysinfo_item_t **root,
 		printf("Could not set sysinfo item %s.\n", name);
 	}
 
-	mutex_unlock(&sysinfo_lock);
+	irq_spinlock_unlock(&sysinfo_lock, true);
 }
 
 /** Set sysinfo item with a constant binary data
@@ -359,7 +359,7 @@ void sysinfo_set_item_data(const char *name, sysinfo_item_t **root,
     void *data, size_t size)
 {
 	/* Protect sysinfo tree consistency */
-	mutex_lock(&sysinfo_lock);
+	irq_spinlock_lock(&sysinfo_lock, true);
 
 	if (root == NULL)
 		root = &global_root;
@@ -373,7 +373,7 @@ void sysinfo_set_item_data(const char *name, sysinfo_item_t **root,
 		printf("Could not set sysinfo item %s.\n", name);
 	}
 
-	mutex_unlock(&sysinfo_lock);
+	irq_spinlock_unlock(&sysinfo_lock, true);
 }
 
 /** Set sysinfo item with a generated numeric value
@@ -389,7 +389,7 @@ void sysinfo_set_item_gen_val(const char *name, sysinfo_item_t **root,
     sysinfo_fn_val_t fn, void *data)
 {
 	/* Protect sysinfo tree consistency */
-	mutex_lock(&sysinfo_lock);
+	irq_spinlock_lock(&sysinfo_lock, true);
 
 	if (root == NULL)
 		root = &global_root;
@@ -403,7 +403,7 @@ void sysinfo_set_item_gen_val(const char *name, sysinfo_item_t **root,
 		printf("Could not set sysinfo item %s.\n", name);
 	}
 
-	mutex_unlock(&sysinfo_lock);
+	irq_spinlock_unlock(&sysinfo_lock, true);
 }
 
 /** Set sysinfo item with a generated binary data
@@ -424,7 +424,7 @@ void sysinfo_set_item_gen_data(const char *name, sysinfo_item_t **root,
     sysinfo_fn_data_t fn, void *data)
 {
 	/* Protect sysinfo tree consistency */
-	mutex_lock(&sysinfo_lock);
+	irq_spinlock_lock(&sysinfo_lock, true);
 
 	if (root == NULL)
 		root = &global_root;
@@ -438,7 +438,7 @@ void sysinfo_set_item_gen_data(const char *name, sysinfo_item_t **root,
 		printf("Could not set sysinfo item %s.\n", name);
 	}
 
-	mutex_unlock(&sysinfo_lock);
+	irq_spinlock_unlock(&sysinfo_lock, true);
 }
 
 /** Set sysinfo item with an undefined value
@@ -451,7 +451,7 @@ void sysinfo_set_item_gen_data(const char *name, sysinfo_item_t **root,
 void sysinfo_set_item_undefined(const char *name, sysinfo_item_t **root)
 {
 	/* Protect sysinfo tree consistency */
-	mutex_lock(&sysinfo_lock);
+	irq_spinlock_lock(&sysinfo_lock, true);
 
 	if (root == NULL)
 		root = &global_root;
@@ -462,7 +462,7 @@ void sysinfo_set_item_undefined(const char *name, sysinfo_item_t **root)
 	else
 		printf("Could not set sysinfo item %s.\n", name);
 
-	mutex_unlock(&sysinfo_lock);
+	irq_spinlock_unlock(&sysinfo_lock, true);
 }
 
 /** Set sysinfo item with a generated subtree
@@ -478,7 +478,7 @@ void sysinfo_set_subtree_fn(const char *name, sysinfo_item_t **root,
     sysinfo_fn_subtree_t fn, void *data)
 {
 	/* Protect sysinfo tree consistency */
-	mutex_lock(&sysinfo_lock);
+	irq_spinlock_lock(&sysinfo_lock, true);
 
 	if (root == NULL)
 		root = &global_root;
@@ -497,7 +497,7 @@ void sysinfo_set_subtree_fn(const char *name, sysinfo_item_t **root,
 		printf("Could not set sysinfo item %s.\n", name);
 	}
 
-	mutex_unlock(&sysinfo_lock);
+	irq_spinlock_unlock(&sysinfo_lock, true);
 }
 
 /** Sysinfo dump indentation helper routine
@@ -595,14 +595,14 @@ void sysinfo_dump(sysinfo_item_t *root)
 	 * Avoid other functions to mess with sysinfo
 	 * while we are dumping it
 	 */
-	mutex_lock(&sysinfo_lock);
+	irq_spinlock_lock(&sysinfo_lock, true);
 
 	if (root == NULL)
 		sysinfo_dump_internal(global_root, 0);
 	else
 		sysinfo_dump_internal(root, 0);
 
-	mutex_unlock(&sysinfo_lock);
+	irq_spinlock_unlock(&sysinfo_lock, true);
 }
 
 /** Return sysinfo item value determined by name
@@ -694,9 +694,9 @@ _NO_TRACE static sysinfo_return_t sysinfo_get_item_uspace(uspace_addr_t ptr, siz
 		 * Prevent other functions from messing with sysinfo while we
 		 * are reading it.
 		 */
-		mutex_lock(&sysinfo_lock);
+		irq_spinlock_lock(&sysinfo_lock, true);
 		ret = sysinfo_get_item(path, NULL, dry_run);
-		mutex_unlock(&sysinfo_lock);
+		irq_spinlock_unlock(&sysinfo_lock, true);
 	}
 
 	free(path);
@@ -805,9 +805,9 @@ _NO_TRACE static sysinfo_return_t sysinfo_get_keys_uspace(uspace_addr_t ptr, siz
 		 * Prevent other functions from messing with sysinfo while we
 		 * are reading it.
 		 */
-		mutex_lock(&sysinfo_lock);
+		irq_spinlock_lock(&sysinfo_lock, true);
 		ret = sysinfo_get_keys(path, NULL, dry_run);
-		mutex_unlock(&sysinfo_lock);
+		irq_spinlock_unlock(&sysinfo_lock, true);
 	}
 
 	free(path);

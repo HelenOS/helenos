@@ -75,6 +75,9 @@ extern void release_console(void);
 
 extern sysarg_t sys_debug_console(void);
 
+extern void console_lock(void);
+extern void console_unlock(void);
+
 #endif /* KERN_CONSOLE_H_ */
 
 /** @}

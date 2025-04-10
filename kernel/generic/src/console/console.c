@@ -33,29 +33,32 @@
 /** @file
  */
 
+#include <abi/kio.h>
+#include <arch.h>
 #include <assert.h>
-#include <console/console.h>
+#include <atomic.h>
 #include <console/chardev.h>
-#include <sysinfo/sysinfo.h>
-#include <synch/waitq.h>
-#include <synch/spinlock.h>
-#include <typedefs.h>
-#include <ddi/irq.h>
+#include <console/console.h>
 #include <ddi/ddi.h>
+#include <ddi/irq.h>
+#include <errno.h>
 #include <ipc/event.h>
 #include <ipc/irq.h>
-#include <arch.h>
-#include <panic.h>
-#include <stdio.h>
-#include <putchar.h>
-#include <atomic.h>
-#include <syscall/copy.h>
-#include <errno.h>
-#include <str.h>
-#include <stdatomic.h>
-#include <abi/kio.h>
 #include <mm/frame.h> /* SIZE2FRAMES */
+#include <panic.h>
+#include <preemption.h>
+#include <proc/thread.h>
+#include <putchar.h>
+#include <stdatomic.h>
+#include <stdio.h>
 #include <stdlib.h>  /* malloc */
+#include <str.h>
+#include <synch/mutex.h>
+#include <synch/spinlock.h>
+#include <synch/waitq.h>
+#include <syscall/copy.h>
+#include <sysinfo/sysinfo.h>
+#include <typedefs.h>
 
 #define KIO_PAGES    8
 #define KIO_LENGTH   (KIO_PAGES * PAGE_SIZE / sizeof(char32_t))
@@ -65,6 +68,12 @@ char32_t kio[KIO_LENGTH] __attribute__((aligned(PAGE_SIZE)));
 
 /** Kernel log initialized */
 static atomic_bool kio_inited = ATOMIC_VAR_INIT(false);
+
+/** A mutex for preventing interleaving of output lines from different threads.
+ * May not be held in some circumstances, so locking of any internal shared
+ * structures is still necessary.
+ */
+static MUTEX_INITIALIZE(console_mutex, MUTEX_RECURSIVE);
 
 /** First kernel log characters */
 static size_t kio_start = 0;
@@ -392,6 +401,24 @@ sys_errno_t sys_kio(int cmd, uspace_addr_t buf, size_t size)
 	}
 
 	return EOK;
+}
+
+/** Lock console output, ensuring that lines from different threads don't
+ * interleave. Does nothing when preemption is disabled, so that debugging
+ * and error printouts in sensitive areas still work.
+ */
+void console_lock(void)
+{
+	if (!PREEMPTION_DISABLED)
+		mutex_lock(&console_mutex);
+}
+
+/** Unlocks console output. See console_lock()
+ */
+void console_unlock(void)
+{
+	if (!PREEMPTION_DISABLED)
+		mutex_unlock(&console_mutex);
 }
 
 /** @}
