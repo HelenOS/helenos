@@ -38,7 +38,7 @@
 
 #ifdef CONFIG_SMP
 
-semaphore_t ap_completion_semaphore;
+SEMAPHORE_INITIALIZE(ap_completion_semaphore, 0);
 
 #endif /* CONFIG_SMP */
 
