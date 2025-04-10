@@ -150,6 +150,7 @@ static void log_append(const uint8_t *data, size_t len)
  */
 void log_begin(log_facility_t fac, log_level_t level)
 {
+	console_lock();
 	spinlock_lock(&log_lock);
 	spinlock_lock(&kio_lock);
 
@@ -185,6 +186,7 @@ void log_end(void)
 	kio_flush();
 	kio_update(NULL);
 	log_update(NULL);
+	console_unlock();
 }
 
 static void log_update(void *event)

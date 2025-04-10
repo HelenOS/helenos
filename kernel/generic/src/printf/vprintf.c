@@ -32,13 +32,14 @@
 /** @file
  */
 
+#include <arch/asm.h>
+#include <console/console.h>
 #include <print.h>
 #include <printf/printf_core.h>
 #include <putchar.h>
-#include <synch/spinlock.h>
-#include <arch/asm.h>
-#include <typedefs.h>
 #include <str.h>
+#include <synch/spinlock.h>
+#include <typedefs.h>
 
 static int vprintf_str_write(const char *str, size_t size, void *data)
 {
@@ -73,12 +74,16 @@ int puts(const char *str)
 	size_t chars = 0;
 	char32_t uc;
 
+	console_lock();
+
 	while ((uc = str_decode(str, &offset, STR_NO_LIMIT)) != 0) {
 		putuchar(uc);
 		chars++;
 	}
 
 	putuchar('\n');
+
+	console_unlock();
 	return chars;
 }
 
@@ -90,7 +95,10 @@ int vprintf(const char *fmt, va_list ap)
 		NULL
 	};
 
-	return printf_core(fmt, &ps, ap);
+	console_lock();
+	int ret = printf_core(fmt, &ps, ap);
+	console_unlock();
+	return ret;
 }
 
 /** @}
