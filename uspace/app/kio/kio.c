@@ -67,6 +67,8 @@ static size_t kio_length;
 /* Notification mutex */
 static FIBRIL_MUTEX_INITIALIZE(mtx);
 
+static size_t last_notification;
+
 /** Klog producer
  *
  * Copies the contents of a character buffer to local
@@ -152,31 +154,33 @@ static void kio_notification_handler(ipc_call_t *call, void *arg)
 	 * Make sure we process only a single notification
 	 * at any time to limit the chance of the consumer
 	 * starving.
-	 *
-	 * Note: Usually the automatic masking of the kio
-	 * notifications on the kernel side does the trick
-	 * of limiting the chance of accidentally copying
-	 * the same data multiple times. However, due to
-	 * the non-blocking architecture of kio notifications,
-	 * this possibility cannot be generally avoided.
 	 */
 
 	fibril_mutex_lock(&mtx);
 
-	size_t kio_start = (size_t) ipc_get_arg1(call);
-	size_t kio_len = (size_t) ipc_get_arg2(call);
-	size_t kio_stored = (size_t) ipc_get_arg3(call);
+	size_t kio_written = (size_t) ipc_get_arg1(call);
 
-	size_t offset = (kio_start + kio_len - kio_stored) % kio_length;
+	/* This works just fine even when kio_written overflows. */
+	size_t new_chars = kio_written - last_notification;
+	last_notification = kio_written;
+
+	if (new_chars > kio_length) {
+		/* We missed some data. */
+		// TODO: Send a message with the number of lost bytes to the consumer.
+		new_chars = kio_length;
+	}
+
+	size_t offset = (kio_written - new_chars) % kio_length;
 
 	/* Copy data from the ring buffer */
-	if (offset + kio_stored >= kio_length) {
+	if (offset + new_chars > kio_length) {
 		size_t split = kio_length - offset;
 
 		producer(split, kio + offset);
-		producer(kio_stored - split, kio);
-	} else
-		producer(kio_stored, kio + offset);
+		producer(new_chars - split, kio);
+	} else {
+		producer(new_chars, kio + offset);
+	}
 
 	async_event_unmask(EVENT_KIO);
 	fibril_mutex_unlock(&mtx);

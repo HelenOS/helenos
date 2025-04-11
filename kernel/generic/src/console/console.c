@@ -75,17 +75,14 @@ static atomic_bool kio_inited = ATOMIC_VAR_INIT(false);
  */
 static MUTEX_INITIALIZE(console_mutex, MUTEX_RECURSIVE);
 
-/** First kernel log characters */
-static size_t kio_start = 0;
+/** Number of characters written to buffer. Periodically overflows. */
+static size_t kio_written = 0;
 
-/** Number of valid kernel log characters */
-static size_t kio_len = 0;
+/** Number of characters written to output devices. Periodically overflows. */
+static size_t kio_processed = 0;
 
-/** Number of stored (not printed) kernel log characters */
-static size_t kio_stored = 0;
-
-/** Number of stored kernel log characters for uspace */
-static size_t kio_uspace = 0;
+/** Last notification sent to uspace. */
+static size_t kio_notified = 0;
 
 /** Kernel log spinlock */
 SPINLOCK_INITIALIZE_NAME(kio_lock, "kio_lock");
@@ -258,10 +255,9 @@ void kio_update(void *event)
 
 	spinlock_lock(&kio_lock);
 
-	if (kio_uspace > 0) {
-		if (event_notify_3(EVENT_KIO, true, kio_start, kio_len,
-		    kio_uspace) == EOK)
-			kio_uspace = 0;
+	if (kio_notified != kio_written) {
+		if (event_notify_1(EVENT_KIO, true, kio_written) == EOK)
+			kio_notified = kio_written;
 	}
 
 	spinlock_unlock(&kio_lock);
@@ -280,9 +276,9 @@ void kio_flush(void)
 	spinlock_lock(&kio_lock);
 
 	/* Print characters that weren't printed earlier */
-	while (kio_stored > 0) {
-		char32_t tmp = kio[(kio_start + kio_len - kio_stored) % KIO_LENGTH];
-		kio_stored--;
+	while (kio_written != kio_processed) {
+		char32_t tmp = kio[kio_processed % KIO_LENGTH];
+		kio_processed++;
 
 		/*
 		 * We need to give up the spinlock for
@@ -303,18 +299,8 @@ void kio_flush(void)
  */
 void kio_push_char(const char32_t ch)
 {
-	kio[(kio_start + kio_len) % KIO_LENGTH] = ch;
-	if (kio_len < KIO_LENGTH)
-		kio_len++;
-	else
-		kio_start = (kio_start + 1) % KIO_LENGTH;
-
-	if (kio_stored < kio_len)
-		kio_stored++;
-
-	/* The character is stored for uspace */
-	if (kio_uspace < kio_len)
-		kio_uspace++;
+	kio[kio_written % KIO_LENGTH] = ch;
+	kio_written++;
 }
 
 void putuchar(const char32_t ch)
