@@ -218,6 +218,14 @@ ui_evclaim_t taskbar_clock_kbd_event(taskbar_clock_t *clock, kbd_event_t *event)
 	return ui_unclaimed;
 }
 
+/** Launch date configuration application */
+static errno_t taskbar_clock_launch_date_cfg(void)
+{
+	task_id_t id;
+	const char *args[] = { "/app/date_cfg", NULL };
+	return task_spawnv(&id, NULL, args[0], args);
+}
+
 /** Handle taskbar clock position event.
  *
  * @param clock Taskbar clock
@@ -232,6 +240,10 @@ ui_evclaim_t taskbar_clock_pos_event(taskbar_clock_t *clock, pos_event_t *event)
 	pos.y = event->vpos;
 	if (!gfx_pix_inside_rect(&pos, &clock->rect))
 		return ui_unclaimed;
+
+	if (event->type == POS_PRESS) {
+		taskbar_clock_launch_date_cfg();
+	}
 
 	return ui_claimed;
 }
