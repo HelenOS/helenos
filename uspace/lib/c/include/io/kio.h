@@ -51,7 +51,7 @@ extern int kio_printf(const char *, ...)
     _HELENOS_PRINTF_ATTRIBUTE(1, 2);
 extern int kio_vprintf(const char *, va_list);
 
-extern size_t kio_read(char32_t *buf, size_t n, size_t at);
+extern size_t kio_read(char *buf, size_t n, size_t at);
 
 /*
  * In some files, we have conditional DPRINTF(...) macro that is defined empty

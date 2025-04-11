@@ -58,8 +58,8 @@
 /* Producer/consumer buffers */
 typedef struct {
 	link_t link;
-	size_t length;
-	char32_t *data;
+	size_t bytes;
+	char *data;
 } item_t;
 
 static prodcons_t pc;
@@ -67,10 +67,10 @@ static prodcons_t pc;
 /* Notification mutex */
 static FIBRIL_MUTEX_INITIALIZE(mtx);
 
-#define READ_BUFFER_SIZE (PAGE_SIZE / sizeof(char32_t))
+#define READ_BUFFER_SIZE PAGE_SIZE
 
 static size_t current_at;
-static char32_t read_buffer[READ_BUFFER_SIZE];
+static char read_buffer[READ_BUFFER_SIZE];
 
 /** Klog producer
  *
@@ -81,24 +81,22 @@ static char32_t read_buffer[READ_BUFFER_SIZE];
  * @param data   Pointer to the kernel kio buffer.
  *
  */
-static void producer(size_t length, char32_t *data)
+static void producer(size_t bytes, char *data)
 {
-	item_t *item = (item_t *) malloc(sizeof(item_t));
+	item_t *item = malloc(sizeof(item_t));
 	if (item == NULL)
 		return;
 
-	size_t sz = sizeof(char32_t) * length;
-	char32_t *buf = (char32_t *) malloc(sz);
-	if (buf == NULL) {
+	item->bytes = bytes;
+	item->data = malloc(bytes);
+	if (!item->data) {
 		free(item);
 		return;
 	}
 
-	memcpy(buf, data, sz);
+	memcpy(item->data, data, bytes);
 
 	link_initialize(&item->link);
-	item->length = length;
-	item->data = buf;
 	prodcons_produce(&pc, &item->link);
 }
 
@@ -124,13 +122,10 @@ static errno_t consumer(void *data)
 		link_t *link = prodcons_consume(&pc);
 		item_t *item = list_get_instance(link, item_t, link);
 
-		for (size_t i = 0; i < item->length; i++)
-			putuchar(item->data[i]);
+		fwrite(item->data, 1, item->bytes, stdout);
 
-		if (log != NULL) {
-			for (size_t i = 0; i < item->length; i++)
-				fputuc(item->data[i], log);
-
+		if (log) {
+			fwrite(item->data, 1, item->bytes, log);
 			fflush(log);
 			vfs_sync(fileno(log));
 		}

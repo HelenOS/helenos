@@ -39,23 +39,24 @@
 #include <console/console.h>
 #include <errno.h>
 #include <ipc/event.h>
+#include <log.h>
 #include <panic.h>
 #include <preemption.h>
 #include <proc/task.h>
-#include <putchar.h>
 #include <stdatomic.h>
 #include <stdio.h>
 #include <stdlib.h>  /* malloc */
+#include <str.h>
 #include <synch/mutex.h>
 #include <synch/spinlock.h>
 #include <syscall/copy.h>
 #include <sysinfo/sysinfo.h>
 
 #define KIO_PAGES    8
-#define KIO_LENGTH   (KIO_PAGES * PAGE_SIZE / sizeof(char32_t))
+#define KIO_LENGTH   (KIO_PAGES * PAGE_SIZE)
 
 /** Kernel log cyclic buffer */
-static char32_t kio[KIO_LENGTH];
+static char kio[KIO_LENGTH];
 
 /** Kernel log initialized */
 static atomic_bool kio_inited = ATOMIC_VAR_INIT(false);
@@ -77,6 +78,9 @@ static size_t kio_notified = 0;
 
 /** Kernel log spinlock */
 IRQ_SPINLOCK_INITIALIZE(kio_lock);
+
+static IRQ_SPINLOCK_INITIALIZE(early_mbstate_lock);
+static mbstate_t early_mbstate;
 
 static indev_t stdin_sink;
 static outdev_t stdout_source;
@@ -244,10 +248,17 @@ void kio_flush(void)
 
 	irq_spinlock_lock(&kio_lock, true);
 
+	static mbstate_t mbstate;
+
 	/* Print characters that weren't printed earlier */
 	while (kio_written != kio_processed) {
-		char32_t tmp = kio[kio_processed % KIO_LENGTH];
-		kio_processed++;
+		size_t offset = kio_processed % KIO_LENGTH;
+		size_t len = min(kio_written - kio_processed, KIO_LENGTH - offset);
+		size_t bytes = 0;
+
+		char32_t ch = str_decode_r(&kio[offset], &bytes, len, U'�', &mbstate);
+		assert(bytes <= 4);
+		kio_processed += bytes;
 
 		/*
 		 * We need to give up the spinlock for
@@ -255,29 +266,55 @@ void kio_flush(void)
 		 * the character.
 		 */
 		irq_spinlock_unlock(&kio_lock, true);
-		stdout->op->write(stdout, tmp);
+		stdout->op->write(stdout, ch);
 		irq_spinlock_lock(&kio_lock, true);
 	}
 
 	irq_spinlock_unlock(&kio_lock, true);
 }
 
-/** Put a character into the output buffer.
- *
- * The caller is required to hold kio_lock
- */
-void kio_push_char(const char32_t ch)
+void kio_push_bytes(const char *s, size_t n)
 {
-	kio[kio_written % KIO_LENGTH] = ch;
-	kio_written++;
+	/* Skip the section we know we can't keep. */
+	if (n > KIO_LENGTH) {
+		size_t lost = n - KIO_LENGTH;
+		kio_written += lost;
+		s += lost;
+		n -= lost;
+	}
+
+	size_t offset = kio_written % KIO_LENGTH;
+	if (offset + n > KIO_LENGTH) {
+		size_t first = KIO_LENGTH - offset;
+		size_t last = n - first;
+		memcpy(kio + offset, s, first);
+		memcpy(kio, s + first, last);
+	} else {
+		memcpy(kio + offset, s, n);
+	}
+
+	kio_written += n;
 }
 
-void putuchar(const char32_t ch)
+static void early_putstr(const char *s, size_t n)
+{
+	irq_spinlock_lock(&early_mbstate_lock, true);
+
+	size_t offset = 0;
+	char32_t c;
+
+	while ((c = str_decode_r(s, &offset, n, U_SPECIAL, &early_mbstate)))
+		early_putuchar(c);
+
+	irq_spinlock_unlock(&early_mbstate_lock, true);
+}
+
+void putstr(const char *s, size_t n)
 {
 	bool ordy = ((stdout) && (stdout->op->write));
 
 	irq_spinlock_lock(&kio_lock, true);
-	kio_push_char(ch);
+	kio_push_bytes(s, n);
 	irq_spinlock_unlock(&kio_lock, true);
 
 	/* Output stored characters */
@@ -294,11 +331,11 @@ void putuchar(const char32_t ch)
 		 * Note that the early_putuchar() function might be
 		 * a no-op on certain hardware configurations.
 		 */
-		early_putuchar(ch);
+		early_putstr(s, n);
 	}
 
-	/* Force notification on newline */
-	if (ch == '\n')
+	/* Force notification when containing a newline */
+	if (memchr(s, '\n', n) != NULL)
 		kio_update(NULL);
 }
 
@@ -335,14 +372,12 @@ sysarg_t sys_kio_read(uspace_addr_t buf, size_t size, size_t at)
 	if (offset + actual_read > KIO_LENGTH) {
 		size_t first = KIO_LENGTH - offset;
 		size_t last = actual_read - first;
-		size_t first_bytes = first * sizeof(kio[0]);
-		size_t last_bytes = last * sizeof(kio[0]);
 
-		rc = copy_to_uspace(buf, &kio[offset], first_bytes);
+		rc = copy_to_uspace(buf, &kio[offset], first);
 		if (rc == EOK)
-			rc = copy_to_uspace(buf + first_bytes, &kio[0], last_bytes);
+			rc = copy_to_uspace(buf + first, &kio[0], last);
 	} else {
-		rc = copy_to_uspace(buf, &kio[offset], actual_read * sizeof(kio[0]));
+		rc = copy_to_uspace(buf, &kio[offset], actual_read);
 	}
 
 	irq_spinlock_unlock(&kio_lock, true);

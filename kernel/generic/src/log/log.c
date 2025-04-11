@@ -45,7 +45,6 @@
 #include <panic.h>
 #include <print.h>
 #include <printf_core.h>
-#include <putchar.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <str.h>
@@ -178,7 +177,7 @@ void log_end(void)
 	log_copy_to((uint8_t *) &log_current_len, log_current_start, sizeof(size_t));
 	log_used += log_current_len;
 
-	kio_push_char('\n');
+	kio_push_bytes("\n", 1);
 	irq_spinlock_unlock(&kio_lock, true);
 	irq_spinlock_unlock(&log_lock, true);
 
@@ -202,13 +201,8 @@ static void log_update(void *event)
 
 static int log_printf_str_write(const char *str, size_t size, void *data)
 {
-	size_t offset = 0;
-
-	while (offset < size)
-		kio_push_char(str_decode(str, &offset, size));
-
+	kio_push_bytes(str, size);
 	log_append((const uint8_t *)str, size);
-
 	return EOK;
 }
 
