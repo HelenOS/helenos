@@ -14,7 +14,7 @@
 </entry>
 <entry caption="~U~I Demo" cmd="/app/uidemo -d %d" terminal="n">
 </entry>
-<entry caption="~G~FX Demo" cmd="/app/gfxdemo -d %d ui" terminal="n">
+<entry caption="~G~FX Demo" cmd="/app/gfxdemo -d %d" terminal="n">
 </entry>
 <entry caption="~B~arber Pole" cmd="/app/barber -d %d" terminal="n">
 </entry>
