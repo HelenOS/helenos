@@ -59,19 +59,19 @@
 #define LOG_ENTRY_HEADER_LENGTH (sizeof(size_t) + sizeof(uint32_t))
 
 /** Cyclic buffer holding the data for kernel log */
-uint8_t log_buffer[LOG_LENGTH] __attribute__((aligned(PAGE_SIZE)));
+static uint8_t log_buffer[LOG_LENGTH] __attribute__((aligned(PAGE_SIZE)));
 
 /** Kernel log initialized */
 static atomic_bool log_inited = false;
 
 /** Position in the cyclic buffer where the first log entry starts */
-size_t log_start = 0;
+static size_t log_start = 0;
 
 /** Sum of length of all log entries currently stored in the cyclic buffer */
-size_t log_used = 0;
+static size_t log_used = 0;
 
 /** Log spinlock */
-SPINLOCK_STATIC_INITIALIZE_NAME(log_lock, "log_lock");
+static IRQ_SPINLOCK_INITIALIZE(log_lock);
 
 /** Overall count of logged messages, which may overflow as needed */
 static uint32_t log_counter = 0;
@@ -151,8 +151,8 @@ static void log_append(const uint8_t *data, size_t len)
 void log_begin(log_facility_t fac, log_level_t level)
 {
 	console_lock();
-	spinlock_lock(&log_lock);
-	spinlock_lock(&kio_lock);
+	irq_spinlock_lock(&log_lock, true);
+	irq_spinlock_lock(&kio_lock, true);
 
 	log_current_start = (log_start + log_used) % LOG_LENGTH;
 	log_current_len = 0;
@@ -179,8 +179,8 @@ void log_end(void)
 	log_used += log_current_len;
 
 	kio_push_char('\n');
-	spinlock_unlock(&kio_lock);
-	spinlock_unlock(&log_lock);
+	irq_spinlock_unlock(&kio_lock, true);
+	irq_spinlock_unlock(&log_lock, true);
 
 	/* This has to be called after we released the locks above */
 	kio_flush();
@@ -194,10 +194,10 @@ static void log_update(void *event)
 	if (!atomic_load(&log_inited))
 		return;
 
-	spinlock_lock(&log_lock);
+	irq_spinlock_lock(&log_lock, true);
 	if (next_for_uspace < log_used)
 		event_notify_0(EVENT_KLOG, true);
-	spinlock_unlock(&log_lock);
+	irq_spinlock_unlock(&log_lock, true);
 }
 
 static int log_printf_str_write(const char *str, size_t size, void *data)
@@ -306,7 +306,7 @@ sys_errno_t sys_klog(sysarg_t operation, uspace_addr_t buf, size_t size,
 
 		rc = EOK;
 
-		spinlock_lock(&log_lock);
+		irq_spinlock_lock(&log_lock, true);
 
 		while (next_for_uspace < log_used) {
 			size_t pos = (log_start + next_for_uspace) % LOG_LENGTH;
@@ -336,7 +336,7 @@ sys_errno_t sys_klog(sysarg_t operation, uspace_addr_t buf, size_t size,
 			next_for_uspace += entry_len;
 		}
 
-		spinlock_unlock(&log_lock);
+		irq_spinlock_unlock(&log_lock, true);
 
 		if (rc != EOK) {
 			free(data);

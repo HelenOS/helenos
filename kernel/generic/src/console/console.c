@@ -85,7 +85,7 @@ static size_t kio_processed = 0;
 static size_t kio_notified = 0;
 
 /** Kernel log spinlock */
-SPINLOCK_INITIALIZE_NAME(kio_lock, "kio_lock");
+IRQ_SPINLOCK_INITIALIZE(kio_lock);
 
 /** Physical memory area used for kio buffer */
 static parea_t kio_parea;
@@ -253,14 +253,14 @@ void kio_update(void *event)
 	if (!atomic_load(&kio_inited))
 		return;
 
-	spinlock_lock(&kio_lock);
+	irq_spinlock_lock(&kio_lock, true);
 
 	if (kio_notified != kio_written) {
 		if (event_notify_1(EVENT_KIO, true, kio_written) == EOK)
 			kio_notified = kio_written;
 	}
 
-	spinlock_unlock(&kio_lock);
+	irq_spinlock_unlock(&kio_lock, true);
 }
 
 /** Flush characters that are stored in the output buffer
@@ -273,7 +273,7 @@ void kio_flush(void)
 	if (!ordy)
 		return;
 
-	spinlock_lock(&kio_lock);
+	irq_spinlock_lock(&kio_lock, true);
 
 	/* Print characters that weren't printed earlier */
 	while (kio_written != kio_processed) {
@@ -285,12 +285,12 @@ void kio_flush(void)
 		 * the physical operation of writing out
 		 * the character.
 		 */
-		spinlock_unlock(&kio_lock);
+		irq_spinlock_unlock(&kio_lock, true);
 		stdout->op->write(stdout, tmp);
-		spinlock_lock(&kio_lock);
+		irq_spinlock_lock(&kio_lock, true);
 	}
 
-	spinlock_unlock(&kio_lock);
+	irq_spinlock_unlock(&kio_lock, true);
 }
 
 /** Put a character into the output buffer.
@@ -307,9 +307,9 @@ void putuchar(const char32_t ch)
 {
 	bool ordy = ((stdout) && (stdout->op->write));
 
-	spinlock_lock(&kio_lock);
+	irq_spinlock_lock(&kio_lock, true);
 	kio_push_char(ch);
-	spinlock_unlock(&kio_lock);
+	irq_spinlock_unlock(&kio_lock, true);
 
 	/* Output stored characters */
 	kio_flush();

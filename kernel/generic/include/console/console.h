@@ -66,7 +66,7 @@ extern void kio_init(void);
 extern void kio_update(void *);
 extern void kio_flush(void);
 extern void kio_push_char(const char32_t);
-SPINLOCK_EXTERN(kio_lock);
+extern irq_spinlock_t kio_lock;
 
 extern sys_errno_t sys_kio(int cmd, uspace_addr_t buf, size_t size);
 
