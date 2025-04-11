@@ -136,6 +136,7 @@ static syshandler_t syscall_table[] = {
 	[SYS_DEBUG_CONSOLE] = (syshandler_t) sys_debug_console,
 
 	[SYS_KLOG] = (syshandler_t) sys_klog,
+	[SYS_KIO_READ] = (syshandler_t) sys_kio_read,
 };
 
 /** Dispatch system call */

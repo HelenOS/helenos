@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2003 Josef Cejka
  * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2025 Jiří Zárevúcky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,37 +35,27 @@
  */
 
 #include <abi/kio.h>
-#include <arch.h>
-#include <assert.h>
-#include <atomic.h>
 #include <console/chardev.h>
 #include <console/console.h>
-#include <ddi/ddi.h>
-#include <ddi/irq.h>
 #include <errno.h>
 #include <ipc/event.h>
-#include <ipc/irq.h>
-#include <mm/frame.h> /* SIZE2FRAMES */
 #include <panic.h>
 #include <preemption.h>
-#include <proc/thread.h>
+#include <proc/task.h>
 #include <putchar.h>
 #include <stdatomic.h>
 #include <stdio.h>
 #include <stdlib.h>  /* malloc */
-#include <str.h>
 #include <synch/mutex.h>
 #include <synch/spinlock.h>
-#include <synch/waitq.h>
 #include <syscall/copy.h>
 #include <sysinfo/sysinfo.h>
-#include <typedefs.h>
 
 #define KIO_PAGES    8
 #define KIO_LENGTH   (KIO_PAGES * PAGE_SIZE / sizeof(char32_t))
 
 /** Kernel log cyclic buffer */
-char32_t kio[KIO_LENGTH] __attribute__((aligned(PAGE_SIZE)));
+static char32_t kio[KIO_LENGTH];
 
 /** Kernel log initialized */
 static atomic_bool kio_inited = ATOMIC_VAR_INIT(false);
@@ -86,9 +77,6 @@ static size_t kio_notified = 0;
 
 /** Kernel log spinlock */
 IRQ_SPINLOCK_INITIALIZE(kio_lock);
-
-/** Physical memory area used for kio buffer */
-static parea_t kio_parea;
 
 static indev_t stdin_sink;
 static outdev_t stdout_source;
@@ -186,28 +174,9 @@ static void stdout_scroll_down(outdev_t *dev)
 }
 
 /** Initialize kernel logging facility
- *
- * The shared area contains kernel cyclic buffer. Userspace application may
- * be notified on new data with indication of position and size
- * of the data within the circular buffer.
- *
  */
 void kio_init(void)
 {
-	void *faddr = (void *) KA2PA(kio);
-
-	assert((uintptr_t) faddr % FRAME_SIZE == 0);
-
-	ddi_parea_init(&kio_parea);
-	kio_parea.pbase = (uintptr_t) faddr;
-	kio_parea.frames = SIZE2FRAMES(sizeof(kio));
-	kio_parea.unpriv = false;
-	kio_parea.mapped = false;
-	ddi_parea_register(&kio_parea);
-
-	sysinfo_set_item_val("kio.faddr", NULL, (sysarg_t) faddr);
-	sysinfo_set_item_val("kio.pages", NULL, KIO_PAGES);
-
 	event_set_unmask_callback(EVENT_KIO, kio_update);
 	atomic_store(&kio_inited, true);
 }
@@ -331,6 +300,61 @@ void putuchar(const char32_t ch)
 	/* Force notification on newline */
 	if (ch == '\n')
 		kio_update(NULL);
+}
+
+/** Reads up to `size` characters from kio buffer starting at character `at`.
+ *
+ * @param size  Maximum number of characters that can be stored in buffer.
+ *              Values greater than KIO_LENGTH are silently treated as KIO_LENGTH
+ *              for the purposes of calculating the return value.
+ * @return Number of characters read. Can be more than `size`.
+ *         In that case, `size` characters are written to user buffer
+ *         and the extra amount is the number of characters missed.
+ */
+sysarg_t sys_kio_read(uspace_addr_t buf, size_t size, size_t at)
+{
+	errno_t rc;
+	size_t missed = 0;
+
+	irq_spinlock_lock(&kio_lock, true);
+
+	if (at == kio_written) {
+		irq_spinlock_unlock(&kio_lock, true);
+		return 0;
+	}
+
+	size_t readable_chars = kio_written - at;
+	if (readable_chars > KIO_LENGTH) {
+		missed = readable_chars - KIO_LENGTH;
+		readable_chars = KIO_LENGTH;
+	}
+
+	size_t actual_read = min(readable_chars, size);
+	size_t offset = (kio_written - readable_chars) % KIO_LENGTH;
+
+	if (offset + actual_read > KIO_LENGTH) {
+		size_t first = KIO_LENGTH - offset;
+		size_t last = actual_read - first;
+		size_t first_bytes = first * sizeof(kio[0]);
+		size_t last_bytes = last * sizeof(kio[0]);
+
+		rc = copy_to_uspace(buf, &kio[offset], first_bytes);
+		if (rc == EOK)
+			rc = copy_to_uspace(buf + first_bytes, &kio[0], last_bytes);
+	} else {
+		rc = copy_to_uspace(buf, &kio[offset], actual_read * sizeof(kio[0]));
+	}
+
+	irq_spinlock_unlock(&kio_lock, true);
+
+	if (rc != EOK) {
+		log(LF_OTHER, LVL_WARN,
+		    "[%s(%" PRIu64 ")] Terminating due to invalid memory buffer"
+		    " in SYS_KIO_READ.\n", TASK->name, TASK->taskid);
+		task_kill_self(true);
+	}
+
+	return actual_read + missed;
 }
 
 /** Print using kernel facility

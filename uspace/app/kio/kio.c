@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2025 Jiří Zárevúcky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,6 +34,8 @@
  * @file
  */
 
+#include <_bits/decls.h>
+#include <libarch/config.h>
 #include <stdio.h>
 #include <async.h>
 #include <as.h>
@@ -46,6 +49,7 @@
 #include <adt/list.h>
 #include <adt/prodcons.h>
 #include <tinput.h>
+#include <uchar.h>
 #include <vfs/vfs.h>
 
 #define NAME       "kio"
@@ -60,14 +64,13 @@ typedef struct {
 
 static prodcons_t pc;
 
-/* Pointer to kio area */
-static char32_t *kio = (char32_t *) AS_AREA_ANY;
-static size_t kio_length;
-
 /* Notification mutex */
 static FIBRIL_MUTEX_INITIALIZE(mtx);
 
-static size_t last_notification;
+#define READ_BUFFER_SIZE (PAGE_SIZE / sizeof(char32_t))
+
+static size_t current_at;
+static char32_t read_buffer[READ_BUFFER_SIZE];
 
 /** Klog producer
  *
@@ -150,6 +153,8 @@ static errno_t consumer(void *data)
  */
 static void kio_notification_handler(ipc_call_t *call, void *arg)
 {
+	size_t kio_written = (size_t) ipc_get_arg1(call);
+
 	/*
 	 * Make sure we process only a single notification
 	 * at any time to limit the chance of the consumer
@@ -158,28 +163,20 @@ static void kio_notification_handler(ipc_call_t *call, void *arg)
 
 	fibril_mutex_lock(&mtx);
 
-	size_t kio_written = (size_t) ipc_get_arg1(call);
+	while (current_at != kio_written) {
+		size_t read = kio_read(read_buffer, READ_BUFFER_SIZE, current_at);
+		if (read == 0)
+			break;
 
-	/* This works just fine even when kio_written overflows. */
-	size_t new_chars = kio_written - last_notification;
-	last_notification = kio_written;
+		current_at += read;
 
-	if (new_chars > kio_length) {
-		/* We missed some data. */
-		// TODO: Send a message with the number of lost bytes to the consumer.
-		new_chars = kio_length;
-	}
+		if (read > READ_BUFFER_SIZE) {
+			/* We missed some data. */
+			// TODO: Send a message with the number of lost characters to the consumer.
+			read = READ_BUFFER_SIZE;
+		}
 
-	size_t offset = (kio_written - new_chars) % kio_length;
-
-	/* Copy data from the ring buffer */
-	if (offset + new_chars > kio_length) {
-		size_t split = kio_length - offset;
-
-		producer(split, kio + offset);
-		producer(new_chars - split, kio);
-	} else {
-		producer(new_chars, kio + offset);
+		producer(read, read_buffer);
 	}
 
 	async_event_unmask(EVENT_KIO);
@@ -188,34 +185,8 @@ static void kio_notification_handler(ipc_call_t *call, void *arg)
 
 int main(int argc, char *argv[])
 {
-	size_t pages;
-	errno_t rc = sysinfo_get_value("kio.pages", &pages);
-	if (rc != EOK) {
-		fprintf(stderr, "%s: Unable to get number of kio pages\n",
-		    NAME);
-		return rc;
-	}
-
-	uintptr_t faddr;
-	rc = sysinfo_get_value("kio.faddr", &faddr);
-	if (rc != EOK) {
-		fprintf(stderr, "%s: Unable to get kio physical address\n",
-		    NAME);
-		return rc;
-	}
-
-	size_t size = pages * PAGE_SIZE;
-	kio_length = size / sizeof(char32_t);
-
-	rc = physmem_map(faddr, pages, AS_AREA_READ | AS_AREA_CACHEABLE,
-	    (void *) &kio);
-	if (rc != EOK) {
-		fprintf(stderr, "%s: Unable to map kio\n", NAME);
-		return rc;
-	}
-
 	prodcons_initialize(&pc);
-	rc = async_event_subscribe(EVENT_KIO, kio_notification_handler, NULL);
+	errno_t rc = async_event_subscribe(EVENT_KIO, kio_notification_handler, NULL);
 	if (rc != EOK) {
 		fprintf(stderr, "%s: Unable to register kio notifications\n",
 		    NAME);
