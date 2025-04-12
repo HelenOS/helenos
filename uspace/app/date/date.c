@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Wayne Michael Thornton (WMT) <wmthornton-dev@outlook.com>
  * Copyright (c) 2012 Maurizio Lombardi
  * All rights reserved.
  *
@@ -194,13 +195,15 @@ exit:
 }
 
 /** Read the day, month and year from a string
- *  with the following format: DD/MM/YYYY
+ *  with the following format: DD/MM/YYYY or MM/DD/YYYY
  */
 static errno_t
 read_date_from_arg(char *wdate, struct tm *t)
 {
 	errno_t rc;
 	uint32_t tmp;
+	uint32_t first_num;
+	uint32_t second_num;
 
 	if (str_size(wdate) != 10) /* str_size("DD/MM/YYYY") == 10 */
 		return EINVAL;
@@ -210,22 +213,38 @@ read_date_from_arg(char *wdate, struct tm *t)
 		return EINVAL;
 	}
 
-	rc = str_uint32_t(&wdate[0], NULL, 10, false, &tmp);
+	/* Parse first number */
+	rc = str_uint32_t(&wdate[0], NULL, 10, false, &first_num);
 	if (rc != EOK)
 		return rc;
 
-	t->tm_mday = tmp;
-
-	rc = str_uint32_t(&wdate[3], NULL, 10, false, &tmp);
+	/* Parse second number */
+	rc = str_uint32_t(&wdate[3], NULL, 10, false, &second_num);
 	if (rc != EOK)
 		return rc;
 
-	t->tm_mon = tmp - 1;
+	/* Determine format based on first number */
+	if (first_num > 12) {
+		/* First number is day (DD/MM/YYYY format) */
+		t->tm_mday = first_num;
+		t->tm_mon = second_num - 1;
+	} else if (second_num > 12) {
+		/* Second number is day (MM/DD/YYYY format) */
+		t->tm_mon = first_num - 1;
+		t->tm_mday = second_num;
+	} else {
+		/* Ambiguous case - assume DD/MM/YYYY format */
+		t->tm_mday = first_num;
+		t->tm_mon = second_num - 1;
+	}
 
 	rc = str_uint32_t(&wdate[6], NULL, 10, false, &tmp);
+	if (rc != EOK)
+		return rc;
+
 	t->tm_year = tmp - 1900;
 
-	return rc;
+	return EOK;
 }
 
 /** Read the hours, minutes and seconds from a string
@@ -330,8 +349,8 @@ is_leap_year(int year)
 static void
 usage(void)
 {
-	printf("Usage: date [-d DD/MM/YYYY] [-t HH:MM[:SS]]\n");
-	printf("       -d   Change the current date\n");
+	printf("Usage: date [-d DD/MM/YYYY|MM/DD/YYYY] [-t HH:MM[:SS]]\n");
+	printf("       -d   Change the current date (supports both DD/MM/YYYY and MM/DD/YYYY formats)\n");
 	printf("       -t   Change the current time\n");
 	printf("       -h   Display this information\n");
 }

@@ -255,23 +255,38 @@ static errno_t parse_date_time(date_cfg_t *date_cfg)
 {
 	const char *date_str = ui_entry_get_text(date_cfg->date_entry);
 	const char *time_str = ui_entry_get_text(date_cfg->time_entry);
-	int day, month, year;
+	int first_num, second_num, year;
 	int hour, min, sec;
 
-	if (sscanf(date_str, "%d/%d/%d", &day, &month, &year) != 3)
+	if (sscanf(date_str, "%d/%d/%d", &first_num, &second_num, &year) != 3)
 		return EINVAL;
 
 	if (sscanf(time_str, "%d:%d:%d", &hour, &min, &sec) != 3)
 		return EINVAL;
 
-	if (day < 1 || day > 31 || month < 1 || month > 12 || year < 1900)
+	/* Determine format based on first number */
+	if (first_num > 12) {
+		/* First number is day (DD/MM/YYYY format) */
+		date_cfg->current_time.tm_mday = first_num;
+		date_cfg->current_time.tm_mon = second_num - 1;
+	} else if (second_num > 12) {
+		/* Second number is day (MM/DD/YYYY format) */
+		date_cfg->current_time.tm_mon = first_num - 1;
+		date_cfg->current_time.tm_mday = second_num;
+	} else {
+		/* Ambiguous case - assume DD/MM/YYYY format */
+		date_cfg->current_time.tm_mday = first_num;
+		date_cfg->current_time.tm_mon = second_num - 1;
+	}
+
+	if (date_cfg->current_time.tm_mday < 1 || date_cfg->current_time.tm_mday > 31 || 
+	    date_cfg->current_time.tm_mon < 0 || date_cfg->current_time.tm_mon > 11 || 
+	    year < 1900)
 		return EINVAL;
 
 	if (hour < 0 || hour > 23 || min < 0 || min > 59 || sec < 0 || sec > 59)
 		return EINVAL;
 
-	date_cfg->current_time.tm_mday = day;
-	date_cfg->current_time.tm_mon = month - 1;
 	date_cfg->current_time.tm_year = year - 1900;
 	date_cfg->current_time.tm_hour = hour;
 	date_cfg->current_time.tm_min = min;
