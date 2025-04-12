@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Wayne Michael Thornton (WMT) <wmthornton-dev@outlook.com>
  * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2012 Petr Koupy
  * All rights reserved.
