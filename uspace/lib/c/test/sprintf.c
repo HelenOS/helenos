@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2014 Vojtech Horky
+ * Copyright (c) 2025 Jiří Zárevúcky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,12 +31,14 @@
 #include <str.h>
 #include <pcut/pcut.h>
 
+#pragma GCC diagnostic ignored "-Wformat"
+
 #define BUFFER_SIZE 8192
 #define TEQ(expected, actual) PCUT_ASSERT_STR_EQUALS(expected, actual)
 #define TF(expected, format, ...) TEQ(expected, fmt(format, ##__VA_ARGS__))
 
 #define SPRINTF_TEST(test_name, expected_string, actual_format, ...) \
-	PCUT_TEST(test_name) { \
+	PCUT_TEST(printf_##test_name) { \
 		snprintf(buffer, BUFFER_SIZE, actual_format, ##__VA_ARGS__); \
 		PCUT_ASSERT_STR_EQUALS(expected_string, buffer); \
 	}
@@ -78,8 +81,34 @@ SPRINTF_TEST(long_negative_various_padding, "[-1] [-02] [-03] [-004] [-005]",
     (long long) -1, (long long) -2, (long long) -3, (long long) -4,
     (long long) -5);
 
-SPRINTF_TEST(int_as_hex, "[0x11] [0x012] [0x013] [0x00014] [0x00015]",
-    "[%#x] [%#5.3x] [%#-5.3x] [%#3.5x] [%#-3.5x]",
-    17, 18, 19, 20, 21);
+SPRINTF_TEST(int_as_hex, "[1a] [  02b] [03c  ] [    04d] [05e    ] [0006f] [00080]",
+    "[%x] [%5.3x] [%-5.3x] [%7.3x] [%-7.3x] [%3.5x] [%-3.5x]",
+    26, 43, 60, 77, 94, 111, 128);
+
+SPRINTF_TEST(int_as_hex_alt, "[0x1a] [0x02b] [0x03c] [  0x04d] [0x05e  ] [0x0006f] [0x00080]",
+    "[%#x] [%#5.3x] [%#-5.3x] [%#7.3x] [%#-7.3x] [%#3.5x] [%#-3.5x]",
+    26, 43, 60, 77, 94, 111, 128);
+
+SPRINTF_TEST(int_as_hex_uc, "[1A] [  02B] [03C  ] [    04D] [05E    ] [0006F] [00080]",
+    "[%X] [%5.3X] [%-5.3X] [%7.3X] [%-7.3X] [%3.5X] [%-3.5X]",
+    26, 43, 60, 77, 94, 111, 128);
+
+SPRINTF_TEST(int_as_hex_alt_uc, "[0X1A] [0X02B] [0X03C] [  0X04D] [0X05E  ] [0X0006F] [0X00080]",
+    "[%#X] [%#5.3X] [%#-5.3X] [%#7.3X] [%#-7.3X] [%#3.5X] [%#-3.5X]",
+    26, 43, 60, 77, 94, 111, 128);
+
+SPRINTF_TEST(max_negative, "-9223372036854775808", "%" PRId64, INT64_MIN);
+
+SPRINTF_TEST(sign1, "[12] [ 12] [+12] [+12] [+12] [+12]",   "[%d] [% d] [%+d] [% +d] [%+ d] [%++ ++    +  ++++d]", 12, 12, 12, 12, 12, 12);
+SPRINTF_TEST(sign2, "[-12] [-12] [-12] [-12] [-12] [-12]", "[%d] [% d] [%+d] [% +d] [%+ d] [%++ ++    +  ++++d]", -12, -12, -12, -12, -12, -12);
+
+/* When zero padding and precision and/or left justification are both specified, zero padding is ignored. */
+SPRINTF_TEST(zero_left_padding, "[    0012] [0034    ] [56      ]", "[%08.4d] [%-08.4d] [%-08d]", 12, 34, 56);
+
+/* Zero padding comes after the sign, but space padding doesn't. */
+SPRINTF_TEST(sign_padding, "[00012] [   12] [ 0012] [   12] [+0012] [  +12]", "[%05d] [%5d] [%0 5d] [% 5d] [%0+5d] [%+5d]", 12, 12, 12, 12, 12, 12);
+SPRINTF_TEST(sign_padding2, "[-0012] [  -12] [-0012] [  -12] [-0012] [  -12]", "[%05d] [%5d] [%0 5d] [% 5d] [%0+5d] [%+5d]", -12, -12, -12, -12, -12, -12);
+
+SPRINTF_TEST(all_zero, "[00000] [0] [0] [0] [0] [0] [0] [0] [0]", "[%05d] [%d] [%x] [%#x] [%o] [%#o] [%b] [%#b] [%u]", 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
 PCUT_EXPORT(sprintf);
