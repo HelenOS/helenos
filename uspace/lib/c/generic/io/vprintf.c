@@ -41,26 +41,21 @@
 
 static FIBRIL_MUTEX_INITIALIZE(printf_mutex);
 
-static int vprintf_str_write(const char *str, size_t size, void *stream)
+static errno_t vprintf_str_write(const char *str, size_t size, void *stream)
 {
-	size_t wr = fwrite(str, 1, size, (FILE *) stream);
-	return str_nlength(str, wr);
-}
+	errno_t old_errno = errno;
 
-static int vprintf_wstr_write(const char32_t *str, size_t size, void *stream)
-{
-	size_t offset = 0;
-	size_t chars = 0;
+	errno = EOK;
+	size_t written = fwrite(str, 1, size, (FILE *) stream);
 
-	while (offset < size) {
-		if (fputuc(str[chars], (FILE *) stream) <= 0)
-			break;
+	if (errno == EOK && written != size)
+		errno = EIO;
 
-		chars++;
-		offset += sizeof(char32_t);
-	}
+	if (errno != EOK)
+		return errno;
 
-	return chars;
+	errno = old_errno;
+	return EOK;
 }
 
 /** Print formatted text.
@@ -76,7 +71,6 @@ int vfprintf(FILE *stream, const char *fmt, va_list ap)
 {
 	printf_spec_t ps = {
 		vprintf_str_write,
-		vprintf_wstr_write,
 		stream
 	};
 

@@ -231,46 +231,11 @@ int dprintf(int fildes, const char *restrict format, ...)
  * @param fd File descriptor of the opened file.
  * @return The number of written characters.
  */
-static int _dprintf_str_write(const char *str, size_t size, void *fd)
+static errno_t _dprintf_str_write(const char *str, size_t size, void *fd)
 {
 	const int fildes = *(int *) fd;
 	size_t wr;
-	if (failed(vfs_write(fildes, &posix_pos[fildes], str, size, &wr)))
-		return -1;
-	return str_nlength(str, wr);
-}
-
-/**
- * Write wide string to the opened file.
- *
- * @param str String to be written.
- * @param size Size of the string (in bytes).
- * @param fd File descriptor of the opened file.
- * @return The number of written characters.
- */
-static int _dprintf_wstr_write(const char32_t *str, size_t size, void *fd)
-{
-	size_t offset = 0;
-	size_t chars = 0;
-	size_t sz;
-	char buf[4];
-
-	while (offset < size) {
-		sz = 0;
-		if (chr_encode(str[chars], buf, &sz, sizeof(buf)) != EOK) {
-			break;
-		}
-
-		const int fildes = *(int *) fd;
-		size_t nwr;
-		if (vfs_write(fildes, &posix_pos[fildes], buf, sz, &nwr) != EOK)
-			break;
-
-		chars++;
-		offset += sizeof(char32_t);
-	}
-
-	return chars;
+	return vfs_write(fildes, &posix_pos[fildes], str, size, &wr);
 }
 
 /**
@@ -284,8 +249,7 @@ static int _dprintf_wstr_write(const char32_t *str, size_t size, void *fd)
 int vdprintf(int fildes, const char *restrict format, va_list ap)
 {
 	printf_spec_t spec = {
-		.str_write = _dprintf_str_write,
-		.wstr_write = _dprintf_wstr_write,
+		.write = _dprintf_str_write,
 		.data = &fildes
 	};
 

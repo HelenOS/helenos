@@ -200,17 +200,12 @@ static inline void _saturating_add(size_t *a, size_t b)
 static errno_t _write_bytes(const char *buf, size_t n, printf_spec_t *ps,
     size_t *written_bytes)
 {
-	int written = ps->str_write(buf, n, ps->data);
-	if (written < 0)
-		return EIO;
+	errno_t rc = ps->write(buf, n, ps->data);
+	if (rc != EOK)
+		return rc;
+
 	_saturating_add(written_bytes, n);
 	return EOK;
-
-	#if 0
-	errno_t rc = ps->write(buf, &n, ps->data);
-	_saturating_add(written_bytes, n);
-	return rc;
-	#endif
 }
 
 /** Write one UTF-32 character. */
@@ -1465,8 +1460,6 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 		}
 
 		rc = _format_number(number, width, precision, base, flags, ps, &counter);
-		if (rc != EOK)
-			continue;
 	}
 
 	if (rc != EOK) {

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2025 Jiří Zárevúcky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,26 +27,57 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kernel_generic
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#include <print.h>
-#include <printf/printf_core.h>
+#include <errno.h>
+#include <macros.h>
+#include <printf_core.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <str.h>
 
-int snprintf(char *str, size_t size, const char *fmt, ...)
+typedef struct {
+	char *dst;      /* Destination */
+	size_t left;
+} vsnprintf_data_t;
+
+static int vsnprintf_str_write(const char *str, size_t size, void *data)
 {
-	int ret;
-	va_list args;
+	vsnprintf_data_t *d = data;
+	size_t left = min(size, d->left);
+	if (left > 0) {
+		memcpy(d->dst, str, left);
+		d->dst += left;
+		d->left -= left;
+	}
+	return EOK;
+}
 
-	va_start(args, fmt);
-	ret = vsnprintf(str, size, fmt, args);
+int vsnprintf(char *str, size_t size, const char *fmt, va_list ap)
+{
+	vsnprintf_data_t data = {
+		.dst = str,
+		.left = size ? size - 1 : 0,
+	};
 
-	va_end(args);
+	printf_spec_t ps = {
+		vsnprintf_str_write,
+		&data
+	};
 
-	return ret;
+	int written = printf_core(fmt, &ps, ap);
+	if (written < 0)
+		return written;
+
+	/* Write the terminating NUL character. */
+	if (size > 0)
+		data.dst[0] = 0;
+
+	return written;
 }
 
 /** @}
