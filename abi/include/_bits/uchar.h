@@ -45,7 +45,8 @@
 typedef uint8_t char8_t;
 #endif
 
-typedef uint32_t char32_t;
+typedef uint_least16_t char16_t;
+typedef uint_least32_t char32_t;
 
 #endif
 

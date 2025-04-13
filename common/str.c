@@ -53,6 +53,11 @@
  *                        (unsigned 32 bit integer), code points 0 .. 1114111
  *                        are valid
  *
+ *                        Note that Unicode characters do not match
+ *                        one-to-one with displayed characters or glyphs on
+ *                        screen. For that level of precision, look up
+ *                        Grapheme Clusters.
+ *
  *  ASCII character       7 bit encoded ASCII character, stored in char
  *                        (usually signed 8 bit integer), code points 0 .. 127
  *                        are valid
@@ -70,6 +75,13 @@
  *
  *  [wide] string width   number of display cells on a monospace display taken
  *                        by a [wide] string, size_t
+ *
+ *                        This is virtually impossible to determine exactly for
+ *                        all strings without knowing specifics of the display
+ *                        device, due to various factors affecting text output.
+ *                        If you have the option to query the terminal for
+ *                        position change caused by outputting the string,
+ *                        it is preferrable to determine width that way.
  *
  *
  * Overview of string metrics:@n
@@ -107,16 +119,17 @@
 
 #include <str.h>
 
+#include <align.h>
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
+#include <macros.h>
+#include <mem.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
-
-#include <align.h>
-#include <mem.h>
+#include <uchar.h>
 
 /** Byte mask consisting of lowest @n bits (out of 8) */
 #define LO_MASK_8(n)  ((uint8_t) ((1 << (n)) - 1))
@@ -129,6 +142,52 @@
 
 /** Number of data bits in a UTF-8 continuation byte */
 #define CONT_BITS  6
+
+static inline bool _is_ascii(uint8_t b)
+{
+	return b < 0x80;
+}
+
+static inline bool _is_continuation_byte(uint8_t b)
+{
+	return (b & 0xc0) == 0x80;
+}
+
+static inline int _char_continuation_bytes(char32_t c)
+{
+	if ((c & ~LO_MASK_32(11)) == 0)
+		return 1;
+
+	if ((c & ~LO_MASK_32(16)) == 0)
+		return 2;
+
+	if ((c & ~LO_MASK_32(21)) == 0)
+		return 3;
+
+	/* Codes longer than 21 bits are not supported */
+	return -1;
+}
+
+static inline int _continuation_bytes(uint8_t b)
+{
+	/* 0xxxxxxx */
+	if (_is_ascii(b))
+		return 0;
+
+	/* 110xxxxx 10xxxxxx */
+	if ((b & 0xe0) == 0xc0)
+		return 1;
+
+	/* 1110xxxx 10xxxxxx 10xxxxxx */
+	if ((b & 0xf0) == 0xe0)
+		return 2;
+
+	/* 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx */
+	if ((b & 0xf8) == 0xf0)
+		return 3;
+
+	return -1;
+}
 
 /** Decode a single character from a string.
  *
@@ -153,31 +212,18 @@ char32_t str_decode(const char *str, size_t *offset, size_t size)
 	/* First byte read from string */
 	uint8_t b0 = (uint8_t) str[(*offset)++];
 
+	/* Fast exit for the most common case. */
+	if (_is_ascii(b0))
+		return b0;
+
+	/* 10xxxxxx -- unexpected continuation byte */
+	if (_is_continuation_byte(b0))
+		return U_SPECIAL;
+
 	/* Determine code length */
 
-	unsigned int b0_bits;  /* Data bits in first byte */
-	unsigned int cbytes;   /* Number of continuation bytes */
-
-	if ((b0 & 0x80) == 0) {
-		/* 0xxxxxxx (Plain ASCII) */
-		b0_bits = 7;
-		cbytes = 0;
-	} else if ((b0 & 0xe0) == 0xc0) {
-		/* 110xxxxx 10xxxxxx */
-		b0_bits = 5;
-		cbytes = 1;
-	} else if ((b0 & 0xf0) == 0xe0) {
-		/* 1110xxxx 10xxxxxx 10xxxxxx */
-		b0_bits = 4;
-		cbytes = 2;
-	} else if ((b0 & 0xf8) == 0xf0) {
-		/* 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx */
-		b0_bits = 3;
-		cbytes = 3;
-	} else {
-		/* 10xxxxxx -- unexpected continuation byte */
-		return U_SPECIAL;
-	}
+	unsigned int cbytes = _continuation_bytes(b0);
+	unsigned int b0_bits = 6 - cbytes;  /* Data bits in first byte */
 
 	if (*offset + cbytes > size)
 		return U_SPECIAL;
@@ -188,8 +234,7 @@ char32_t str_decode(const char *str, size_t *offset, size_t size)
 	while (cbytes > 0) {
 		uint8_t b = (uint8_t) str[(*offset)++];
 
-		/* Must be 10xxxxxx */
-		if ((b & 0xc0) != 0x80)
+		if (!_is_continuation_byte(b))
 			return U_SPECIAL;
 
 		/* Shift data bits to ch */
@@ -220,25 +265,25 @@ char32_t str_decode_reverse(const char *str, size_t *offset, size_t size)
 	if (*offset == 0)
 		return 0;
 
-	size_t processed = 0;
+	int cbytes = 0;
 	/* Continue while continuation bytes found */
-	while (*offset > 0 && processed < 4) {
+	while (*offset > 0 && cbytes < 4) {
 		uint8_t b = (uint8_t) str[--(*offset)];
 
-		if (processed == 0 && (b & 0x80) == 0) {
-			/* 0xxxxxxx (Plain ASCII) */
-			return b & 0x7f;
-		} else if ((b & 0xe0) == 0xc0 || (b & 0xf0) == 0xe0 ||
-		    (b & 0xf8) == 0xf0) {
-			/* Start byte */
-			size_t start_offset = *offset;
-			return str_decode(str, &start_offset, size);
-		} else if ((b & 0xc0) != 0x80) {
-			/* Not a continuation byte */
-			return U_SPECIAL;
+		if (_is_continuation_byte(b)) {
+			cbytes++;
+			continue;
 		}
-		processed++;
+
+		/* Invalid byte. */
+		if (cbytes != _continuation_bytes(b))
+			return U_SPECIAL;
+
+		/* Start byte */
+		size_t start_offset = *offset;
+		return str_decode(str, &start_offset, size);
 	}
+
 	/* Too many continuation bytes */
 	return U_SPECIAL;
 }
@@ -258,41 +303,25 @@ char32_t str_decode_reverse(const char *str, size_t *offset, size_t size)
  *         was not enough space in the output buffer or EINVAL if the character
  *         code was invalid.
  */
-errno_t chr_encode(const char32_t ch, char *str, size_t *offset, size_t size)
+errno_t chr_encode(char32_t ch, char *str, size_t *offset, size_t size)
 {
 	if (*offset >= size)
 		return EOVERFLOW;
 
+	/* Fast exit for the most common case. */
+	if (ch < 0x80) {
+		str[(*offset)++] = (char) ch;
+		return EOK;
+	}
+
+	/* Codes longer than 21 bits are not supported */
 	if (!chr_check(ch))
 		return EINVAL;
 
-	/*
-	 * Unsigned version of ch (bit operations should only be done
-	 * on unsigned types).
-	 */
-	uint32_t cc = (uint32_t) ch;
-
 	/* Determine how many continuation bytes are needed */
 
-	unsigned int b0_bits;  /* Data bits in first byte */
-	unsigned int cbytes;   /* Number of continuation bytes */
-
-	if ((cc & ~LO_MASK_32(7)) == 0) {
-		b0_bits = 7;
-		cbytes = 0;
-	} else if ((cc & ~LO_MASK_32(11)) == 0) {
-		b0_bits = 5;
-		cbytes = 1;
-	} else if ((cc & ~LO_MASK_32(16)) == 0) {
-		b0_bits = 4;
-		cbytes = 2;
-	} else if ((cc & ~LO_MASK_32(21)) == 0) {
-		b0_bits = 3;
-		cbytes = 3;
-	} else {
-		/* Codes longer than 21 bits are not supported */
-		return EINVAL;
-	}
+	unsigned int cbytes = _char_continuation_bytes(ch);
+	unsigned int b0_bits = 6 - cbytes;  /* Data bits in first byte */
 
 	/* Check for available space in buffer */
 	if (*offset + cbytes >= size)
@@ -301,17 +330,49 @@ errno_t chr_encode(const char32_t ch, char *str, size_t *offset, size_t size)
 	/* Encode continuation bytes */
 	unsigned int i;
 	for (i = cbytes; i > 0; i--) {
-		str[*offset + i] = 0x80 | (cc & LO_MASK_32(CONT_BITS));
-		cc = cc >> CONT_BITS;
+		str[*offset + i] = 0x80 | (ch & LO_MASK_32(CONT_BITS));
+		ch >>= CONT_BITS;
 	}
 
 	/* Encode first byte */
-	str[*offset] = (cc & LO_MASK_32(b0_bits)) | HI_MASK_8(8 - b0_bits - 1);
+	str[*offset] = (ch & LO_MASK_32(b0_bits)) | HI_MASK_8(8 - b0_bits - 1);
 
 	/* Advance offset */
 	*offset += cbytes + 1;
 
 	return EOK;
+}
+
+/* Convert in place any bytes that don't form a valid character into U_SPECIAL. */
+static void _repair_string(char *str, size_t n)
+{
+	for (; *str && n > 0; str++, n--) {
+		int cont = _continuation_bytes(*str);
+		if (cont == 0)
+			continue;
+
+		if (cont < 0 || n <= (size_t) cont) {
+			*str = U_SPECIAL;
+			continue;
+		}
+
+		for (int i = 1; i <= cont; i++) {
+			if (!_is_continuation_byte(str[i])) {
+				*str = U_SPECIAL;
+				continue;
+			}
+		}
+	}
+}
+
+static size_t _str_size(const char *str)
+{
+	size_t size = 0;
+
+	while (*str++ != 0)
+		size++;
+
+	return size;
 }
 
 /** Get size of string.
@@ -326,12 +387,7 @@ errno_t chr_encode(const char32_t ch, char *str, size_t *offset, size_t size)
  */
 size_t str_size(const char *str)
 {
-	size_t size = 0;
-
-	while (*str++ != 0)
-		size++;
-
-	return size;
+	return _str_size(str);
 }
 
 /** Get size of wide string.
@@ -377,6 +433,16 @@ size_t str_lsize(const char *str, size_t max_len)
 	return offset;
 }
 
+static size_t _str_nsize(const char *str, size_t max_size)
+{
+	size_t size = 0;
+
+	while ((*str++ != 0) && (size < max_size))
+		size++;
+
+	return size;
+}
+
 /** Get size of string with size limit.
  *
  * Get the number of bytes which are used by the string @a str
@@ -390,12 +456,7 @@ size_t str_lsize(const char *str, size_t max_len)
  */
 size_t str_nsize(const char *str, size_t max_size)
 {
-	size_t size = 0;
-
-	while ((*str++ != 0) && (size < max_size))
-		size++;
-
-	return size;
+	return _str_nsize(str, max_size);
 }
 
 /** Get size of wide string with size limit.
@@ -581,27 +642,19 @@ bool chr_check(char32_t ch)
  */
 int str_cmp(const char *s1, const char *s2)
 {
-	char32_t c1 = 0;
-	char32_t c2 = 0;
-
-	size_t off1 = 0;
-	size_t off2 = 0;
-
-	while (true) {
-		c1 = str_decode(s1, &off1, STR_NO_LIMIT);
-		c2 = str_decode(s2, &off2, STR_NO_LIMIT);
-
-		if (c1 < c2)
-			return -1;
-
-		if (c1 > c2)
-			return 1;
-
-		if (c1 == 0 || c2 == 0)
-			break;
+	/*
+	 * UTF-8 has the nice property that lexicographic ordering on bytes is
+	 * the same as the lexicographic ordering of the character sequences.
+	 */
+	while (*s1 == *s2 && *s1 != 0) {
+		s1++;
+		s2++;
 	}
 
-	return 0;
+	if (*s1 == *s2)
+		return 0;
+
+	return (*s1 < *s2) ? -1 : 1;
 }
 
 /** Compare two NULL terminated strings with length limit.
@@ -680,6 +733,8 @@ int str_lcmp(const char *s1, const char *s2, size_t max_len)
  */
 int str_casecmp(const char *s1, const char *s2)
 {
+	// FIXME: doesn't work for non-ASCII caseful characters
+
 	char32_t c1 = 0;
 	char32_t c2 = 0;
 
@@ -728,6 +783,8 @@ int str_casecmp(const char *s1, const char *s2)
  */
 int str_lcasecmp(const char *s1, const char *s2, size_t max_len)
 {
+	// FIXME: doesn't work for non-ASCII caseful characters
+
 	char32_t c1 = 0;
 	char32_t c2 = 0;
 
@@ -759,6 +816,16 @@ int str_lcasecmp(const char *s1, const char *s2, size_t max_len)
 
 }
 
+static bool _test_prefix(const char *s, const char *p)
+{
+	while (*s == *p && *s != 0) {
+		s++;
+		p++;
+	}
+
+	return *p == 0;
+}
+
 /** Test whether p is a prefix of s.
  *
  * Do a char-by-char comparison of two NULL-terminated strings
@@ -772,27 +839,7 @@ int str_lcasecmp(const char *s1, const char *s2, size_t max_len)
  */
 bool str_test_prefix(const char *s, const char *p)
 {
-	char32_t c1 = 0;
-	char32_t c2 = 0;
-
-	size_t off1 = 0;
-	size_t off2 = 0;
-
-	while (true) {
-		c1 = str_decode(s, &off1, STR_NO_LIMIT);
-		c2 = str_decode(p, &off2, STR_NO_LIMIT);
-
-		if (c2 == 0)
-			return true;
-
-		if (c1 != c2)
-			return false;
-
-		if (c1 == 0)
-			break;
-	}
-
-	return false;
+	return _test_prefix(s, p);
 }
 
 /** Get a string suffix.
@@ -821,6 +868,26 @@ const char *str_suffix(const char *s, size_t prefix_length)
 	return s + off;
 }
 
+/** Copy string as a sequence of bytes. */
+static void _str_cpy(char *dest, const char *src)
+{
+	while (*src)
+		*(dest++) = *(src++);
+
+	*dest = 0;
+}
+
+/** Copy string as a sequence of bytes. */
+static void _str_cpyn(char *dest, size_t size, const char *src)
+{
+	char *dest_top = dest + size - 1;
+
+	while (*src && dest < dest_top)
+		*(dest++) = *(src++);
+
+	*dest = 0;
+}
+
 /** Copy string.
  *
  * Copy source string @a src to destination buffer @a dest.
@@ -838,17 +905,13 @@ void str_cpy(char *dest, size_t size, const char *src)
 	/* There must be space for a null terminator in the buffer. */
 	assert(size > 0);
 	assert(src != NULL);
+	assert(dest != NULL);
 
-	size_t src_off = 0;
-	size_t dest_off = 0;
+	/* Copy data. */
+	_str_cpyn(dest, size, src);
 
-	char32_t ch;
-	while ((ch = str_decode(src, &src_off, STR_NO_LIMIT)) != 0) {
-		if (chr_encode(ch, dest, &dest_off, size - 1) != EOK)
-			break;
-	}
-
-	dest[dest_off] = '\0';
+	/* In-place translate invalid bytes to U_SPECIAL. */
+	_repair_string(dest, size);
 }
 
 /** Copy size-limited substring.
@@ -871,17 +934,13 @@ void str_ncpy(char *dest, size_t size, const char *src, size_t n)
 {
 	/* There must be space for a null terminator in the buffer. */
 	assert(size > 0);
+	assert(src != NULL);
 
-	size_t src_off = 0;
-	size_t dest_off = 0;
+	/* Copy data. */
+	_str_cpyn(dest, min(size, n + 1), src);
 
-	char32_t ch;
-	while ((ch = str_decode(src, &src_off, n)) != 0) {
-		if (chr_encode(ch, dest, &dest_off, size - 1) != EOK)
-			break;
-	}
-
-	dest[dest_off] = '\0';
+	/* In-place translate invalid bytes to U_SPECIAL. */
+	_repair_string(dest, size);
 }
 
 /** Append one string to another.
@@ -897,13 +956,13 @@ void str_ncpy(char *dest, size_t size, const char *src, size_t n)
  */
 void str_append(char *dest, size_t size, const char *src)
 {
-	size_t dstr_size;
+	assert(src != NULL);
+	assert(dest != NULL);
+	assert(size > 0);
 
-	dstr_size = str_size(dest);
-	if (dstr_size >= size)
-		return;
-
-	str_cpy(dest + dstr_size, size - dstr_size, src);
+	size_t dstr_size = _str_nsize(dest, size);
+	_str_cpyn(dest + dstr_size, size - dstr_size, src);
+	_repair_string(dest + dstr_size, size - dstr_size);
 }
 
 /** Convert space-padded ASCII to string.
@@ -932,40 +991,35 @@ void str_append(char *dest, size_t size, const char *src)
  */
 errno_t spascii_to_str(char *dest, size_t size, const uint8_t *src, size_t n)
 {
-	size_t sidx;
-	size_t didx;
-	size_t dlast;
-	uint8_t byte;
-	errno_t rc;
-	errno_t result;
+	size_t len = 0;
 
-	/* There must be space for a null terminator in the buffer. */
-	assert(size > 0);
-	result = EOK;
+	/* Determine the length of the source string. */
+	for (size_t i = 0; i < n; i++) {
+		if (src[i] == 0)
+			break;
 
-	didx = 0;
-	dlast = 0;
-	for (sidx = 0; sidx < n; ++sidx) {
-		byte = src[sidx];
-		if (!ascii_check(byte)) {
-			byte = U_SPECIAL;
-			result = EIO;
-		}
-
-		rc = chr_encode(byte, dest, &didx, size - 1);
-		if (rc != EOK) {
-			assert(rc == EOVERFLOW);
-			dest[didx] = '\0';
-			return rc;
-		}
-
-		/* Remember dest index after last non-empty character */
-		if (byte != 0x20)
-			dlast = didx;
+		if (src[i] != ' ')
+			len = i + 1;
 	}
 
-	/* Terminate string after last non-empty character */
-	dest[dlast] = '\0';
+	errno_t result = EOK;
+	size_t out_len = min(len, size - 1);
+
+	/* Copy characters */
+	for (size_t i = 0; i < out_len; i++) {
+		dest[i] = src[i];
+
+		if (dest[i] < 0) {
+			dest[i] = U_SPECIAL;
+			result = EIO;
+		}
+	}
+
+	dest[out_len] = 0;
+
+	if (out_len < len)
+		return EOVERFLOW;
+
 	return result;
 }
 
@@ -1206,6 +1260,14 @@ char32_t *str_to_awstr(const char *str)
 	return wstr;
 }
 
+static char *_strchr(const char *str, char c)
+{
+	while (*str != 0 && *str != c)
+		str++;
+
+	return (*str == c) ? (char *) str : NULL;
+}
+
 /** Find first occurence of character in string.
  *
  * @param str String to search.
@@ -1215,14 +1277,29 @@ char32_t *str_to_awstr(const char *str)
  */
 char *str_chr(const char *str, char32_t ch)
 {
-	char32_t acc;
-	size_t off = 0;
-	size_t last = 0;
+	/* Fast path for an ASCII character. */
+	if (ascii_check(ch))
+		return _strchr(str, ch);
 
-	while ((acc = str_decode(str, &off, STR_NO_LIMIT)) != 0) {
-		if (acc == ch)
-			return (char *) (str + last);
-		last = off;
+	/* Convert character to UTF-8. */
+	char utf8[STR_BOUNDS(1) + 1];
+	size_t offset = 0;
+
+	if (chr_encode(ch, utf8, &offset, sizeof(utf8)) != EOK || offset == 0)
+		return NULL;
+
+	utf8[offset] = '\0';
+
+	/* Find the first byte, then check if all of them are correct. */
+	while (*str != 0) {
+		str = _strchr(str, utf8[0]);
+		if (!str)
+			return NULL;
+
+		if (_test_prefix(str, utf8))
+			return (char *) str;
+
+		str++;
 	}
 
 	return NULL;
@@ -1237,17 +1314,33 @@ char *str_chr(const char *str, char32_t ch)
  */
 char *str_str(const char *hs, const char *n)
 {
-	size_t off = 0;
+	size_t hsize = _str_size(hs);
+	size_t nsize = _str_size(n);
 
-	if (str_lcmp(hs, n, str_length(n)) == 0)
-		return (char *)hs;
+	while (hsize >= nsize) {
+		if (_test_prefix(hs, n))
+			return (char *) hs;
 
-	while (str_decode(hs, &off, STR_NO_LIMIT) != 0) {
-		if (str_lcmp(hs + off, n, str_length(n)) == 0)
-			return (char *)(hs + off);
+		hs++;
+		hsize--;
 	}
 
 	return NULL;
+}
+
+static void _str_rtrim(char *str, char c)
+{
+	char *last = str;
+
+	while (*str) {
+		if (*str != c)
+			last = str;
+
+		str++;
+	}
+
+	/* Truncate string. */
+	last[1] = 0;
 }
 
 /** Removes specified trailing characters from a string.
@@ -1257,6 +1350,12 @@ char *str_str(const char *hs, const char *n)
  */
 void str_rtrim(char *str, char32_t ch)
 {
+	/* Fast path for the ASCII case. */
+	if (ascii_check(ch)) {
+		_str_rtrim(str, ch);
+		return;
+	}
+
 	size_t off = 0;
 	size_t pos = 0;
 	char32_t c;
@@ -1278,6 +1377,17 @@ void str_rtrim(char *str, char32_t ch)
 		*last_chunk = '\0';
 }
 
+static void _str_ltrim(char *str, char c)
+{
+	char *p = str;
+
+	while (*p == c)
+		p++;
+
+	if (str != p)
+		_str_cpy(str, p);
+}
+
 /** Removes specified leading characters from a string.
  *
  * @param str String to remove from.
@@ -1285,6 +1395,12 @@ void str_rtrim(char *str, char32_t ch)
  */
 void str_ltrim(char *str, char32_t ch)
 {
+	/* Fast path for the ASCII case. */
+	if (ascii_check(ch)) {
+		_str_ltrim(str, ch);
+		return;
+	}
+
 	char32_t acc;
 	size_t off = 0;
 	size_t pos = 0;
@@ -1304,6 +1420,20 @@ void str_ltrim(char *str, char32_t ch)
 	}
 }
 
+static char *_str_rchr(const char *str, char c)
+{
+	const char *last = NULL;
+
+	while (*str) {
+		if (*str == c)
+			last = str;
+
+		str++;
+	}
+
+	return (char *) last;
+}
+
 /** Find last occurence of character in string.
  *
  * @param str String to search.
@@ -1313,6 +1443,9 @@ void str_ltrim(char *str, char32_t ch)
  */
 char *str_rchr(const char *str, char32_t ch)
 {
+	if (ascii_check(ch))
+		return _str_rchr(str, ch);
+
 	char32_t acc;
 	size_t off = 0;
 	size_t last = 0;
@@ -1401,12 +1534,13 @@ bool wstr_remove(char32_t *str, size_t pos)
  */
 char *str_dup(const char *src)
 {
-	size_t size = str_size(src) + 1;
+	size_t size = _str_size(src) + 1;
 	char *dest = malloc(size);
 	if (!dest)
 		return NULL;
 
-	str_cpy(dest, size, src);
+	_str_cpy(dest, src);
+	_repair_string(dest, size);
 	return dest;
 }
 
@@ -1432,15 +1566,14 @@ char *str_dup(const char *src)
  */
 char *str_ndup(const char *src, size_t n)
 {
-	size_t size = str_size(src);
-	if (size > n)
-		size = n;
+	size_t size = _str_nsize(src, n) + 1;
 
-	char *dest = malloc(size + 1);
+	char *dest = malloc(size);
 	if (!dest)
 		return NULL;
 
-	str_ncpy(dest, size + 1, src, size);
+	_str_cpyn(dest, size, src);
+	_repair_string(dest, size);
 	return dest;
 }
 

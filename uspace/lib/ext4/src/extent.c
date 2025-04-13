@@ -887,8 +887,9 @@ static errno_t ext4_extent_append_extent(ext4_inode_ref_t *inode_ref,
 		ext4_extent_path_t *new_root = path;
 		ext4_extent_path_t *old_root = path + 1;
 
-		size_t nbytes = sizeof(ext4_extent_path_t) * (path->depth + 1);
-		memmove(old_root, new_root, nbytes);
+		for (int i = path->depth; i >= 0; i--)
+			path[i + 1] = path[i];
+
 		memset(new_root, 0, sizeof(ext4_extent_path_t));
 
 		/* Update old root structure */
