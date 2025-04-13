@@ -56,6 +56,7 @@ PCUT_IMPORT(str);
 PCUT_IMPORT(string);
 PCUT_IMPORT(strtol);
 PCUT_IMPORT(table);
+PCUT_IMPORT(uchar);
 PCUT_IMPORT(uuid);
 
 PCUT_MAIN();
