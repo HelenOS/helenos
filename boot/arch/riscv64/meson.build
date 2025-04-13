@@ -38,7 +38,7 @@ boot_src = files(
 	'src/putchar.c',
 
 	'../../../common/stdc/mem.c',
-	'../../generic/src/printf_core.c',
+	'../../../common/printf/printf_core.c',
 	'../../generic/src/vprintf.c',
 	'../../generic/src/printf.c',
 	'../../../common/str.c',

@@ -35,17 +35,14 @@
 #include <putchar.h>
 #include <str.h>
 
-static int vprintf_str_write(const char *str, size_t size, void *data)
+static errno_t vprintf_str_write(const char *str, size_t size, void *data)
 {
 	size_t offset = 0;
-	size_t chars = 0;
 
-	while (offset < size) {
+	while (offset < size)
 		putuchar(str_decode(str, &offset, size));
-		chars++;
-	}
 
-	return chars;
+	return EOK;
 }
 
 int puts(const char *str)
@@ -70,9 +67,7 @@ int vprintf(const char *fmt, va_list ap)
 		NULL
 	};
 
-	int ret = printf_core(fmt, &ps, ap);
-
-	return ret;
+	return printf_core(fmt, &ps, ap);
 }
 
 /** @}

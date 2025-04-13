@@ -44,7 +44,7 @@ boot_src = files(
 	'../../genarch/src/efi.c',
 	'../../genarch/src/division.c',
 	'../../generic/src/balloc.c',
-	'../../generic/src/printf_core.c',
+	'../../../common/printf/printf_core.c',
 	'../../generic/src/vprintf.c',
 	'../../generic/src/printf.c',
 	'../../../common/str.c',
