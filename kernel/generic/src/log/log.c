@@ -32,27 +32,27 @@
 /** @file
  */
 
-#include <sysinfo/sysinfo.h>
-#include <synch/spinlock.h>
-#include <typedefs.h>
-#include <ddi/irq.h>
+#include <abi/log.h>
+#include <arch.h>
+#include <atomic.h>
+#include <console/console.h>
 #include <ddi/ddi.h>
+#include <ddi/irq.h>
+#include <errno.h>
 #include <ipc/event.h>
 #include <ipc/irq.h>
-#include <arch.h>
-#include <panic.h>
-#include <putchar.h>
-#include <atomic.h>
-#include <syscall/copy.h>
-#include <errno.h>
-#include <str.h>
-#include <print.h>
-#include <printf/printf_core.h>
-#include <stdarg.h>
 #include <log.h>
-#include <console/console.h>
-#include <abi/log.h>
+#include <panic.h>
+#include <print.h>
+#include <printf_core.h>
+#include <putchar.h>
+#include <stdarg.h>
 #include <stdlib.h>
+#include <str.h>
+#include <synch/spinlock.h>
+#include <syscall/copy.h>
+#include <sysinfo/sysinfo.h>
+#include <typedefs.h>
 
 #define LOG_PAGES    8
 #define LOG_LENGTH   (LOG_PAGES * PAGE_SIZE)
@@ -203,37 +203,13 @@ static void log_update(void *event)
 static int log_printf_str_write(const char *str, size_t size, void *data)
 {
 	size_t offset = 0;
-	size_t chars = 0;
 
-	while (offset < size) {
+	while (offset < size)
 		kio_push_char(str_decode(str, &offset, size));
-		chars++;
-	}
 
 	log_append((const uint8_t *)str, size);
 
-	return chars;
-}
-
-static int log_printf_wstr_write(const char32_t *wstr, size_t size, void *data)
-{
-	char buffer[16];
-	size_t offset = 0;
-	size_t chars = 0;
-
-	for (offset = 0; offset < size; offset += sizeof(char32_t), chars++) {
-		kio_push_char(wstr[chars]);
-
-		size_t buffer_offset = 0;
-		errno_t rc = chr_encode(wstr[chars], buffer, &buffer_offset, 16);
-		if (rc != EOK) {
-			return EOF;
-		}
-
-		log_append((const uint8_t *)buffer, buffer_offset);
-	}
-
-	return chars;
+	return EOK;
 }
 
 /** Append a message to the currently being written entry.
@@ -242,17 +218,12 @@ static int log_printf_wstr_write(const char32_t *wstr, size_t size, void *data)
  */
 int log_vprintf(const char *fmt, va_list args)
 {
-	int ret;
-
 	printf_spec_t ps = {
 		log_printf_str_write,
-		log_printf_wstr_write,
 		NULL
 	};
 
-	ret = printf_core(fmt, &ps, args);
-
-	return ret;
+	return printf_core(fmt, &ps, args);
 }
 
 /** Append a message to the currently being written entry.

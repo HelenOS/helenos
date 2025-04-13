@@ -40,37 +40,6 @@
 #include <str.h>
 #include <printf_core.h>
 
-static int asprintf_str_write(const char *str, size_t count, void *unused)
-{
-	return str_nlength(str, count);
-}
-
-static int asprintf_wstr_write(const char32_t *str, size_t count, void *unused)
-{
-	return wstr_nlength(str, count);
-}
-
-int vprintf_length(const char *fmt, va_list args)
-{
-	printf_spec_t ps = {
-		asprintf_str_write,
-		asprintf_wstr_write,
-		NULL
-	};
-
-	return printf_core(fmt, &ps, args);
-}
-
-int printf_length(const char *fmt, ...)
-{
-	va_list args;
-	va_start(args, fmt);
-	int ret = vprintf_length(fmt, args);
-	va_end(args);
-
-	return ret;
-}
-
 /** Allocate and print to string.
  *
  * @param strp Address of the pointer where to store the address of
@@ -114,7 +83,6 @@ int asprintf(char **strp, const char *fmt, ...)
 	va_start(args, fmt);
 	int ret = vasprintf(strp, fmt, args);
 	va_end(args);
-
 	return ret;
 }
 

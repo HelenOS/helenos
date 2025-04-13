@@ -130,33 +130,10 @@ int kio_printf(const char *fmt, ...)
 	return ret;
 }
 
-static int kio_vprintf_str_write(const char *str, size_t size, void *data)
+static errno_t kio_vprintf_str_write(const char *str, size_t size, void *data)
 {
-	size_t wr;
-
-	wr = 0;
-	(void) kio_write(str, size, &wr);
-	return str_nlength(str, wr);
-}
-
-static int kio_vprintf_wstr_write(const char32_t *str, size_t size, void *data)
-{
-	size_t offset = 0;
-	size_t chars = 0;
-	size_t wr;
-
-	while (offset < size) {
-		char buf[STR_BOUNDS(1)];
-		size_t sz = 0;
-
-		if (chr_encode(str[chars], buf, &sz, STR_BOUNDS(1)) == EOK)
-			kio_write(buf, sz, &wr);
-
-		chars++;
-		offset += sizeof(char32_t);
-	}
-
-	return chars;
+	size_t wr = 0;
+	return kio_write(str, size, &wr);
 }
 
 /** Print formatted text to kio.
@@ -171,7 +148,6 @@ int kio_vprintf(const char *fmt, va_list ap)
 {
 	printf_spec_t ps = {
 		kio_vprintf_str_write,
-		kio_vprintf_wstr_write,
 		NULL
 	};
 

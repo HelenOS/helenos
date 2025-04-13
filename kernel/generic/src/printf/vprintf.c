@@ -35,37 +35,20 @@
 #include <arch/asm.h>
 #include <console/console.h>
 #include <print.h>
-#include <printf/printf_core.h>
+#include <printf_core.h>
 #include <putchar.h>
 #include <str.h>
 #include <synch/spinlock.h>
 #include <typedefs.h>
 
-static int vprintf_str_write(const char *str, size_t size, void *data)
+static errno_t vprintf_str_write(const char *str, size_t size, void *data)
 {
 	size_t offset = 0;
-	size_t chars = 0;
 
-	while (offset < size) {
+	while (offset < size)
 		putuchar(str_decode(str, &offset, size));
-		chars++;
-	}
 
-	return chars;
-}
-
-static int vprintf_wstr_write(const char32_t *str, size_t size, void *data)
-{
-	size_t offset = 0;
-	size_t chars = 0;
-
-	while (offset < size) {
-		putuchar(str[chars]);
-		chars++;
-		offset += sizeof(char32_t);
-	}
-
-	return chars;
+	return EOK;
 }
 
 int puts(const char *str)
@@ -91,7 +74,6 @@ int vprintf(const char *fmt, va_list ap)
 {
 	printf_spec_t ps = {
 		vprintf_str_write,
-		vprintf_wstr_write,
 		NULL
 	};
 
