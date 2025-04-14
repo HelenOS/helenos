@@ -155,6 +155,9 @@ static inline bool _is_continuation_byte(uint8_t b)
 
 static inline int _char_continuation_bytes(char32_t c)
 {
+	if ((c & ~LO_MASK_32(7)) == 0)
+		return 0;
+
 	if ((c & ~LO_MASK_32(11)) == 0)
 		return 1;
 
@@ -206,7 +209,7 @@ static inline int _continuation_bytes(uint8_t b)
  */
 char32_t str_decode(const char *str, size_t *offset, size_t size)
 {
-	if (*offset + 1 > size)
+	if (*offset >= size)
 		return 0;
 
 	/* First byte read from string */
@@ -222,25 +225,33 @@ char32_t str_decode(const char *str, size_t *offset, size_t size)
 
 	/* Determine code length */
 
-	unsigned int cbytes = _continuation_bytes(b0);
-	unsigned int b0_bits = 6 - cbytes;  /* Data bits in first byte */
+	int cbytes = _continuation_bytes(b0);
+	int b0_bits = 6 - cbytes;  /* Data bits in first byte */
 
-	if (*offset + cbytes > size)
+	if (cbytes < 0 || *offset + cbytes > size)
 		return U_SPECIAL;
 
 	char32_t ch = b0 & LO_MASK_8(b0_bits);
 
 	/* Decode continuation bytes */
-	while (cbytes > 0) {
-		uint8_t b = (uint8_t) str[(*offset)++];
+	for (int i = 0; i < cbytes; i++) {
+		uint8_t b = (uint8_t) str[*offset];
 
 		if (!_is_continuation_byte(b))
 			return U_SPECIAL;
 
+		(*offset)++;
+
 		/* Shift data bits to ch */
 		ch = (ch << CONT_BITS) | (char32_t) (b & LO_MASK_8(CONT_BITS));
-		cbytes--;
 	}
+
+	/*
+	 * Reject non-shortest form encodings.
+	 * See https://www.unicode.org/versions/corrigendum1.html
+	 */
+	if (cbytes != _char_continuation_bytes(ch))
+		return U_SPECIAL;
 
 	return ch;
 }
@@ -344,23 +355,52 @@ errno_t chr_encode(char32_t ch, char *str, size_t *offset, size_t size)
 }
 
 /* Convert in place any bytes that don't form a valid character into U_SPECIAL. */
-static void _repair_string(char *str, size_t n)
+static void _sanitize_string(char *str, size_t n)
 {
-	for (; *str && n > 0; str++, n--) {
-		int cont = _continuation_bytes(*str);
-		if (cont == 0)
+	uint8_t *b = (uint8_t *) str;
+
+	for (; *b && n > 0; b++, n--) {
+		int cont = _continuation_bytes(b[0]);
+		if (__builtin_expect(cont, 0) == 0)
 			continue;
 
 		if (cont < 0 || n <= (size_t) cont) {
-			*str = U_SPECIAL;
+			b[0] = U_SPECIAL;
 			continue;
 		}
 
+		/* Check continuation bytes. */
 		for (int i = 1; i <= cont; i++) {
-			if (!_is_continuation_byte(str[i])) {
-				*str = U_SPECIAL;
+			if (!_is_continuation_byte(b[i])) {
+				b[0] = U_SPECIAL;
 				continue;
 			}
+		}
+
+		/*
+		 * Check for non-shortest form encoding.
+		 * See https://www.unicode.org/versions/corrigendum1.html
+		 */
+
+		switch (cont) {
+		case 1:
+			/* 0b110!!!!x 0b10xxxxxx */
+			if (!(b[0] & 0b00011110))
+				b[0] = U_SPECIAL;
+
+			continue;
+		case 2:
+			/* 0b1110!!!! 0b10!xxxxx 0b10xxxxxx */
+			if (!(b[0] & 0b00001111) && !(b[1] & 0b00100000))
+				b[0] = U_SPECIAL;
+
+			continue;
+		case 3:
+			/* 0b11110!!! 0b10!!xxxx 0b10xxxxxx 0b10xxxxxx */
+			if (!(b[0] & 0b00000111) && !(b[1] & 0b00110000))
+				b[0] = U_SPECIAL;
+
+			continue;
 		}
 	}
 }
@@ -880,7 +920,16 @@ static void _str_cpy(char *dest, const char *src)
 /** Copy string as a sequence of bytes. */
 static void _str_cpyn(char *dest, size_t size, const char *src)
 {
+	assert(dest && src && size);
+
+	if (!dest || !src || !size)
+		return;
+
+	if (size == STR_NO_LIMIT)
+		return _str_cpy(dest, src);
+
 	char *dest_top = dest + size - 1;
+	assert(size == 1 || dest < dest_top);
 
 	while (*src && dest < dest_top)
 		*(dest++) = *(src++);
@@ -906,12 +955,13 @@ void str_cpy(char *dest, size_t size, const char *src)
 	assert(size > 0);
 	assert(src != NULL);
 	assert(dest != NULL);
+	assert(size == STR_NO_LIMIT || dest + size > dest);
 
 	/* Copy data. */
 	_str_cpyn(dest, size, src);
 
 	/* In-place translate invalid bytes to U_SPECIAL. */
-	_repair_string(dest, size);
+	_sanitize_string(dest, size);
 }
 
 /** Copy size-limited substring.
@@ -940,7 +990,7 @@ void str_ncpy(char *dest, size_t size, const char *src, size_t n)
 	_str_cpyn(dest, min(size, n + 1), src);
 
 	/* In-place translate invalid bytes to U_SPECIAL. */
-	_repair_string(dest, size);
+	_sanitize_string(dest, size);
 }
 
 /** Append one string to another.
@@ -959,10 +1009,13 @@ void str_append(char *dest, size_t size, const char *src)
 	assert(src != NULL);
 	assert(dest != NULL);
 	assert(size > 0);
+	assert(size == STR_NO_LIMIT || dest + size > dest);
 
 	size_t dstr_size = _str_nsize(dest, size);
-	_str_cpyn(dest + dstr_size, size - dstr_size, src);
-	_repair_string(dest + dstr_size, size - dstr_size);
+	if (dstr_size < size) {
+		_str_cpyn(dest + dstr_size, size - dstr_size, src);
+		_sanitize_string(dest + dstr_size, size - dstr_size);
+	}
 }
 
 /** Convert space-padded ASCII to string.
@@ -1539,8 +1592,8 @@ char *str_dup(const char *src)
 	if (!dest)
 		return NULL;
 
-	_str_cpy(dest, src);
-	_repair_string(dest, size);
+	memcpy(dest, src, size);
+	_sanitize_string(dest, size);
 	return dest;
 }
 
@@ -1566,14 +1619,15 @@ char *str_dup(const char *src)
  */
 char *str_ndup(const char *src, size_t n)
 {
-	size_t size = _str_nsize(src, n) + 1;
+	size_t size = _str_nsize(src, n);
 
-	char *dest = malloc(size);
+	char *dest = malloc(size + 1);
 	if (!dest)
 		return NULL;
 
-	_str_cpyn(dest, size, src);
-	_repair_string(dest, size);
+	memcpy(dest, src, size);
+	_sanitize_string(dest, size);
+	dest[size] = 0;
 	return dest;
 }
 

@@ -232,7 +232,7 @@ PCUT_TEST(prseq_ins_extract)
 		PCUT_ASSERT_NOT_NULL(e);
 
 		e->key = v;
-		odict_insert(&e->odict, &odict, &ep->odict);
+		odict_insert(&e->odict, &odict, ep ? &ep->odict : NULL);
 		PCUT_ASSERT_ERRNO_VAL(EOK, odict_validate(&odict));
 		v = seq_next(v);
 		ep = e;

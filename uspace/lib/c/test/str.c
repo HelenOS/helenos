@@ -26,6 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "pcut/asserts.h"
 #include <stdio.h>
 #include <str.h>
 #include <pcut/pcut.h>
@@ -112,6 +113,45 @@ PCUT_TEST(str_str_empty_n)
 
 	p = str_str(hs, n);
 	PCUT_ASSERT_TRUE((const char *)p == hs);
+}
+
+PCUT_TEST(str_non_shortest)
+{
+	/* Overlong zero. */
+	const char overlong1[] = { 0b11000000, 0b10000000, 0 };
+	const char overlong2[] = { 0b11100000, 0b10000000, 0 };
+	const char overlong3[] = { 0b11110000, 0b10000000, 0 };
+
+	const char overlong4[] = { 0b11000001, 0b10111111, 0 };
+	const char overlong5[] = { 0b11100000, 0b10011111, 0b10111111, 0 };
+	const char overlong6[] = { 0b11110000, 0b10001111, 0b10111111, 0b10111111, 0 };
+
+	size_t offset = 0;
+	PCUT_ASSERT_INT_EQUALS(U_SPECIAL, str_decode(overlong1, &offset, sizeof(overlong1)));
+	offset = 0;
+	PCUT_ASSERT_INT_EQUALS(U_SPECIAL, str_decode(overlong2, &offset, sizeof(overlong2)));
+	offset = 0;
+	PCUT_ASSERT_INT_EQUALS(U_SPECIAL, str_decode(overlong3, &offset, sizeof(overlong3)));
+	offset = 0;
+	PCUT_ASSERT_INT_EQUALS(U_SPECIAL, str_decode(overlong4, &offset, sizeof(overlong4)));
+	offset = 0;
+	PCUT_ASSERT_INT_EQUALS(U_SPECIAL, str_decode(overlong5, &offset, sizeof(overlong5)));
+	offset = 0;
+	PCUT_ASSERT_INT_EQUALS(U_SPECIAL, str_decode(overlong6, &offset, sizeof(overlong6)));
+
+	char sanitized[sizeof(overlong6)];
+	str_cpy(sanitized, STR_NO_LIMIT, overlong1);
+	PCUT_ASSERT_INT_EQUALS(U_SPECIAL, sanitized[0]);
+	str_cpy(sanitized, STR_NO_LIMIT, overlong2);
+	PCUT_ASSERT_INT_EQUALS(U_SPECIAL, sanitized[0]);
+	str_cpy(sanitized, STR_NO_LIMIT, overlong3);
+	PCUT_ASSERT_INT_EQUALS(U_SPECIAL, sanitized[0]);
+	str_cpy(sanitized, STR_NO_LIMIT, overlong4);
+	PCUT_ASSERT_INT_EQUALS(U_SPECIAL, sanitized[0]);
+	str_cpy(sanitized, STR_NO_LIMIT, overlong5);
+	PCUT_ASSERT_INT_EQUALS(U_SPECIAL, sanitized[0]);
+	str_cpy(sanitized, STR_NO_LIMIT, overlong6);
+	PCUT_ASSERT_INT_EQUALS(U_SPECIAL, sanitized[0]);
 }
 
 PCUT_EXPORT(str);

@@ -168,6 +168,7 @@ static errno_t isa_ide_dev_add(ddf_dev_t *dev)
 {
 	isa_ide_ctrl_t *ctrl;
 	isa_ide_hwres_t res;
+	unsigned chans;
 	errno_t rc;
 
 	rc = isa_ide_get_res(dev, &res);
@@ -186,16 +187,22 @@ static errno_t isa_ide_dev_add(ddf_dev_t *dev)
 
 	ctrl->dev = dev;
 
+	chans = 0;
+
 	rc = isa_ide_channel_init(ctrl, &ctrl->channel[0], 0, &res);
-	if (rc == ENOENT)
+	if (rc == EOK)
+		++chans;
+	else if (rc != ENOENT)
 		goto error;
 
 	rc = isa_ide_channel_init(ctrl, &ctrl->channel[1], 1, &res);
-	if (rc == ENOENT)
+	if (rc == EOK)
+		++chans;
+	else if (rc != ENOENT)
 		goto error;
 
-	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Failed initializing ATA controller.");
+	if (chans == 0) {
+		ddf_msg(LVL_ERROR, "No ISA IDE devices found.");
 		rc = EIO;
 		goto error;
 	}
