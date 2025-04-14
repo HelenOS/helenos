@@ -49,9 +49,9 @@ const char *test_print4(void)
 		TPRINTF("\n");
 	}
 
-	TPRINTF("\nExtended ASCII characters (128 - 255) using printf(\"%%lc\"):\n");
+	TPRINTF("\nExtended ASCII characters (160 - 255) using printf(\"%%lc\"):\n");
 
-	for (group = 4; group < 8; group++) {
+	for (group = 5; group < 8; group++) {
 		TPRINTF("%#x: ", group << 5);
 
 		uint8_t index;
