@@ -111,23 +111,26 @@ static void ns16550_sendb(ns16550_instance_t *instance, uint8_t byte)
 	ns16550_reg_write(instance, NS16550_REG_THR, byte);
 }
 
-static void ns16550_putuchar(outdev_t *dev, char32_t ch)
+static void ns16550_write(outdev_t *dev, const char *s, size_t n)
 {
 	ns16550_instance_t *instance = (ns16550_instance_t *) dev->data;
 
-	if ((!instance->parea.mapped) || (console_override)) {
-		if (ch == '\n')
+	if (instance->parea.mapped && !console_override)
+		return;
+
+	const char *top = s + n;
+	assert(top >= s);
+
+	for (; s < top; s++) {
+		if (*s == '\n')
 			ns16550_sendb(instance, '\r');
 
-		if (ascii_check(ch))
-			ns16550_sendb(instance, (uint8_t) ch);
-		else
-			ns16550_sendb(instance, U_SPECIAL);
+		ns16550_sendb(instance, (uint8_t) *s);
 	}
 }
 
 static outdev_operations_t ns16550_ops = {
-	.write = ns16550_putuchar,
+	.write = ns16550_write,
 	.redraw = NULL
 };
 

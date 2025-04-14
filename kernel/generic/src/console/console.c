@@ -79,6 +79,8 @@ static size_t kio_notified = 0;
 /** Kernel log spinlock */
 IRQ_SPINLOCK_INITIALIZE(kio_lock);
 
+static IRQ_SPINLOCK_INITIALIZE(flush_lock);
+
 static IRQ_SPINLOCK_INITIALIZE(early_mbstate_lock);
 static mbstate_t early_mbstate;
 
@@ -92,7 +94,7 @@ static indev_operations_t stdin_ops = {
 	.signal = stdin_signal
 };
 
-static void stdout_write(outdev_t *, char32_t);
+static void stdout_write(outdev_t *, const char *, size_t);
 static void stdout_redraw(outdev_t *);
 static void stdout_scroll_up(outdev_t *);
 static void stdout_scroll_down(outdev_t *);
@@ -145,11 +147,11 @@ void stdout_wire(outdev_t *outdev)
 	list_append(&outdev->link, &stdout->list);
 }
 
-static void stdout_write(outdev_t *dev, char32_t ch)
+static void stdout_write(outdev_t *dev, const char *s, size_t n)
 {
 	list_foreach(dev->list, link, outdev_t, sink) {
 		if ((sink) && (sink->op->write))
-			sink->op->write(sink, ch);
+			sink->op->write(sink, s, n);
 	}
 }
 
@@ -248,28 +250,35 @@ void kio_flush(void)
 
 	irq_spinlock_lock(&kio_lock, true);
 
-	static mbstate_t mbstate;
+	if (!irq_spinlock_trylock(&flush_lock)) {
+		/* Someone is currently flushing. */
+		irq_spinlock_unlock(&kio_lock, true);
+		return;
+	}
+
+	/* A small-ish local buffer so that we can write to output in chunks. */
+	char buffer[256];
 
 	/* Print characters that weren't printed earlier */
 	while (kio_written != kio_processed) {
 		size_t offset = kio_processed % KIO_LENGTH;
 		size_t len = min(kio_written - kio_processed, KIO_LENGTH - offset);
-		size_t bytes = 0;
+		len = min(len, sizeof(buffer));
 
-		char32_t ch = str_decode_r(&kio[offset], &bytes, len, U'�', &mbstate);
-		assert(bytes <= 4);
-		kio_processed += bytes;
+		/* Take out a chunk of the big buffer. */
+		memcpy(buffer, &kio[offset], len);
+		kio_processed += len;
 
 		/*
-		 * We need to give up the spinlock for
-		 * the physical operation of writing out
-		 * the character.
+		 * We need to give up the spinlock for the physical operation of writing
+		 * out the buffer.
 		 */
 		irq_spinlock_unlock(&kio_lock, true);
-		stdout->op->write(stdout, ch);
+		stdout->op->write(stdout, buffer, len);
 		irq_spinlock_lock(&kio_lock, true);
 	}
 
+	irq_spinlock_unlock(&flush_lock, false);
 	irq_spinlock_unlock(&kio_lock, true);
 }
 
