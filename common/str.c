@@ -225,17 +225,19 @@ char32_t str_decode(const char *str, size_t *offset, size_t size)
 	unsigned int cbytes = _continuation_bytes(b0);
 	unsigned int b0_bits = 6 - cbytes;  /* Data bits in first byte */
 
-	if (*offset + cbytes > size)
+	if (cbytes < 0 || *offset + cbytes > size)
 		return U_SPECIAL;
 
 	char32_t ch = b0 & LO_MASK_8(b0_bits);
 
 	/* Decode continuation bytes */
 	while (cbytes > 0) {
-		uint8_t b = (uint8_t) str[(*offset)++];
+		uint8_t b = (uint8_t) str[*offset];
 
 		if (!_is_continuation_byte(b))
 			return U_SPECIAL;
+
+		(*offset)++;
 
 		/* Shift data bits to ch */
 		ch = (ch << CONT_BITS) | (char32_t) (b & LO_MASK_8(CONT_BITS));
