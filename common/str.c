@@ -546,6 +546,13 @@ static size_t _str_sanitize(char *str, size_t n, uint8_t replacement)
 	size_t count = 0;
 
 	for (; n > 0 && b[0]; b++, n--) {
+		if (b[0] < ' ') {
+			/* C0 control codes */
+			b[0] = replacement;
+			count++;
+			continue;
+		}
+
 		int cont = _continuation_bytes(b[0]);
 		if (__builtin_expect(cont, 0) == 0)
 			continue;
@@ -578,6 +585,13 @@ static size_t _str_sanitize(char *str, size_t n, uint8_t replacement)
 
 		/* 0b110!!!!x 0b10xxxxxx */
 		if (cont == 1 && !(b[0] & 0b00011110)) {
+			b[0] = replacement;
+			count++;
+			continue;
+		}
+
+		bool c1_control = (b[0] == 0b11000010 && b[1] < 0b10100000);
+		if (cont == 1 && c1_control) {
 			b[0] = replacement;
 			count++;
 			continue;
@@ -618,6 +632,10 @@ static size_t _str_sanitize(char *str, size_t n, uint8_t replacement)
 	return count;
 }
 
+/** Replaces any byte that's not part of a complete valid UTF-8 character
+ * encoding with a replacement byte.
+ * Also replaces C0 and C1 control codes.
+ */
 size_t str_sanitize(char *str, size_t n, uint8_t replacement)
 {
 	return _str_sanitize(str, n, replacement);

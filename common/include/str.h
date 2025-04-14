@@ -148,6 +148,8 @@ extern char *str_ndup(const char *src, size_t n);
 
 extern char *str_tok(char *, const char *, char **);
 
+extern size_t str_sanitize(char *, size_t, uint8_t);
+
 extern errno_t str_uint8_t(const char *, const char **, unsigned int, bool,
     uint8_t *);
 extern errno_t str_uint16_t(const char *, const char **, unsigned int, bool,
@@ -163,8 +165,6 @@ extern errno_t str_int64_t(const char *, const char **, unsigned int, bool,
 
 extern void order_suffix(const uint64_t, uint64_t *, char *);
 extern void bin_order_suffix(const uint64_t, uint64_t *, const char **, bool);
-
-extern size_t str_sanitize(char *str, size_t n, uint8_t replacement);
 
 /*
  * TODO: Get rid of this.

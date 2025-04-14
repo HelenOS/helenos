@@ -383,6 +383,9 @@ sys_errno_t sys_kio(int cmd, uspace_addr_t buf, size_t size)
 		}
 		data[size] = 0;
 
+		uint8_t substitute = '\x1a';
+		str_sanitize(data, size, substitute);
+
 		switch (cmd) {
 		case KIO_WRITE:
 			printf("[%s(%lu)] %s\n", TASK->name,
