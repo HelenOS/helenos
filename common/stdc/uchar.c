@@ -83,6 +83,12 @@ static bool _is_4_byte(uint8_t c)
 	return (c & 0xF8) == 0xF0;
 }
 
+static bool _is_non_shortest(unsigned short cont, uint8_t b)
+{
+	return (cont == 0b1111110000000000 && !(b & 0b00100000)) ||
+	    (cont == 0b1111111111110000 && !(b & 0b00110000));
+}
+
 size_t mbrtoc32(char32_t *c, const char *s, size_t n, mbstate_t *mb)
 {
 #if __STDC_HOSTED__
@@ -138,6 +144,12 @@ size_t mbrtoc32(char32_t *c, const char *s, size_t n, mbstate_t *mb)
 		 */
 
 		if (_is_2_byte(b)) {
+			/* Reject non-shortest form. */
+			if (!(b & 0b00011110)) {
+				_set_ilseq();
+				return UCHAR_ILSEQ;
+			}
+
 			/* 2 byte encoding               110xxxxx */
 			mb->continuation = b ^ 0b0000000011000000;
 
@@ -151,22 +163,23 @@ size_t mbrtoc32(char32_t *c, const char *s, size_t n, mbstate_t *mb)
 		}
 	}
 
-	while (i < n) {
+	for (; i < n; i++) {
 		/* Read continuation bytes. */
+		uint8_t b = s[i];
 
-		if (!_is_continuation(s[i])) {
+		if (!_is_continuation(b) || _is_non_shortest(mb->continuation, b)) {
 			_set_ilseq();
 			return UCHAR_ILSEQ;
 		}
 
 		/* Top bit becomes zero just before the last byte is shifted in. */
 		if (!(mb->continuation & 0x8000)) {
-			*c = ((char32_t) mb->continuation) << 6 | (s[i++] & 0x3f);
+			*c = ((char32_t) mb->continuation) << 6 | (b & 0x3f);
 			mb->continuation = 0;
-			return i;
+			return ++i;
 		}
 
-		mb->continuation = mb->continuation << 6 | (s[i++] & 0x3f);
+		mb->continuation = mb->continuation << 6 | (b & 0x3f);
 	}
 
 	return UCHAR_INCOMPLETE;
