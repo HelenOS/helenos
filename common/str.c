@@ -155,6 +155,9 @@ static inline bool _is_continuation_byte(uint8_t b)
 
 static inline int _char_continuation_bytes(char32_t c)
 {
+	if ((c & ~LO_MASK_32(7)) == 0)
+		return 0;
+
 	if ((c & ~LO_MASK_32(11)) == 0)
 		return 1;
 
@@ -222,8 +225,8 @@ char32_t str_decode(const char *str, size_t *offset, size_t size)
 
 	/* Determine code length */
 
-	unsigned int cbytes = _continuation_bytes(b0);
-	unsigned int b0_bits = 6 - cbytes;  /* Data bits in first byte */
+	int cbytes = _continuation_bytes(b0);
+	int b0_bits = 6 - cbytes;  /* Data bits in first byte */
 
 	if (cbytes < 0 || *offset + cbytes > size)
 		return U_SPECIAL;
