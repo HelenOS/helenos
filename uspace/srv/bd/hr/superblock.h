@@ -79,7 +79,7 @@ struct hr_metadata {
 } __attribute__((packed));
 
 extern errno_t	hr_metadata_init(hr_volume_t *, hr_metadata_t *);
-extern errno_t	hr_metadata_save(hr_volume_t *);
+extern errno_t	hr_metadata_save(hr_volume_t *, bool);
 extern errno_t	hr_write_metadata_block(service_id_t, const void *);
 extern errno_t	hr_get_metadata_block(service_id_t, void **);
 extern void	hr_encode_metadata_to_block(hr_metadata_t *, void *);

@@ -104,6 +104,8 @@ errno_t hr_raid1_create(hr_volume_t *new_volume)
 	new_volume->hr_bds.ops = &hr_raid1_bd_ops;
 	new_volume->hr_bds.sarg = new_volume;
 
+	new_volume->state_callback = hr_raid1_ext_state_callback;
+
 	/* force volume state update */
 	hr_mark_vol_state_dirty(new_volume);
 	hr_raid1_update_vol_status(new_volume);
@@ -222,6 +224,13 @@ static void hr_raid1_update_vol_status(hr_volume_t *vol)
 	if (!atomic_compare_exchange_strong(&vol->state_dirty, &exp, false))
 		return;
 
+	fibril_mutex_lock(&vol->md_lock);
+
+	/* XXX: will be wrapped in md specific fcn ptrs */
+	vol->in_mem_md->counter++;
+
+	fibril_mutex_unlock(&vol->md_lock);
+
 	fibril_rwlock_read_lock(&vol->extents_lock);
 	fibril_rwlock_read_lock(&vol->states_lock);
 
@@ -246,6 +255,7 @@ static void hr_raid1_update_vol_status(hr_volume_t *vol)
 		}
 
 		if (old_state != HR_VOL_REBUILD) {
+			/* XXX: allow REBUILD on INVALID extents */
 			if (vol->hotspare_no > 0) {
 				fid_t fib = fibril_create(hr_raid1_rebuild,
 				    vol);
@@ -426,7 +436,6 @@ static errno_t hr_raid1_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 			io->cnt = cnt;
 			io->type = type;
 			io->vol = vol;
-			io->state_callback = hr_raid1_ext_state_callback;
 
 			hr_fgroup_submit(group, hr_io_worker, io);
 		}
@@ -540,7 +549,7 @@ static errno_t hr_raid1_rebuild(void *arg)
 
 	fibril_rwlock_write_unlock(&vol->states_lock);
 
-	rc = hr_metadata_save(vol);
+	rc = hr_metadata_save(vol, WITH_STATE_CALLBACK);
 
 end:
 	if (rc != EOK) {
@@ -575,6 +584,7 @@ static errno_t init_rebuild(hr_volume_t *vol, size_t *rebuild_idx)
 	fibril_rwlock_write_lock(&vol->states_lock);
 	fibril_mutex_lock(&vol->hotspare_lock);
 
+	/* XXX: allow REBUILD on INVALID extents */
 	if (vol->hotspare_no == 0) {
 		HR_WARN("hr_raid1_rebuild(): no free hotspares on \"%s\", "
 		    "aborting rebuild\n", vol->devname);

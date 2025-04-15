@@ -44,11 +44,39 @@
 #include "util.h"
 #include "var.h"
 
+static errno_t exec_io_op(hr_io_t *);
+
 errno_t hr_io_worker(void *arg)
 {
 	hr_io_t *io = arg;
-	hr_extent_t *extents = (hr_extent_t *)&io->vol->extents;
+
+	errno_t rc = exec_io_op(io);
+
+	/*
+	 * We don't have to invalidate extents who got ENOMEM
+	 * on READ/SYNC. But when we get ENOMEM on a WRITE, we have
+	 * to invalidate it, because there could have been
+	 * other writes, there is no way to rollback.
+	 */
+	if (rc != EOK && (rc != ENOMEM || io->type == HR_BD_WRITE))
+		io->vol->state_callback(io->vol, io->extent, rc);
+
+	return rc;
+}
+
+errno_t hr_io_worker_basic(void *arg)
+{
+	hr_io_t *io = arg;
+
+	errno_t rc = exec_io_op(io);
+
+	return rc;
+}
+
+static errno_t exec_io_op(hr_io_t *io)
+{
 	size_t ext_idx = io->extent;
+	hr_extent_t *extents = (hr_extent_t *)&io->vol->extents;
 	errno_t rc;
 
 	const char *debug_type_str = NULL;
@@ -88,15 +116,6 @@ errno_t hr_io_worker(void *arg)
 	}
 
 	HR_DEBUG("WORKER (%p) rc: %s\n", io, str_error(rc));
-
-	/*
-	 * We don't have to invalidate extents who got ENOMEM
-	 * on READ/SYNC. But when we get ENOMEM on a WRITE, we have
-	 * to invalidate it, because there could have been
-	 * other writes, there is no way to rollback.
-	 */
-	if (rc != EOK && (rc != ENOMEM || io->type == HR_BD_WRITE))
-		io->state_callback(io->vol, io->extent, rc);
 
 	return rc;
 }

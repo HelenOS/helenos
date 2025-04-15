@@ -53,7 +53,7 @@
 #include "var.h"
 
 static void	hr_raid0_update_vol_status(hr_volume_t *);
-static void	raid0_state_callback(hr_volume_t *, size_t, errno_t);
+static void	hr_raid0_state_callback(hr_volume_t *, size_t, errno_t);
 static errno_t	hr_raid0_bd_op(hr_bd_op_type_t, bd_srv_t *, aoff64_t, size_t,
     void *, const void *, size_t);
 
@@ -98,6 +98,8 @@ errno_t hr_raid0_create(hr_volume_t *new_volume)
 	bd_srvs_init(&new_volume->hr_bds);
 	new_volume->hr_bds.ops = &hr_raid0_bd_ops;
 	new_volume->hr_bds.sarg = new_volume;
+
+	new_volume->state_callback = hr_raid0_state_callback;
 
 	return EOK;
 }
@@ -195,6 +197,13 @@ static errno_t hr_raid0_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
 
 static void hr_raid0_update_vol_status(hr_volume_t *vol)
 {
+	fibril_mutex_lock(&vol->md_lock);
+
+	/* XXX: will be wrapped in md specific fcn ptrs */
+	vol->in_mem_md->counter++;
+
+	fibril_mutex_unlock(&vol->md_lock);
+
 	fibril_rwlock_read_lock(&vol->states_lock);
 
 	hr_vol_status_t old_state = vol->status;
@@ -220,7 +229,7 @@ static void hr_raid0_update_vol_status(hr_volume_t *vol)
 	}
 }
 
-static void raid0_state_callback(hr_volume_t *vol, size_t extent, errno_t rc)
+static void hr_raid0_state_callback(hr_volume_t *vol, size_t extent, errno_t rc)
 {
 	if (rc == EOK)
 		return;
@@ -271,7 +280,6 @@ static errno_t hr_raid0_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 			io->cnt = cnt;
 			io->type = type;
 			io->vol = vol;
-			io->state_callback = raid0_state_callback;
 
 			hr_fgroup_submit(group, hr_io_worker, io);
 		}
@@ -325,7 +333,6 @@ static errno_t hr_raid0_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 		io->cnt = cnt;
 		io->type = type;
 		io->vol = vol;
-		io->state_callback = raid0_state_callback;
 
 		hr_fgroup_submit(group, hr_io_worker, io);
 

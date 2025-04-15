@@ -82,6 +82,7 @@ typedef struct hr_volume {
 	uint32_t	 metadata_version;
 
 	hr_metadata_t	*in_mem_md;
+	fibril_mutex_t	 md_lock;		/* lock protecting in_mem_md */
 
 	/* invariants */
 	size_t		 extent_no;		/* number of extents */
@@ -110,6 +111,7 @@ typedef struct hr_volume {
 	_Atomic uint64_t rebuild_blk;		/* rebuild position */
 	_Atomic int	 open_cnt;		/* open/close() counter */
 	hr_vol_status_t	 status;		/* volume status */
+	void		 (*state_callback)(hr_volume_t *, size_t, errno_t);
 } hr_volume_t;
 
 typedef enum {
@@ -117,6 +119,10 @@ typedef enum {
 	HR_BD_READ,
 	HR_BD_WRITE
 } hr_bd_op_type_t;
+
+/* macros for hr_metadata_save() */
+#define	WITH_STATE_CALLBACK true
+#define	NO_STATE_CALLBACK false
 
 typedef struct hr_range_lock {
 	link_t		 link;

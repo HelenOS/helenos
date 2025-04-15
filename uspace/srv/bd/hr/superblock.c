@@ -87,11 +87,11 @@ errno_t hr_metadata_init(hr_volume_t *vol, hr_metadata_t *md)
 }
 
 /*
- * TODO: think about thread safety, if hr_metadata_save() can
- * be called from multiple threads, and if, maybe will need
- * md_lock... or whatever, but dont want to stall I/Os...
+ * XXX: finish this fcn documentation
+ *
+ * Returns ENOMEM else EOK
  */
-errno_t hr_metadata_save(hr_volume_t *vol)
+errno_t hr_metadata_save(hr_volume_t *vol, bool with_state_callback)
 {
 	HR_DEBUG("%s()", __func__);
 
@@ -101,30 +101,37 @@ errno_t hr_metadata_save(hr_volume_t *vol)
 	if (md_block == NULL)
 		return ENOMEM;
 
+	fibril_rwlock_read_lock(&vol->extents_lock);
+
+	fibril_mutex_lock(&vol->md_lock);
+
 	for (size_t i = 0; i < vol->extent_no; i++) {
 		hr_extent_t *ext = &vol->extents[i];
+
+		fibril_rwlock_read_lock(&vol->states_lock);
 
 		/* TODO: special case for REBUILD */
 		if (ext->status != HR_EXT_ONLINE)
 			continue;
 
+		fibril_rwlock_read_unlock(&vol->states_lock);
+
 		vol->in_mem_md->index = i;
 		hr_encode_metadata_to_block(vol->in_mem_md, md_block);
 		rc = hr_write_metadata_block(ext->svc_id, md_block);
-		/*
-		 * XXX: here maybe call vol status event or the state
-		 * callback inside, same with read_block...
-		 *
-		 * also think about using FGE here... maybe a bit more
-		 * code, but faster and gratis state callback :-)
-		 */
-		if (rc != EOK)
-			goto error;
+		if (with_state_callback && rc != EOK)
+			vol->state_callback(vol, i, rc);
 	}
 
-error:
+	fibril_mutex_unlock(&vol->md_lock);
+
+	fibril_rwlock_read_unlock(&vol->extents_lock);
+
+	if (with_state_callback)
+		vol->hr_ops.status_event(vol);
+
 	free(md_block);
-	return rc;
+	return EOK;
 }
 
 bool hr_valid_md_magic(hr_metadata_t *md)
@@ -160,11 +167,6 @@ errno_t hr_write_metadata_block(service_id_t dev, const void *block)
 		return EINVAL;
 
 	rc = block_write_direct(dev, blkno - 1, HR_META_SIZE, block);
-	/*
-	 * XXX: here maybe call vol status event or the state callback...
-	 *
-	 * but need to pass vol pointer
-	 */
 
 	return rc;
 }

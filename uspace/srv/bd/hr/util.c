@@ -144,6 +144,8 @@ errno_t hr_create_vol_struct(hr_volume_t **rvol, hr_level_t level,
 
 	fibril_mutex_initialize(&vol->lock); /* XXX: will remove this */
 
+	fibril_mutex_initialize(&vol->md_lock);
+
 	fibril_rwlock_initialize(&vol->extents_lock);
 	fibril_rwlock_initialize(&vol->states_lock);
 
@@ -217,6 +219,8 @@ errno_t hr_remove_volume(service_id_t svc_id)
 			}
 			list_remove(&vol->lvolumes);
 			fibril_rwlock_write_unlock(&hr_volumes_lock);
+
+			hr_metadata_save(vol, NO_STATE_CALLBACK);
 
 			hr_destroy_vol_struct(vol);
 
@@ -842,11 +846,11 @@ static errno_t hr_util_assemble_from_matching_list(list_t *list)
 	 */
 	vol->in_mem_md->counter++;
 
-	hr_metadata_save(vol);
-
 	rc = vol->hr_ops.create(vol);
 	if (rc != EOK)
 		goto error;
+
+	hr_metadata_save(vol, WITH_STATE_CALLBACK);
 
 	fibril_rwlock_write_lock(&hr_volumes_lock);
 

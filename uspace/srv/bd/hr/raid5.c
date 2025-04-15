@@ -844,7 +844,7 @@ static errno_t hr_raid5_rebuild(void *arg)
 
 	hr_update_ext_status(vol, bad, HR_EXT_ONLINE);
 
-	rc = hr_metadata_save(vol);
+	rc = hr_metadata_save(vol, WITH_STATE_CALLBACK);
 
 end:
 	(void)hr_raid5_update_vol_status(vol);

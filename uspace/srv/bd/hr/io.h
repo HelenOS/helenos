@@ -46,10 +46,10 @@ typedef struct hr_io {
 	void		*data_read;
 	const void	*data_write;
 	hr_volume_t	*vol;
-	void		(*state_callback)(hr_volume_t *, size_t, errno_t);
 } hr_io_t;
 
 errno_t hr_io_worker(void *);
+errno_t hr_io_worker_basic(void *);
 
 #endif
 

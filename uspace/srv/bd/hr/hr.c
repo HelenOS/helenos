@@ -145,11 +145,11 @@ static void hr_create_srv(ipc_call_t *icall)
 	if (rc != EOK)
 		goto error;
 
-	rc = hr_metadata_save(new_volume);
+	rc = new_volume->hr_ops.create(new_volume);
 	if (rc != EOK)
 		goto error;
 
-	rc = new_volume->hr_ops.create(new_volume);
+	rc = hr_metadata_save(new_volume, WITH_STATE_CALLBACK);
 	if (rc != EOK)
 		goto error;
 
