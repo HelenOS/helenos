@@ -110,7 +110,7 @@ size_t mbrtoc32(char32_t *c, const char *s, size_t n, mbstate_t *mb)
 
 	if (!s) {
 		// Equivalent to mbrtoc32(NULL, "", 1, mb).
-		if (mb->continuation) {
+		if (mb->state) {
 			_set_ilseq();
 			return UCHAR_ILSEQ;
 		} else {
@@ -120,7 +120,7 @@ size_t mbrtoc32(char32_t *c, const char *s, size_t n, mbstate_t *mb)
 
 	size_t i = 0;
 
-	if (!mb->continuation) {
+	if (!mb->state) {
 		/* Clean slate, read initial byte. */
 
 		uint8_t b = s[i++];
@@ -151,15 +151,15 @@ size_t mbrtoc32(char32_t *c, const char *s, size_t n, mbstate_t *mb)
 			}
 
 			/* 2 byte encoding               110xxxxx */
-			mb->continuation = b ^ 0b0000000011000000;
+			mb->state = b ^ 0b0000000011000000;
 
 		} else if (_is_3_byte(b)) {
 			/* 3 byte encoding               1110xxxx */
-			mb->continuation = b ^ 0b1111110011100000;
+			mb->state = b ^ 0b1111110011100000;
 
 		} else if (_is_4_byte(b)) {
 			/* 4 byte encoding               11110xxx */
-			mb->continuation = b ^ 0b1111111100000000;
+			mb->state = b ^ 0b1111111100000000;
 		}
 	}
 
@@ -167,19 +167,19 @@ size_t mbrtoc32(char32_t *c, const char *s, size_t n, mbstate_t *mb)
 		/* Read continuation bytes. */
 		uint8_t b = s[i];
 
-		if (!_is_continuation(b) || _is_non_shortest(mb->continuation, b)) {
+		if (!_is_continuation(b) || _is_non_shortest(mb->state, b)) {
 			_set_ilseq();
 			return UCHAR_ILSEQ;
 		}
 
 		/* Top bit becomes zero just before the last byte is shifted in. */
-		if (!(mb->continuation & 0x8000)) {
-			*c = ((char32_t) mb->continuation) << 6 | (b & 0x3f);
-			mb->continuation = 0;
+		if (!(mb->state & 0x8000)) {
+			*c = ((char32_t) mb->state) << 6 | (b & 0x3f);
+			mb->state = 0;
 			return ++i;
 		}
 
-		mb->continuation = mb->continuation << 6 | (b & 0x3f);
+		mb->state = mb->state << 6 | (b & 0x3f);
 	}
 
 	return UCHAR_INCOMPLETE;
@@ -252,7 +252,7 @@ size_t mbrtoc16(char16_t *c, const char *s, size_t n, mbstate_t *mb)
 
 	if (!s) {
 		/* Equivalent to mbrtoc16(NULL, "", 1, mb). */
-		if (mb->continuation) {
+		if (mb->state) {
 			_set_ilseq();
 			return UCHAR_ILSEQ;
 		} else {
@@ -260,11 +260,11 @@ size_t mbrtoc16(char16_t *c, const char *s, size_t n, mbstate_t *mb)
 		}
 	}
 
-	if ((mb->continuation & 0xD000) == 0xD000) {
+	if ((mb->state & 0xD000) == 0xD000) {
 		/* mbstate_t contains the second surrogate character. */
 		/* mbrtoc32() will never set it to such value.        */
-		*c = mb->continuation;
-		mb->continuation = 0;
+		*c = mb->state;
+		mb->state = 0;
 		return UCHAR_CONTINUED;
 	}
 
@@ -275,7 +275,7 @@ size_t mbrtoc16(char16_t *c, const char *s, size_t n, mbstate_t *mb)
 			*c = c32;
 		} else {
 			/* Encode UTF-16 surrogates. */
-			mb->continuation = (c32 & 0x3FF) + 0xDC00;
+			mb->state = (c32 & 0x3FF) + 0xDC00;
 			*c = (c32 >> 10) + 0xD7C0;
 		}
 		return ret;
@@ -297,7 +297,7 @@ size_t c16rtomb(char *s, char16_t c, mbstate_t *mb)
 
 	if (!s) {
 		// Equivalent to c16rtomb(buf, L’\0’, mb).
-		if (mb->continuation) {
+		if (mb->state) {
 			_set_ilseq();
 			return UCHAR_ILSEQ;
 		} else {
@@ -306,7 +306,7 @@ size_t c16rtomb(char *s, char16_t c, mbstate_t *mb)
 	}
 
 	if (!_is_surrogate(c)) {
-		if (mb->continuation) {
+		if (mb->state) {
 			_set_ilseq();
 			return UCHAR_ILSEQ;
 		}
@@ -314,23 +314,23 @@ size_t c16rtomb(char *s, char16_t c, mbstate_t *mb)
 		return c32rtomb(s, c, mb);
 	}
 
-	if (!mb->continuation) {
-		mb->continuation = c;
+	if (!mb->state) {
+		mb->state = c;
 		return 0;
 	}
 
 	char32_t c32;
 
 	/* Decode UTF-16 surrogates. */
-	if (_is_low_surrogate(mb->continuation) && _is_high_surrogate(c)) {
-		c32 = ((c - 0xD7C0) << 10) | (mb->continuation - 0xDC00);
-	} else if (_is_high_surrogate(mb->continuation) && _is_low_surrogate(c)) {
-		c32 = ((mb->continuation - 0xD7C0) << 10) | (c - 0xDC00);
+	if (_is_low_surrogate(mb->state) && _is_high_surrogate(c)) {
+		c32 = ((c - 0xD7C0) << 10) | (mb->state - 0xDC00);
+	} else if (_is_high_surrogate(mb->state) && _is_low_surrogate(c)) {
+		c32 = ((mb->state - 0xD7C0) << 10) | (c - 0xDC00);
 	} else {
 		_set_ilseq();
 		return UCHAR_ILSEQ;
 	}
 
-	mb->continuation = 0;
+	mb->state = 0;
 	return c32rtomb(s, c32, mb);
 }

@@ -45,7 +45,7 @@ int wctob(wint_t c)
 
 int mbsinit(const mbstate_t *ps)
 {
-	return ps == NULL || ps->continuation == 0;
+	return ps == NULL || ps->state == 0;
 }
 
 size_t mbrlen(const char *s, size_t n, mbstate_t *ps)
