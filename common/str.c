@@ -4,6 +4,7 @@
  * Copyright (c) 2008 Jiri Svoboda
  * Copyright (c) 2011 Martin Sucha
  * Copyright (c) 2011 Oleg Romanenko
+ * Copyright (c) 2025 Jiří Zárevúcky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -123,6 +124,7 @@
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
+#include <limits.h>
 #include <macros.h>
 #include <mem.h>
 #include <stdbool.h>
@@ -130,6 +132,17 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <uchar.h>
+
+#if __STDC_HOSTED__
+#include <fibril.h>
+#endif
+
+static void _set_ilseq()
+{
+#ifdef errno
+	errno = EILSEQ;
+#endif
+}
 
 /** Byte mask consisting of lowest @n bits (out of 8) */
 #define LO_MASK_8(n)  ((uint8_t) ((1 << (n)) - 1))
@@ -143,14 +156,36 @@
 /** Number of data bits in a UTF-8 continuation byte */
 #define CONT_BITS  6
 
+#define UTF8_MASK_INITIAL2  0b00011111
+#define UTF8_MASK_INITIAL3  0b00001111
+#define UTF8_MASK_INITIAL4  0b00000111
+#define UTF8_MASK_CONT      0b00111111
+
+#define CHAR_INVALID ((char32_t) UINT_MAX)
+
 static inline bool _is_ascii(uint8_t b)
 {
 	return b < 0x80;
 }
 
-static inline bool _is_continuation_byte(uint8_t b)
+static inline bool _is_continuation(uint8_t b)
 {
-	return (b & 0xc0) == 0x80;
+	return (b & 0xC0) == 0x80;
+}
+
+static inline bool _is_2_byte(uint8_t c)
+{
+	return (c & 0xE0) == 0xC0;
+}
+
+static inline bool _is_3_byte(uint8_t c)
+{
+	return (c & 0xF0) == 0xE0;
+}
+
+static inline bool _is_4_byte(uint8_t c)
+{
+	return (c & 0xF8) == 0xF0;
 }
 
 static inline int _char_continuation_bytes(char32_t c)
@@ -178,18 +213,184 @@ static inline int _continuation_bytes(uint8_t b)
 		return 0;
 
 	/* 110xxxxx 10xxxxxx */
-	if ((b & 0xe0) == 0xc0)
+	if (_is_2_byte(b))
 		return 1;
 
 	/* 1110xxxx 10xxxxxx 10xxxxxx */
-	if ((b & 0xf0) == 0xe0)
+	if (_is_3_byte(b))
 		return 2;
 
 	/* 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx */
-	if ((b & 0xf8) == 0xf0)
+	if (_is_4_byte(b))
 		return 3;
 
 	return -1;
+}
+
+static bool _is_non_shortest(const mbstate_t *mb, uint8_t b)
+{
+	return (mb->state == 0b1111110000000000 && !(b & 0b00100000)) ||
+	    (mb->state == 0b1111111111110000 && !(b & 0b00110000));
+}
+
+#define _likely(expr) __builtin_expect((expr), true)
+#define _unlikely(expr) __builtin_expect((expr), false)
+
+#define FAST_PATHS 1
+
+static char32_t _str_decode(const char *s, size_t *offset, size_t size, mbstate_t *mb)
+{
+	assert(s);
+	assert(offset);
+	assert(*offset <= size);
+	assert(size == STR_NO_LIMIT || s + size >= s);
+	assert(mb);
+
+	if (*offset == size)
+		return 0;
+
+	if (_likely(!mb->state)) {
+		/* Clean slate, read initial byte. */
+		uint8_t b = s[(*offset)++];
+
+		/* Fast exit for the most common case. */
+		if (_likely(_is_ascii(b)))
+			return b;
+
+		/* unexpected continuation byte */
+		if (_unlikely(_is_continuation(b)))
+			return CHAR_INVALID;
+
+		/*
+		 * The value stored into `continuation` is designed to have
+		 * just enough leading ones that after shifting in one less than
+		 * the expected number of continuation bytes, the most significant
+		 * bit becomes zero. (The field is 16b wide.)
+		 */
+
+		if (_is_2_byte(b)) {
+			/* Reject non-shortest form. */
+			if (_unlikely(!(b & 0b00011110)))
+				return CHAR_INVALID;
+
+#if FAST_PATHS
+			/* We can usually take this exit. */
+			if (_likely(*offset < size && _is_continuation(s[*offset])))
+				return (b & UTF8_MASK_INITIAL2) << 6 |
+				    (s[(*offset)++] & UTF8_MASK_CONT);
+#endif
+
+			/* 2 byte continuation    110xxxxx */
+			mb->state = b ^ 0b0000000011000000;
+
+		} else if (_is_3_byte(b)) {
+#if FAST_PATHS
+			/* We can usually take this exit. */
+			if (_likely(*offset + 1 < size && _is_continuation(s[*offset]) && _is_continuation(s[*offset + 1]))) {
+
+				char32_t ch = (b & UTF8_MASK_INITIAL3) << 12 |
+				    (s[(*offset)] & UTF8_MASK_CONT) << 6 |
+				    (s[(*offset) + 1] & UTF8_MASK_CONT);
+
+				*offset += 2;
+
+				/* Reject non-shortest form. */
+				if (_unlikely(!(ch & 0xFFFFF800)))
+					return CHAR_INVALID;
+
+				return ch;
+			}
+#endif
+
+			/* 3 byte continuation    1110xxxx */
+			mb->state = b ^ 0b1111110011100000;
+
+		} else if (_is_4_byte(b)) {
+#if FAST_PATHS
+			/* We can usually take this exit. */
+			if (_likely(*offset + 2 < size && _is_continuation(s[*offset]) &&
+			    _is_continuation(s[*offset + 1]) && _is_continuation(s[*offset + 2]))) {
+
+				char32_t ch = (b & UTF8_MASK_INITIAL4) << 18 |
+				    (s[(*offset)] & UTF8_MASK_CONT) << 12 |
+				    (s[(*offset) + 1] & UTF8_MASK_CONT) << 6 |
+				    (s[(*offset) + 2] & UTF8_MASK_CONT);
+
+				*offset += 3;
+
+				/* Reject non-shortest form. */
+				if (_unlikely(!(ch & 0xFFFF0000)))
+					return CHAR_INVALID;
+
+				return ch;
+			}
+#endif
+
+			/* 4 byte continuation    11110xxx */
+			mb->state = b ^ 0b1111111100000000;
+		} else {
+			return CHAR_INVALID;
+		}
+	}
+
+	/* Deal with the remaining edge and invalid cases. */
+	for (; *offset < size; (*offset)++) {
+		/* Read continuation bytes. */
+		uint8_t b = s[*offset];
+
+		if (!_is_continuation(b) || _is_non_shortest(mb, b)) {
+			mb->state = 0;
+			return CHAR_INVALID;
+		}
+
+		/* Top bit becomes zero when shifting in the second to last byte. */
+		if (!(mb->state & 0x8000)) {
+			char32_t c = ((char32_t) mb->state) << 6 | (b & UTF8_MASK_CONT);
+			mb->state = 0;
+			(*offset)++;
+			return c;
+		}
+
+		mb->state = mb->state << 6 | (b & UTF8_MASK_CONT);
+	}
+
+	/* Incomplete character. */
+	assert(mb->state);
+	return 0;
+}
+
+/** Standard <uchar.h> function since C11. */
+size_t mbrtoc32(char32_t *c, const char *s, size_t n, mbstate_t *mb)
+{
+#if __STDC_HOSTED__
+	static fibril_local mbstate_t global_state = { };
+
+	if (!mb)
+		mb = &global_state;
+#endif
+
+	if (!s) {
+		/* Equivalent to mbrtoc32(NULL, "", 1, mb); */
+		c = NULL;
+		s = "";
+		n = 1;
+	}
+
+	size_t offset = 0;
+	char32_t ret = _str_decode(s, &offset, n, mb);
+	if (ret == CHAR_INVALID) {
+		assert(!mb->state);
+		_set_ilseq();
+		return UCHAR_ILSEQ;
+	}
+	if (mb->state) {
+		assert(ret == 0);
+		return UCHAR_INCOMPLETE;
+	}
+
+	if (c)
+		*c = ret;
+	return ret ? offset : 0;
 }
 
 /** Decode a single character from a string.
@@ -209,48 +410,13 @@ static inline int _continuation_bytes(uint8_t b)
  */
 char32_t str_decode(const char *str, size_t *offset, size_t size)
 {
-	if (*offset >= size)
-		return 0;
+	mbstate_t mb = { };
+	char32_t ch = _str_decode(str, offset, size, &mb);
 
-	/* First byte read from string */
-	uint8_t b0 = (uint8_t) str[(*offset)++];
-
-	/* Fast exit for the most common case. */
-	if (_is_ascii(b0))
-		return b0;
-
-	/* 10xxxxxx -- unexpected continuation byte */
-	if (_is_continuation_byte(b0))
+	if (ch == CHAR_INVALID)
 		return U_SPECIAL;
 
-	/* Determine code length */
-
-	int cbytes = _continuation_bytes(b0);
-	int b0_bits = 6 - cbytes;  /* Data bits in first byte */
-
-	if (cbytes < 0 || *offset + cbytes > size)
-		return U_SPECIAL;
-
-	char32_t ch = b0 & LO_MASK_8(b0_bits);
-
-	/* Decode continuation bytes */
-	for (int i = 0; i < cbytes; i++) {
-		uint8_t b = (uint8_t) str[*offset];
-
-		if (!_is_continuation_byte(b))
-			return U_SPECIAL;
-
-		(*offset)++;
-
-		/* Shift data bits to ch */
-		ch = (ch << CONT_BITS) | (char32_t) (b & LO_MASK_8(CONT_BITS));
-	}
-
-	/*
-	 * Reject non-shortest form encodings.
-	 * See https://www.unicode.org/versions/corrigendum1.html
-	 */
-	if (cbytes != _char_continuation_bytes(ch))
+	if (mb.state)
 		return U_SPECIAL;
 
 	return ch;
@@ -281,12 +447,12 @@ char32_t str_decode_reverse(const char *str, size_t *offset, size_t size)
 	while (*offset > 0 && cbytes < 4) {
 		uint8_t b = (uint8_t) str[--(*offset)];
 
-		if (_is_continuation_byte(b)) {
+		if (_is_continuation(b)) {
 			cbytes++;
 			continue;
 		}
 
-		/* Invalid byte. */
+		/* Reject non-shortest form encoding. */
 		if (cbytes != _continuation_bytes(b))
 			return U_SPECIAL;
 
@@ -316,6 +482,8 @@ char32_t str_decode_reverse(const char *str, size_t *offset, size_t size)
  */
 errno_t chr_encode(char32_t ch, char *str, size_t *offset, size_t size)
 {
+	// TODO: merge with c32rtomb()
+
 	if (*offset >= size)
 		return EOVERFLOW;
 
@@ -371,7 +539,7 @@ static void _sanitize_string(char *str, size_t n)
 
 		/* Check continuation bytes. */
 		for (int i = 1; i <= cont; i++) {
-			if (!_is_continuation_byte(b[i])) {
+			if (!_is_continuation(b[i])) {
 				b[0] = U_SPECIAL;
 				continue;
 			}
