@@ -36,7 +36,7 @@
 #define _BITS_MBSTATE_T_H_
 
 typedef struct {
-	unsigned short continuation;
+	unsigned short state;
 } mbstate_t;
 
 #endif
