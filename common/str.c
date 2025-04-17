@@ -426,13 +426,17 @@ char32_t str_decode(const char *str, size_t *offset, size_t size)
 	mbstate_t mb = { };
 	char32_t ch = _str_decode(str, offset, size, &mb);
 
-	if (ch == CHAR_INVALID)
-		return U_SPECIAL;
-
-	if (mb.state)
+	if (ch == CHAR_INVALID || mb.state)
 		return U_SPECIAL;
 
 	return ch;
+}
+
+char32_t str_decode_r(const char *str, size_t *offset, size_t size,
+	char32_t replacement, mbstate_t *mb)
+{
+	char32_t ch = _str_decode(str, offset, size, mb);
+	return (ch == CHAR_INVALID) ? replacement : ch;
 }
 
 /** Decode a single character from a string to the left.

@@ -44,6 +44,7 @@
 
 #include <mem.h>
 #include <_bits/decls.h>
+#include <_bits/mbstate_t.h>
 #include <_bits/uchar.h>
 
 #ifndef __cplusplus
@@ -85,6 +86,8 @@
 __HELENOS_DECLS_BEGIN;
 
 extern char32_t str_decode(const char *str, size_t *offset, size_t sz);
+extern char32_t str_decode_r(const char *str, size_t *offset, size_t sz,
+	char32_t replacement, mbstate_t *mbstate);
 extern char32_t str_decode_reverse(const char *str, size_t *offset, size_t sz);
 extern errno_t chr_encode(char32_t ch, char *str, size_t *offset, size_t sz);
 
