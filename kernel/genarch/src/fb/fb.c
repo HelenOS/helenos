@@ -266,6 +266,59 @@ static void glyph_draw(fb_instance_t *instance, uint16_t glyph,
 		    instance->glyphscanline);
 }
 
+/** Scroll screen down by one row
+ *
+ */
+static void screen_scroll(fb_instance_t *instance)
+{
+	if ((!instance->parea.mapped) || (console_override)) {
+		for (unsigned int rel_row = 0; rel_row < instance->screen_rows; rel_row++) {
+			unsigned int y = ROW2Y(rel_row);
+			unsigned int row = rel_row + instance->offset_row;
+
+			for (unsigned int yd = 0; yd < FONT_SCANLINES; yd++) {
+				unsigned int x;
+				unsigned int col;
+				size_t bb_pos = BB_POS(instance, 0, row);
+				size_t bb_pos1 = BB_POS(instance, 0, row + 1);
+
+				for (col = 0, x = 0; col < instance->cols;
+				    col++, x += FONT_WIDTH) {
+					uint16_t glyph;
+
+					if (row < instance->rows - 1) {
+						if (instance->backbuf[bb_pos] ==
+						    instance->backbuf[bb_pos1])
+							goto skip;
+
+						glyph = instance->backbuf[bb_pos1];
+					} else
+						glyph = 0;
+
+					memcpy(&instance->addr[FB_POS(instance, x, y + yd)],
+					    &instance->glyphs[GLYPH_POS(instance, glyph, yd)],
+					    instance->glyphscanline);
+				skip:
+					BB_NEXT_COL(bb_pos);
+					BB_NEXT_COL(bb_pos1);
+				}
+			}
+		}
+	}
+
+	/*
+	 * Implement backbuffer scrolling by wrapping around
+	 * the cyclic buffer.
+	 */
+
+	instance->start_row++;
+	if (instance->start_row == instance->rows)
+		instance->start_row = 0;
+
+	memsetw(&instance->backbuf[BB_POS(instance, 0, instance->rows - 1)],
+	    instance->cols, 0);
+}
+
 static void cursor_put(fb_instance_t *instance)
 {
 	unsigned int col = instance->column;
@@ -364,25 +417,6 @@ static void fb_redraw_internal(fb_instance_t *instance)
 		for (y = ROW2Y(instance->screen_rows); y < instance->yres; y++)
 			memcpy(&instance->addr[FB_POS(instance, 0, y)],
 			    instance->bgscan, instance->bgscanbytes);
-	}
-}
-
-/** Scroll screen down by one row
- *
- */
-static void screen_scroll(fb_instance_t *instance)
-{
-	/*
-	 * Implement backbuffer scrolling by wrapping around
-	 * the cyclic buffer.
-	 */
-
-	instance->start_row++;
-	if (instance->start_row == instance->rows)
-		instance->start_row = 0;
-
-	if ((!instance->parea.mapped) || (console_override)) {
-		fb_redraw_internal(instance);
 	}
 }
 
