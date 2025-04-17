@@ -233,6 +233,11 @@ static bool _is_non_shortest(const mbstate_t *mb, uint8_t b)
 	    (mb->state == 0b1111111111110000 && !(b & 0b00110000));
 }
 
+static bool _is_surrogate(const mbstate_t *mb, uint8_t b)
+{
+	return (mb->state == 0b1111110000001101 && b >= 0xa0);
+}
+
 #define _likely(expr) __builtin_expect((expr), true)
 #define _unlikely(expr) __builtin_expect((expr), false)
 
@@ -298,6 +303,10 @@ static char32_t _str_decode(const char *s, size_t *offset, size_t size, mbstate_
 				if (_unlikely(!(ch & 0xFFFFF800)))
 					return CHAR_INVALID;
 
+				/* Reject surrogates */
+				if (_unlikely(ch >= 0xD800 && ch < 0xE000))
+					return CHAR_INVALID;
+
 				return ch;
 			}
 #endif
@@ -322,6 +331,10 @@ static char32_t _str_decode(const char *s, size_t *offset, size_t size, mbstate_
 				if (_unlikely(!(ch & 0xFFFF0000)))
 					return CHAR_INVALID;
 
+				/* Reject out-of-range characters. */
+				if (_unlikely(ch >= 0x110000))
+					return CHAR_INVALID;
+
 				return ch;
 			}
 #endif
@@ -338,7 +351,7 @@ static char32_t _str_decode(const char *s, size_t *offset, size_t size, mbstate_
 		/* Read continuation bytes. */
 		uint8_t b = s[*offset];
 
-		if (!_is_continuation(b) || _is_non_shortest(mb, b)) {
+		if (!_is_continuation(b) || _is_non_shortest(mb, b) || _is_surrogate(mb, b)) {
 			mb->state = 0;
 			return CHAR_INVALID;
 		}
@@ -522,27 +535,36 @@ errno_t chr_encode(char32_t ch, char *str, size_t *offset, size_t size)
 	return EOK;
 }
 
-/* Convert in place any bytes that don't form a valid character into U_SPECIAL. */
-static void _sanitize_string(char *str, size_t n)
+/* Convert in place any bytes that don't form a valid character into replacement. */
+static size_t _str_sanitize(char *str, size_t n, uint8_t replacement)
 {
 	uint8_t *b = (uint8_t *) str;
+	size_t count = 0;
 
-	for (; *b && n > 0; b++, n--) {
+	for (; n > 0 && b[0]; b++, n--) {
 		int cont = _continuation_bytes(b[0]);
 		if (__builtin_expect(cont, 0) == 0)
 			continue;
 
 		if (cont < 0 || n <= (size_t) cont) {
-			b[0] = U_SPECIAL;
+			b[0] = replacement;
+			count++;
 			continue;
 		}
 
 		/* Check continuation bytes. */
+		bool valid = true;
 		for (int i = 1; i <= cont; i++) {
 			if (!_is_continuation(b[i])) {
-				b[0] = U_SPECIAL;
-				continue;
+				valid = false;
+				break;
 			}
+		}
+
+		if (!valid) {
+			b[0] = replacement;
+			count++;
+			continue;
 		}
 
 		/*
@@ -550,27 +572,51 @@ static void _sanitize_string(char *str, size_t n)
 		 * See https://www.unicode.org/versions/corrigendum1.html
 		 */
 
-		switch (cont) {
-		case 1:
-			/* 0b110!!!!x 0b10xxxxxx */
-			if (!(b[0] & 0b00011110))
-				b[0] = U_SPECIAL;
-
-			continue;
-		case 2:
-			/* 0b1110!!!! 0b10!xxxxx 0b10xxxxxx */
-			if (!(b[0] & 0b00001111) && !(b[1] & 0b00100000))
-				b[0] = U_SPECIAL;
-
-			continue;
-		case 3:
-			/* 0b11110!!! 0b10!!xxxx 0b10xxxxxx 0b10xxxxxx */
-			if (!(b[0] & 0b00000111) && !(b[1] & 0b00110000))
-				b[0] = U_SPECIAL;
-
+		/* 0b110!!!!x 0b10xxxxxx */
+		if (cont == 1 && !(b[0] & 0b00011110)) {
+			b[0] = replacement;
+			count++;
 			continue;
 		}
+
+		/* 0b1110!!!! 0b10!xxxxx 0b10xxxxxx */
+		if (cont == 2 && !(b[0] & 0b00001111) && !(b[1] & 0b00100000)) {
+			b[0] = replacement;
+			count++;
+			continue;
+		}
+
+		/* 0b11110!!! 0b10!!xxxx 0b10xxxxxx 0b10xxxxxx */
+		if (cont == 3 && !(b[0] & 0b00000111) && !(b[1] & 0b00110000)) {
+			b[0] = replacement;
+			count++;
+			continue;
+		}
+
+		/* Check for surrogate character encoding. */
+		if (cont == 2 && b[0] == 0xED && b[1] >= 0xA0) {
+			b[0] = replacement;
+			count++;
+			continue;
+		}
+
+		/* Check for out-of-range code points. */
+		if (cont == 3 && (b[0] > 0xF4 || (b[0] == 0xF4 && b[1] >= 0x90))) {
+			b[0] = replacement;
+			count++;
+			continue;
+		}
+
+		b += cont;
+		n -= cont;
 	}
+
+	return count;
+}
+
+size_t str_sanitize(char *str, size_t n, uint8_t replacement)
+{
+	return _str_sanitize(str, n, replacement);
 }
 
 static size_t _str_size(const char *str)
@@ -1129,7 +1175,7 @@ void str_cpy(char *dest, size_t size, const char *src)
 	_str_cpyn(dest, size, src);
 
 	/* In-place translate invalid bytes to U_SPECIAL. */
-	_sanitize_string(dest, size);
+	_str_sanitize(dest, size, U_SPECIAL);
 }
 
 /** Copy size-limited substring.
@@ -1158,7 +1204,7 @@ void str_ncpy(char *dest, size_t size, const char *src, size_t n)
 	_str_cpyn(dest, min(size, n + 1), src);
 
 	/* In-place translate invalid bytes to U_SPECIAL. */
-	_sanitize_string(dest, size);
+	_str_sanitize(dest, size, U_SPECIAL);
 }
 
 /** Append one string to another.
@@ -1182,7 +1228,7 @@ void str_append(char *dest, size_t size, const char *src)
 	size_t dstr_size = _str_nsize(dest, size);
 	if (dstr_size < size) {
 		_str_cpyn(dest + dstr_size, size - dstr_size, src);
-		_sanitize_string(dest + dstr_size, size - dstr_size);
+		_str_sanitize(dest + dstr_size, size - dstr_size, U_SPECIAL);
 	}
 }
 
@@ -1761,7 +1807,7 @@ char *str_dup(const char *src)
 		return NULL;
 
 	memcpy(dest, src, size);
-	_sanitize_string(dest, size);
+	_str_sanitize(dest, size, U_SPECIAL);
 	return dest;
 }
 
@@ -1794,7 +1840,7 @@ char *str_ndup(const char *src, size_t n)
 		return NULL;
 
 	memcpy(dest, src, size);
-	_sanitize_string(dest, size);
+	_str_sanitize(dest, size, U_SPECIAL);
 	dest[size] = 0;
 	return dest;
 }
