@@ -37,6 +37,74 @@
 
 volatile unsigned *ras_page;
 
+unsigned long long __atomic_load_8(const volatile void *mem0, int model)
+{
+	const volatile unsigned long long *mem = mem0;
+
+	(void) model;
+
+	unsigned long long ret;
+
+	/*
+	 * The following instructions between labels 1 and 2 constitute a
+	 * Restartable Atomic Seqeunce. Should the sequence be non-atomic,
+	 * the kernel will restart it.
+	 */
+	asm volatile (
+	    "1:\n"
+	    "	adr %[ret], 1b\n"
+	    "	str %[ret], %[rp0]\n"
+	    "	adr %[ret], 2f\n"
+	    "	str %[ret], %[rp1]\n"
+
+	    "	ldrd %[ret], %[addr]\n"
+	    "2:\n"
+	    : [ret] "=&r" (ret),
+	      [rp0] "=m" (ras_page[0]),
+	      [rp1] "=m" (ras_page[1])
+	    : [addr] "m" (*mem)
+	);
+
+	ras_page[0] = 0;
+	ras_page[1] = 0xffffffff;
+
+	return ret;
+}
+
+void __atomic_store_8(volatile void *mem0, unsigned long long val, int model)
+{
+	volatile unsigned long long *mem = mem0;
+
+	(void) model;
+
+	/* scratch register */
+	unsigned tmp;
+
+	/*
+	 * The following instructions between labels 1 and 2 constitute a
+	 * Restartable Atomic Seqeunce. Should the sequence be non-atomic,
+	 * the kernel will restart it.
+	 */
+	asm volatile (
+	    "1:\n"
+	    "	adr %[tmp], 1b\n"
+	    "	str %[tmp], %[rp0]\n"
+	    "	adr %[tmp], 2f\n"
+	    "	str %[tmp], %[rp1]\n"
+
+	    "	strd %[imm], %[addr]\n"
+	    "2:\n"
+	    : [tmp] "=&r" (tmp),
+	      [rp0] "=m" (ras_page[0]),
+	      [rp1] "=m" (ras_page[1]),
+	      [addr] "=m" (*mem)
+	    : [imm] "r" (val)
+	);
+
+	ras_page[0] = 0;
+	ras_page[1] = 0xffffffff;
+}
+
 bool __atomic_compare_exchange_4(volatile void *mem0, void *expected0,
     unsigned desired, bool weak, int success, int failure)
 {
