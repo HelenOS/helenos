@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2003 Josef Cejka
  * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2025 Jiří Zárevúcky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,37 +35,28 @@
  */
 
 #include <abi/kio.h>
-#include <arch.h>
-#include <assert.h>
-#include <atomic.h>
 #include <console/chardev.h>
 #include <console/console.h>
-#include <ddi/ddi.h>
-#include <ddi/irq.h>
 #include <errno.h>
 #include <ipc/event.h>
-#include <ipc/irq.h>
-#include <mm/frame.h> /* SIZE2FRAMES */
+#include <log.h>
 #include <panic.h>
 #include <preemption.h>
-#include <proc/thread.h>
-#include <putchar.h>
+#include <proc/task.h>
 #include <stdatomic.h>
 #include <stdio.h>
 #include <stdlib.h>  /* malloc */
 #include <str.h>
 #include <synch/mutex.h>
 #include <synch/spinlock.h>
-#include <synch/waitq.h>
 #include <syscall/copy.h>
 #include <sysinfo/sysinfo.h>
-#include <typedefs.h>
 
 #define KIO_PAGES    8
-#define KIO_LENGTH   (KIO_PAGES * PAGE_SIZE / sizeof(char32_t))
+#define KIO_LENGTH   (KIO_PAGES * PAGE_SIZE)
 
 /** Kernel log cyclic buffer */
-char32_t kio[KIO_LENGTH] __attribute__((aligned(PAGE_SIZE)));
+static char kio[KIO_LENGTH];
 
 /** Kernel log initialized */
 static atomic_bool kio_inited = ATOMIC_VAR_INIT(false);
@@ -75,23 +67,22 @@ static atomic_bool kio_inited = ATOMIC_VAR_INIT(false);
  */
 static MUTEX_INITIALIZE(console_mutex, MUTEX_RECURSIVE);
 
-/** First kernel log characters */
-static size_t kio_start = 0;
+/** Number of characters written to buffer. Periodically overflows. */
+static size_t kio_written = 0;
 
-/** Number of valid kernel log characters */
-static size_t kio_len = 0;
+/** Number of characters written to output devices. Periodically overflows. */
+static size_t kio_processed = 0;
 
-/** Number of stored (not printed) kernel log characters */
-static size_t kio_stored = 0;
-
-/** Number of stored kernel log characters for uspace */
-static size_t kio_uspace = 0;
+/** Last notification sent to uspace. */
+static size_t kio_notified = 0;
 
 /** Kernel log spinlock */
-SPINLOCK_INITIALIZE_NAME(kio_lock, "kio_lock");
+IRQ_SPINLOCK_INITIALIZE(kio_lock);
 
-/** Physical memory area used for kio buffer */
-static parea_t kio_parea;
+static IRQ_SPINLOCK_INITIALIZE(flush_lock);
+
+static IRQ_SPINLOCK_INITIALIZE(early_mbstate_lock);
+static mbstate_t early_mbstate;
 
 static indev_t stdin_sink;
 static outdev_t stdout_source;
@@ -103,7 +94,7 @@ static indev_operations_t stdin_ops = {
 	.signal = stdin_signal
 };
 
-static void stdout_write(outdev_t *, char32_t);
+static void stdout_write(outdev_t *, const char *, size_t);
 static void stdout_redraw(outdev_t *);
 static void stdout_scroll_up(outdev_t *);
 static void stdout_scroll_down(outdev_t *);
@@ -156,11 +147,11 @@ void stdout_wire(outdev_t *outdev)
 	list_append(&outdev->link, &stdout->list);
 }
 
-static void stdout_write(outdev_t *dev, char32_t ch)
+static void stdout_write(outdev_t *dev, const char *s, size_t n)
 {
 	list_foreach(dev->list, link, outdev_t, sink) {
 		if ((sink) && (sink->op->write))
-			sink->op->write(sink, ch);
+			sink->op->write(sink, s, n);
 	}
 }
 
@@ -189,28 +180,9 @@ static void stdout_scroll_down(outdev_t *dev)
 }
 
 /** Initialize kernel logging facility
- *
- * The shared area contains kernel cyclic buffer. Userspace application may
- * be notified on new data with indication of position and size
- * of the data within the circular buffer.
- *
  */
 void kio_init(void)
 {
-	void *faddr = (void *) KA2PA(kio);
-
-	assert((uintptr_t) faddr % FRAME_SIZE == 0);
-
-	ddi_parea_init(&kio_parea);
-	kio_parea.pbase = (uintptr_t) faddr;
-	kio_parea.frames = SIZE2FRAMES(sizeof(kio));
-	kio_parea.unpriv = false;
-	kio_parea.mapped = false;
-	ddi_parea_register(&kio_parea);
-
-	sysinfo_set_item_val("kio.faddr", NULL, (sysarg_t) faddr);
-	sysinfo_set_item_val("kio.pages", NULL, KIO_PAGES);
-
 	event_set_unmask_callback(EVENT_KIO, kio_update);
 	atomic_store(&kio_inited, true);
 }
@@ -256,15 +228,14 @@ void kio_update(void *event)
 	if (!atomic_load(&kio_inited))
 		return;
 
-	spinlock_lock(&kio_lock);
+	irq_spinlock_lock(&kio_lock, true);
 
-	if (kio_uspace > 0) {
-		if (event_notify_3(EVENT_KIO, true, kio_start, kio_len,
-		    kio_uspace) == EOK)
-			kio_uspace = 0;
+	if (kio_notified != kio_written) {
+		if (event_notify_1(EVENT_KIO, true, kio_written) == EOK)
+			kio_notified = kio_written;
 	}
 
-	spinlock_unlock(&kio_lock);
+	irq_spinlock_unlock(&kio_lock, true);
 }
 
 /** Flush characters that are stored in the output buffer
@@ -277,53 +248,83 @@ void kio_flush(void)
 	if (!ordy)
 		return;
 
-	spinlock_lock(&kio_lock);
+	irq_spinlock_lock(&kio_lock, true);
 
-	/* Print characters that weren't printed earlier */
-	while (kio_stored > 0) {
-		char32_t tmp = kio[(kio_start + kio_len - kio_stored) % KIO_LENGTH];
-		kio_stored--;
-
-		/*
-		 * We need to give up the spinlock for
-		 * the physical operation of writing out
-		 * the character.
-		 */
-		spinlock_unlock(&kio_lock);
-		stdout->op->write(stdout, tmp);
-		spinlock_lock(&kio_lock);
+	if (!irq_spinlock_trylock(&flush_lock)) {
+		/* Someone is currently flushing. */
+		irq_spinlock_unlock(&kio_lock, true);
+		return;
 	}
 
-	spinlock_unlock(&kio_lock);
+	/* A small-ish local buffer so that we can write to output in chunks. */
+	char buffer[256];
+
+	/* Print characters that weren't printed earlier */
+	while (kio_written != kio_processed) {
+		size_t offset = kio_processed % KIO_LENGTH;
+		size_t len = min(kio_written - kio_processed, KIO_LENGTH - offset);
+		len = min(len, sizeof(buffer));
+
+		/* Take out a chunk of the big buffer. */
+		memcpy(buffer, &kio[offset], len);
+		kio_processed += len;
+
+		/*
+		 * We need to give up the spinlock for the physical operation of writing
+		 * out the buffer.
+		 */
+		irq_spinlock_unlock(&kio_lock, true);
+		stdout->op->write(stdout, buffer, len);
+		irq_spinlock_lock(&kio_lock, true);
+	}
+
+	irq_spinlock_unlock(&flush_lock, false);
+	irq_spinlock_unlock(&kio_lock, true);
 }
 
-/** Put a character into the output buffer.
- *
- * The caller is required to hold kio_lock
- */
-void kio_push_char(const char32_t ch)
+void kio_push_bytes(const char *s, size_t n)
 {
-	kio[(kio_start + kio_len) % KIO_LENGTH] = ch;
-	if (kio_len < KIO_LENGTH)
-		kio_len++;
-	else
-		kio_start = (kio_start + 1) % KIO_LENGTH;
+	/* Skip the section we know we can't keep. */
+	if (n > KIO_LENGTH) {
+		size_t lost = n - KIO_LENGTH;
+		kio_written += lost;
+		s += lost;
+		n -= lost;
+	}
 
-	if (kio_stored < kio_len)
-		kio_stored++;
+	size_t offset = kio_written % KIO_LENGTH;
+	if (offset + n > KIO_LENGTH) {
+		size_t first = KIO_LENGTH - offset;
+		size_t last = n - first;
+		memcpy(kio + offset, s, first);
+		memcpy(kio, s + first, last);
+	} else {
+		memcpy(kio + offset, s, n);
+	}
 
-	/* The character is stored for uspace */
-	if (kio_uspace < kio_len)
-		kio_uspace++;
+	kio_written += n;
 }
 
-void putuchar(const char32_t ch)
+static void early_putstr(const char *s, size_t n)
+{
+	irq_spinlock_lock(&early_mbstate_lock, true);
+
+	size_t offset = 0;
+	char32_t c;
+
+	while ((c = str_decode_r(s, &offset, n, U_SPECIAL, &early_mbstate)))
+		early_putuchar(c);
+
+	irq_spinlock_unlock(&early_mbstate_lock, true);
+}
+
+void putstr(const char *s, size_t n)
 {
 	bool ordy = ((stdout) && (stdout->op->write));
 
-	spinlock_lock(&kio_lock);
-	kio_push_char(ch);
-	spinlock_unlock(&kio_lock);
+	irq_spinlock_lock(&kio_lock, true);
+	kio_push_bytes(s, n);
+	irq_spinlock_unlock(&kio_lock, true);
 
 	/* Output stored characters */
 	kio_flush();
@@ -339,12 +340,65 @@ void putuchar(const char32_t ch)
 		 * Note that the early_putuchar() function might be
 		 * a no-op on certain hardware configurations.
 		 */
-		early_putuchar(ch);
+		early_putstr(s, n);
 	}
 
-	/* Force notification on newline */
-	if (ch == '\n')
+	/* Force notification when containing a newline */
+	if (memchr(s, '\n', n) != NULL)
 		kio_update(NULL);
+}
+
+/** Reads up to `size` characters from kio buffer starting at character `at`.
+ *
+ * @param size  Maximum number of characters that can be stored in buffer.
+ *              Values greater than KIO_LENGTH are silently treated as KIO_LENGTH
+ *              for the purposes of calculating the return value.
+ * @return Number of characters read. Can be more than `size`.
+ *         In that case, `size` characters are written to user buffer
+ *         and the extra amount is the number of characters missed.
+ */
+sysarg_t sys_kio_read(uspace_addr_t buf, size_t size, size_t at)
+{
+	errno_t rc;
+	size_t missed = 0;
+
+	irq_spinlock_lock(&kio_lock, true);
+
+	if (at == kio_written) {
+		irq_spinlock_unlock(&kio_lock, true);
+		return 0;
+	}
+
+	size_t readable_chars = kio_written - at;
+	if (readable_chars > KIO_LENGTH) {
+		missed = readable_chars - KIO_LENGTH;
+		readable_chars = KIO_LENGTH;
+	}
+
+	size_t actual_read = min(readable_chars, size);
+	size_t offset = (kio_written - readable_chars) % KIO_LENGTH;
+
+	if (offset + actual_read > KIO_LENGTH) {
+		size_t first = KIO_LENGTH - offset;
+		size_t last = actual_read - first;
+
+		rc = copy_to_uspace(buf, &kio[offset], first);
+		if (rc == EOK)
+			rc = copy_to_uspace(buf + first, &kio[0], last);
+	} else {
+		rc = copy_to_uspace(buf, &kio[offset], actual_read);
+	}
+
+	irq_spinlock_unlock(&kio_lock, true);
+
+	if (rc != EOK) {
+		log(LF_OTHER, LVL_WARN,
+		    "[%s(%" PRIu64 ")] Terminating due to invalid memory buffer"
+		    " in SYS_KIO_READ.\n", TASK->name, TASK->taskid);
+		task_kill_self(true);
+	}
+
+	return actual_read + missed;
 }
 
 /** Print using kernel facility

@@ -120,15 +120,18 @@ typedef struct {
 
 	/** Current backbuffer position */
 	unsigned int position;
+
+	/** Partial character between writes */
+	mbstate_t mbstate;
 } fb_instance_t;
 
-static void fb_putuchar(outdev_t *, char32_t);
+static void fb_write(outdev_t *, const char *, size_t);
 static void fb_redraw(outdev_t *);
 static void fb_scroll_up(outdev_t *);
 static void fb_scroll_down(outdev_t *);
 
 static outdev_operations_t fbdev_ops = {
-	.write = fb_putuchar,
+	.write = fb_write,
 	.redraw = fb_redraw,
 	.scroll_up = fb_scroll_up,
 	.scroll_down = fb_scroll_down
@@ -417,28 +420,21 @@ static void fb_redraw_internal(fb_instance_t *instance)
  * Emulate basic terminal commands.
  *
  */
-static void fb_putuchar(outdev_t *dev, char32_t ch)
+static void _putuchar(fb_instance_t *instance, char32_t ch)
 {
-	fb_instance_t *instance = (fb_instance_t *) dev->data;
-	spinlock_lock(&instance->lock);
-
 	switch (ch) {
 	case '\n':
-		cursor_remove(instance);
 		instance->position += instance->cols;
 		instance->position -= instance->position % instance->cols;
 		break;
 	case '\r':
-		cursor_remove(instance);
 		instance->position -= instance->position % instance->cols;
 		break;
 	case '\b':
-		cursor_remove(instance);
 		if (instance->position % instance->cols)
 			instance->position--;
 		break;
 	case '\t':
-		cursor_remove(instance);
 		do {
 			glyph_draw(instance, fb_font_glyph(' '),
 			    instance->position % instance->cols,
@@ -458,9 +454,22 @@ static void fb_putuchar(outdev_t *dev, char32_t ch)
 		instance->position -= instance->cols;
 		screen_scroll(instance);
 	}
+}
+
+static void fb_write(outdev_t *dev, const char *s, size_t n)
+{
+	fb_instance_t *instance = (fb_instance_t *) dev->data;
+
+	spinlock_lock(&instance->lock);
+	cursor_remove(instance);
+
+	size_t offset = 0;
+	char32_t ch;
+
+	while ((ch = str_decode_r(s, &offset, n, U_SPECIAL, &instance->mbstate)))
+		_putuchar(instance, ch);
 
 	cursor_put(instance);
-
 	spinlock_unlock(&instance->lock);
 }
 

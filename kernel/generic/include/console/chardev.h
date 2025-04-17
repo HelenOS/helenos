@@ -80,8 +80,8 @@ struct outdev;
 
 /** Output character device operations interface. */
 typedef struct {
-	/** Write character to output. */
-	void (*write)(struct outdev *, char32_t);
+	/** Write string to output. */
+	void (*write)(struct outdev *, const char *, size_t);
 
 	/** Redraw any previously cached characters. */
 	void (*redraw)(struct outdev *);

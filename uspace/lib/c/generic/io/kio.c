@@ -33,6 +33,7 @@
 /** @file
  */
 
+#include <abi/syscall.h>
 #include <stddef.h>
 #include <libc.h>
 #include <str.h>
@@ -109,6 +110,11 @@ void kio_update(void)
 void kio_command(const void *buf, size_t size)
 {
 	(void) __SYSCALL3(SYS_KIO, KIO_COMMAND, (sysarg_t) buf, (sysarg_t) size);
+}
+
+size_t kio_read(char *buf, size_t n, size_t at)
+{
+	return __SYSCALL3(SYS_KIO_READ, (sysarg_t) buf, n, at);
 }
 
 /** Print formatted text to kio.

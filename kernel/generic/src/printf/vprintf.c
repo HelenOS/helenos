@@ -36,38 +36,21 @@
 #include <console/console.h>
 #include <print.h>
 #include <printf_core.h>
-#include <putchar.h>
 #include <str.h>
 #include <synch/spinlock.h>
 #include <typedefs.h>
 
 static errno_t vprintf_str_write(const char *str, size_t size, void *data)
 {
-	size_t offset = 0;
-
-	while (offset < size)
-		putuchar(str_decode(str, &offset, size));
-
+	putstr(str, size);
 	return EOK;
 }
 
 int puts(const char *str)
 {
-	size_t offset = 0;
-	size_t chars = 0;
-	char32_t uc;
-
-	console_lock();
-
-	while ((uc = str_decode(str, &offset, STR_NO_LIMIT)) != 0) {
-		putuchar(uc);
-		chars++;
-	}
-
-	putuchar('\n');
-
-	console_unlock();
-	return chars;
+	size_t n = str_size(str);
+	putstr(str, n);
+	return n;
 }
 
 int vprintf(const char *fmt, va_list ap)

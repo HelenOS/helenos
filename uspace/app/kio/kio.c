@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2025 Jiří Zárevúcky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,6 +34,8 @@
  * @file
  */
 
+#include <_bits/decls.h>
+#include <libarch/config.h>
 #include <stdio.h>
 #include <async.h>
 #include <as.h>
@@ -46,6 +49,7 @@
 #include <adt/list.h>
 #include <adt/prodcons.h>
 #include <tinput.h>
+#include <uchar.h>
 #include <vfs/vfs.h>
 
 #define NAME       "kio"
@@ -54,18 +58,19 @@
 /* Producer/consumer buffers */
 typedef struct {
 	link_t link;
-	size_t length;
-	char32_t *data;
+	size_t bytes;
+	char *data;
 } item_t;
 
 static prodcons_t pc;
 
-/* Pointer to kio area */
-static char32_t *kio = (char32_t *) AS_AREA_ANY;
-static size_t kio_length;
-
 /* Notification mutex */
 static FIBRIL_MUTEX_INITIALIZE(mtx);
+
+#define READ_BUFFER_SIZE PAGE_SIZE
+
+static size_t current_at;
+static char read_buffer[READ_BUFFER_SIZE];
 
 /** Klog producer
  *
@@ -76,24 +81,22 @@ static FIBRIL_MUTEX_INITIALIZE(mtx);
  * @param data   Pointer to the kernel kio buffer.
  *
  */
-static void producer(size_t length, char32_t *data)
+static void producer(size_t bytes, char *data)
 {
-	item_t *item = (item_t *) malloc(sizeof(item_t));
+	item_t *item = malloc(sizeof(item_t));
 	if (item == NULL)
 		return;
 
-	size_t sz = sizeof(char32_t) * length;
-	char32_t *buf = (char32_t *) malloc(sz);
-	if (buf == NULL) {
+	item->bytes = bytes;
+	item->data = malloc(bytes);
+	if (!item->data) {
 		free(item);
 		return;
 	}
 
-	memcpy(buf, data, sz);
+	memcpy(item->data, data, bytes);
 
 	link_initialize(&item->link);
-	item->length = length;
-	item->data = buf;
 	prodcons_produce(&pc, &item->link);
 }
 
@@ -119,13 +122,10 @@ static errno_t consumer(void *data)
 		link_t *link = prodcons_consume(&pc);
 		item_t *item = list_get_instance(link, item_t, link);
 
-		for (size_t i = 0; i < item->length; i++)
-			putuchar(item->data[i]);
+		fwrite(item->data, 1, item->bytes, stdout);
 
-		if (log != NULL) {
-			for (size_t i = 0; i < item->length; i++)
-				fputuc(item->data[i], log);
-
+		if (log) {
+			fwrite(item->data, 1, item->bytes, log);
 			fflush(log);
 			vfs_sync(fileno(log));
 		}
@@ -148,35 +148,31 @@ static errno_t consumer(void *data)
  */
 static void kio_notification_handler(ipc_call_t *call, void *arg)
 {
+	size_t kio_written = (size_t) ipc_get_arg1(call);
+
 	/*
 	 * Make sure we process only a single notification
 	 * at any time to limit the chance of the consumer
 	 * starving.
-	 *
-	 * Note: Usually the automatic masking of the kio
-	 * notifications on the kernel side does the trick
-	 * of limiting the chance of accidentally copying
-	 * the same data multiple times. However, due to
-	 * the non-blocking architecture of kio notifications,
-	 * this possibility cannot be generally avoided.
 	 */
 
 	fibril_mutex_lock(&mtx);
 
-	size_t kio_start = (size_t) ipc_get_arg1(call);
-	size_t kio_len = (size_t) ipc_get_arg2(call);
-	size_t kio_stored = (size_t) ipc_get_arg3(call);
+	while (current_at != kio_written) {
+		size_t read = kio_read(read_buffer, READ_BUFFER_SIZE, current_at);
+		if (read == 0)
+			break;
 
-	size_t offset = (kio_start + kio_len - kio_stored) % kio_length;
+		current_at += read;
 
-	/* Copy data from the ring buffer */
-	if (offset + kio_stored >= kio_length) {
-		size_t split = kio_length - offset;
+		if (read > READ_BUFFER_SIZE) {
+			/* We missed some data. */
+			// TODO: Send a message with the number of lost characters to the consumer.
+			read = READ_BUFFER_SIZE;
+		}
 
-		producer(split, kio + offset);
-		producer(kio_stored - split, kio);
-	} else
-		producer(kio_stored, kio + offset);
+		producer(read, read_buffer);
+	}
 
 	async_event_unmask(EVENT_KIO);
 	fibril_mutex_unlock(&mtx);
@@ -184,34 +180,8 @@ static void kio_notification_handler(ipc_call_t *call, void *arg)
 
 int main(int argc, char *argv[])
 {
-	size_t pages;
-	errno_t rc = sysinfo_get_value("kio.pages", &pages);
-	if (rc != EOK) {
-		fprintf(stderr, "%s: Unable to get number of kio pages\n",
-		    NAME);
-		return rc;
-	}
-
-	uintptr_t faddr;
-	rc = sysinfo_get_value("kio.faddr", &faddr);
-	if (rc != EOK) {
-		fprintf(stderr, "%s: Unable to get kio physical address\n",
-		    NAME);
-		return rc;
-	}
-
-	size_t size = pages * PAGE_SIZE;
-	kio_length = size / sizeof(char32_t);
-
-	rc = physmem_map(faddr, pages, AS_AREA_READ | AS_AREA_CACHEABLE,
-	    (void *) &kio);
-	if (rc != EOK) {
-		fprintf(stderr, "%s: Unable to map kio\n", NAME);
-		return rc;
-	}
-
 	prodcons_initialize(&pc);
-	rc = async_event_subscribe(EVENT_KIO, kio_notification_handler, NULL);
+	errno_t rc = async_event_subscribe(EVENT_KIO, kio_notification_handler, NULL);
 	if (rc != EOK) {
 		fprintf(stderr, "%s: Unable to register kio notifications\n",
 		    NAME);

@@ -38,26 +38,25 @@
  *
  */
 
-#include <assert.h>
-#include <console/kconsole.h>
-#include <console/console.h>
-#include <console/chardev.h>
-#include <console/cmd.h>
-#include <console/prompt.h>
-#include <stdio.h>
-#include <panic.h>
-#include <typedefs.h>
 #include <adt/list.h>
 #include <arch.h>
-#include <macros.h>
+#include <assert.h>
+#include <console/chardev.h>
+#include <console/cmd.h>
+#include <console/console.h>
+#include <console/kconsole.h>
+#include <console/prompt.h>
 #include <debug.h>
-#include <halt.h>
-#include <str.h>
-#include <sysinfo/sysinfo.h>
-#include <symtab.h>
 #include <errno.h>
-#include <putchar.h>
+#include <halt.h>
+#include <macros.h>
+#include <panic.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <str.h>
+#include <symtab.h>
+#include <sysinfo/sysinfo.h>
+#include <typedefs.h>
 
 /** Simple kernel console.
  *
@@ -157,11 +156,12 @@ bool cmd_register(cmd_info_t *cmd)
 }
 
 /** Print count times a character */
-_NO_TRACE static void print_cc(char32_t ch, size_t count)
+_NO_TRACE static void print_cc(char ch, size_t count)
 {
-	size_t i;
-	for (i = 0; i < count; i++)
-		putuchar(ch);
+	// FIXME: only lock once
+
+	for (size_t i = 0; i < count; i++)
+		putstr(&ch, 1);
 }
 
 /** Try to find a command beginning with prefix */
@@ -346,7 +346,7 @@ _NO_TRACE static char32_t *clever_readline(const char *prompt, indev_t *indev,
 
 		if (ch == '\n') {
 			/* Enter */
-			putuchar(ch);
+			putstr("\n", 1);
 			break;
 		}
 
@@ -357,7 +357,7 @@ _NO_TRACE static char32_t *clever_readline(const char *prompt, indev_t *indev,
 
 			if (wstr_remove(current, position - 1)) {
 				position--;
-				putuchar('\b');
+				putstr("\b", 1);
 				printf("%ls ", current + position);
 				print_cc('\b', wstr_length(current) - position + 1);
 				continue;
@@ -367,10 +367,15 @@ _NO_TRACE static char32_t *clever_readline(const char *prompt, indev_t *indev,
 		if (ch == '\t') {
 			/* Tab completion */
 
-			/* Move to the end of the word */
-			for (; (current[position] != 0) && (!isspace(current[position]));
-			    position++)
-				putuchar(current[position]);
+			size_t i = position;
+			while (current[i] && !isspace(current[i]))
+				i++;
+
+			char32_t stash = current[i];
+			current[i] = 0;
+			printf("%ls", &current[position]);
+			current[i] = stash;
+			position = i;
 
 			/*
 			 * Find the beginning of the word
@@ -429,13 +434,9 @@ _NO_TRACE static char32_t *clever_readline(const char *prompt, indev_t *indev,
 			 * tmp will contain the common prefix.
 			 */
 			size_t off = 0;
-			size_t i = 0;
-			while ((ch = str_decode(tmp, &off, STR_NO_LIMIT)) != 0) {
+			for (size_t i = 0; (ch = str_decode(tmp, &off, STR_NO_LIMIT)); i++)
 				if (!wstr_linsert(current, ch, position + i, MAX_CMDLINE))
 					break;
-
-				i++;
-			}
 
 			if (found > 1) {
 				/* No unique hint, list was printed */
@@ -465,7 +466,7 @@ _NO_TRACE static char32_t *clever_readline(const char *prompt, indev_t *indev,
 		if (ch == U_LEFT_ARROW) {
 			/* Left */
 			if (position > 0) {
-				putuchar('\b');
+				putstr("\b", 1);
 				position--;
 			}
 			continue;
@@ -474,7 +475,7 @@ _NO_TRACE static char32_t *clever_readline(const char *prompt, indev_t *indev,
 		if (ch == U_RIGHT_ARROW) {
 			/* Right */
 			if (position < wstr_length(current)) {
-				putuchar(current[position]);
+				printf("%lc", current[position]);
 				position++;
 			}
 			continue;
