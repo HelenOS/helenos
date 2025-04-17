@@ -80,6 +80,8 @@
 #define GLYPH_POS(instance, glyph, y) \
 	((glyph) * (instance)->glyphbytes + (y) * (instance)->glyphscanline)
 
+#define TAB_WIDTH 8
+
 typedef void (*rgb_conv_t)(void *, uint32_t);
 
 typedef struct {
@@ -98,7 +100,7 @@ typedef struct {
 	unsigned int yres;
 
 	/** Number of rows that fit on framebuffer */
-	unsigned int rowtrim;
+	unsigned int screen_rows;
 
 	unsigned int scanline;
 	unsigned int glyphscanline;
@@ -120,15 +122,21 @@ typedef struct {
 
 	/** Current backbuffer position */
 	unsigned int position;
+
+	/** Partial character between writes */
+	mbstate_t mbstate;
+
+	unsigned int row;
+	unsigned int column;
 } fb_instance_t;
 
-static void fb_putuchar(outdev_t *, char32_t);
+static void fb_write(outdev_t *, const char *, size_t);
 static void fb_redraw(outdev_t *);
 static void fb_scroll_up(outdev_t *);
 static void fb_scroll_down(outdev_t *);
 
 static outdev_operations_t fbdev_ops = {
-	.write = fb_putuchar,
+	.write = fb_write,
 	.redraw = fb_redraw,
 	.scroll_up = fb_scroll_up,
 	.scroll_down = fb_scroll_down
@@ -246,7 +254,7 @@ static void glyph_draw(fb_instance_t *instance, uint16_t glyph,
 		return;
 
 	unsigned int rel_row = row - instance->offset_row;
-	if (rel_row >= instance->rowtrim)
+	if (rel_row >= instance->screen_rows)
 		return;
 
 	unsigned int x = COL2X(col);
@@ -258,71 +266,18 @@ static void glyph_draw(fb_instance_t *instance, uint16_t glyph,
 		    instance->glyphscanline);
 }
 
-/** Scroll screen down by one row
- *
- */
-static void screen_scroll(fb_instance_t *instance)
-{
-	if ((!instance->parea.mapped) || (console_override)) {
-		for (unsigned int rel_row = 0; rel_row < instance->rowtrim; rel_row++) {
-			unsigned int y = ROW2Y(rel_row);
-			unsigned int row = rel_row + instance->offset_row;
-
-			for (unsigned int yd = 0; yd < FONT_SCANLINES; yd++) {
-				unsigned int x;
-				unsigned int col;
-				size_t bb_pos = BB_POS(instance, 0, row);
-				size_t bb_pos1 = BB_POS(instance, 0, row + 1);
-
-				for (col = 0, x = 0; col < instance->cols;
-				    col++, x += FONT_WIDTH) {
-					uint16_t glyph;
-
-					if (row < instance->rows - 1) {
-						if (instance->backbuf[bb_pos] ==
-						    instance->backbuf[bb_pos1])
-							goto skip;
-
-						glyph = instance->backbuf[bb_pos1];
-					} else
-						glyph = 0;
-
-					memcpy(&instance->addr[FB_POS(instance, x, y + yd)],
-					    &instance->glyphs[GLYPH_POS(instance, glyph, yd)],
-					    instance->glyphscanline);
-				skip:
-					BB_NEXT_COL(bb_pos);
-					BB_NEXT_COL(bb_pos1);
-				}
-			}
-		}
-	}
-
-	/*
-	 * Implement backbuffer scrolling by wrapping around
-	 * the cyclic buffer.
-	 */
-
-	instance->start_row++;
-	if (instance->start_row == instance->rows)
-		instance->start_row = 0;
-
-	memsetw(&instance->backbuf[BB_POS(instance, 0, instance->rows - 1)],
-	    instance->cols, 0);
-}
-
 static void cursor_put(fb_instance_t *instance)
 {
-	unsigned int col = instance->position % instance->cols;
-	unsigned int row = instance->position / instance->cols;
+	unsigned int col = instance->column;
+	unsigned int row = instance->row;
 
 	glyph_draw(instance, fb_font_glyph(U_CURSOR), col, row, true);
 }
 
 static void cursor_remove(fb_instance_t *instance)
 {
-	unsigned int col = instance->position % instance->cols;
-	unsigned int row = instance->position / instance->cols;
+	unsigned int col = instance->column;
+	unsigned int row = instance->row;
 
 	glyph_draw(instance, instance->backbuf[BB_POS(instance, col, row)],
 	    col, row, true);
@@ -372,7 +327,7 @@ static void glyphs_render(fb_instance_t *instance)
 
 static void fb_redraw_internal(fb_instance_t *instance)
 {
-	for (unsigned int rel_row = 0; rel_row < instance->rowtrim; rel_row++) {
+	for (unsigned int rel_row = 0; rel_row < instance->screen_rows; rel_row++) {
 		unsigned int y = ROW2Y(rel_row);
 		unsigned int row = rel_row + instance->offset_row;
 
@@ -403,13 +358,45 @@ static void fb_redraw_internal(fb_instance_t *instance)
 			    instance->bgscan, size);
 	}
 
-	if (ROW2Y(instance->rowtrim) < instance->yres) {
+	if (ROW2Y(instance->screen_rows) < instance->yres) {
 		unsigned int y;
 
-		for (y = ROW2Y(instance->rowtrim); y < instance->yres; y++)
+		for (y = ROW2Y(instance->screen_rows); y < instance->yres; y++)
 			memcpy(&instance->addr[FB_POS(instance, 0, y)],
 			    instance->bgscan, instance->bgscanbytes);
 	}
+}
+
+/** Scroll screen down by one row
+ *
+ */
+static void screen_scroll(fb_instance_t *instance)
+{
+	/*
+	 * Implement backbuffer scrolling by wrapping around
+	 * the cyclic buffer.
+	 */
+
+	instance->start_row++;
+	if (instance->start_row == instance->rows)
+		instance->start_row = 0;
+
+	if ((!instance->parea.mapped) || (console_override)) {
+		fb_redraw_internal(instance);
+	}
+}
+
+static void _advance_row(fb_instance_t *instance)
+{
+	instance->column = 0;
+	instance->row++;
+}
+
+static void _advance_column(fb_instance_t *instance)
+{
+	instance->column++;
+	if (instance->column == instance->cols)
+		_advance_row(instance);
 }
 
 /** Print character to screen
@@ -417,50 +404,54 @@ static void fb_redraw_internal(fb_instance_t *instance)
  * Emulate basic terminal commands.
  *
  */
-static void fb_putuchar(outdev_t *dev, char32_t ch)
+static void _putuchar(fb_instance_t *instance, char32_t ch)
 {
-	fb_instance_t *instance = (fb_instance_t *) dev->data;
-	spinlock_lock(&instance->lock);
-
 	switch (ch) {
 	case '\n':
-		cursor_remove(instance);
-		instance->position += instance->cols;
-		instance->position -= instance->position % instance->cols;
+		_advance_row(instance);
 		break;
 	case '\r':
-		cursor_remove(instance);
-		instance->position -= instance->position % instance->cols;
+		instance->column = 0;
 		break;
 	case '\b':
-		cursor_remove(instance);
-		if (instance->position % instance->cols)
-			instance->position--;
+		if (instance->column > 0)
+			instance->column--;
 		break;
 	case '\t':
-		cursor_remove(instance);
 		do {
 			glyph_draw(instance, fb_font_glyph(' '),
-			    instance->position % instance->cols,
-			    instance->position / instance->cols, false);
-			instance->position++;
-		} while (((instance->position % instance->cols) % 8 != 0) &&
-		    (instance->position < instance->cols * instance->rows));
+			    instance->column,
+			    instance->row, false);
+			_advance_column(instance);
+		} while (instance->column % TAB_WIDTH != 0);
 		break;
 	default:
 		glyph_draw(instance, fb_font_glyph(ch),
-		    instance->position % instance->cols,
-		    instance->position / instance->cols, false);
-		instance->position++;
+		    instance->column,
+		    instance->row, false);
+		_advance_column(instance);
 	}
 
-	if (instance->position >= instance->cols * instance->rows) {
-		instance->position -= instance->cols;
+	while (instance->row >= instance->rows) {
+		instance->row--;
 		screen_scroll(instance);
 	}
+}
+
+static void fb_write(outdev_t *dev, const char *s, size_t n)
+{
+	fb_instance_t *instance = (fb_instance_t *) dev->data;
+
+	spinlock_lock(&instance->lock);
+	cursor_remove(instance);
+
+	size_t offset = 0;
+	char32_t ch;
+
+	while ((ch = str_decode_r(s, &offset, n, U_SPECIAL, &instance->mbstate)))
+		_putuchar(instance, ch);
 
 	cursor_put(instance);
-
 	spinlock_unlock(&instance->lock);
 }
 
@@ -472,8 +463,8 @@ static void fb_scroll_up(outdev_t *dev)
 	fb_instance_t *instance = (fb_instance_t *) dev->data;
 	spinlock_lock(&instance->lock);
 
-	if (instance->offset_row >= instance->rowtrim / 2)
-		instance->offset_row -= instance->rowtrim / 2;
+	if (instance->offset_row >= instance->screen_rows / 2)
+		instance->offset_row -= instance->screen_rows / 2;
 	else
 		instance->offset_row = 0;
 
@@ -491,11 +482,11 @@ static void fb_scroll_down(outdev_t *dev)
 	fb_instance_t *instance = (fb_instance_t *) dev->data;
 	spinlock_lock(&instance->lock);
 
-	if (instance->offset_row + instance->rowtrim / 2 <=
-	    instance->rows - instance->rowtrim)
-		instance->offset_row += instance->rowtrim / 2;
+	if (instance->offset_row + instance->screen_rows / 2 <=
+	    instance->rows - instance->screen_rows)
+		instance->offset_row += instance->screen_rows / 2;
 	else
-		instance->offset_row = instance->rows - instance->rowtrim;
+		instance->offset_row = instance->rows - instance->screen_rows;
 
 	fb_redraw_internal(instance);
 	cursor_put(instance);
@@ -614,14 +605,15 @@ outdev_t *fb_init(fb_properties_t *props)
 	instance->yres = props->y;
 	instance->scanline = props->scan;
 
-	instance->rowtrim = Y2ROW(instance->yres);
+	instance->screen_rows = Y2ROW(instance->yres);
 
 	instance->cols = X2COL(instance->xres);
-	instance->rows = FB_PAGES * instance->rowtrim;
+	instance->rows = FB_PAGES * instance->screen_rows;
 
-	instance->start_row = instance->rows - instance->rowtrim;
+	instance->start_row = instance->rows - instance->screen_rows;
 	instance->offset_row = instance->start_row;
-	instance->position = instance->start_row * instance->cols;
+	instance->row = instance->start_row;
+	instance->column = 0;
 
 	instance->glyphscanline = FONT_WIDTH * instance->pixelbytes;
 	instance->glyphbytes = ROW2Y(instance->glyphscanline);
