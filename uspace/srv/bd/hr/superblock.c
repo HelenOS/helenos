@@ -134,7 +134,7 @@ errno_t hr_metadata_save(hr_volume_t *vol, bool with_state_callback)
 	return EOK;
 }
 
-bool hr_valid_md_magic(hr_metadata_t *md)
+bool hr_valid_md_magic(const hr_metadata_t *md)
 {
 	HR_DEBUG("%s()", __func__);
 
@@ -218,7 +218,7 @@ errno_t hr_get_metadata_block(service_id_t dev, void **rblock)
 	return EOK;
 }
 
-void hr_encode_metadata_to_block(hr_metadata_t *metadata, void *block)
+void hr_encode_metadata_to_block(const hr_metadata_t *metadata, void *block)
 {
 	HR_DEBUG("%s()", __func__);
 
@@ -281,7 +281,7 @@ void hr_decode_metadata_from_block(const void *block, hr_metadata_t *metadata)
 	memcpy(metadata->devname, scratch_md.devname, HR_DEVNAME_LEN);
 }
 
-void hr_metadata_dump(hr_metadata_t *metadata)
+void hr_metadata_dump(const hr_metadata_t *metadata)
 {
 	HR_DEBUG("%s()", __func__);
 

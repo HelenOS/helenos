@@ -82,10 +82,10 @@ extern errno_t	hr_metadata_init(hr_volume_t *, hr_metadata_t *);
 extern errno_t	hr_metadata_save(hr_volume_t *, bool);
 extern errno_t	hr_write_metadata_block(service_id_t, const void *);
 extern errno_t	hr_get_metadata_block(service_id_t, void **);
-extern void	hr_encode_metadata_to_block(hr_metadata_t *, void *);
+extern void	hr_encode_metadata_to_block(const hr_metadata_t *, void *);
 extern void	hr_decode_metadata_from_block(const void *, hr_metadata_t *);
-extern void	hr_metadata_dump(hr_metadata_t *);
-extern bool	hr_valid_md_magic(hr_metadata_t *);
+extern void	hr_metadata_dump(const hr_metadata_t *);
+extern bool	hr_valid_md_magic(const hr_metadata_t *);
 
 #endif
 
