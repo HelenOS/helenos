@@ -59,10 +59,10 @@ enum {
 	SKI_PUTCHAR      = 31
 };
 
-static void ski_putuchar(outdev_t *, const char32_t);
+static void ski_write(outdev_t *, const char *, size_t);
 
 static outdev_operations_t skidev_ops = {
-	.write = ski_putuchar,
+	.write = ski_write,
 	.redraw = NULL,
 	.scroll_up = NULL,
 	.scroll_down = NULL
@@ -181,7 +181,7 @@ static void ski_init(void)
 	}
 }
 
-static void ski_do_putchar(char ch)
+static void ski_do_putchar(uint8_t ch)
 {
 	asm volatile (
 	    "mov r15 = %[cmd]\n"
@@ -202,18 +202,20 @@ static void ski_do_putchar(char ch)
  * @param ch     Character to be printed.
  *
  */
-static void ski_putuchar(outdev_t *dev, char32_t ch)
+static void ski_write(outdev_t *dev, const char *s, size_t n)
 {
+	/* If the userspace owns the console, do not output anything. */
 	if (ski_parea.mapped && !console_override)
 		return;
 
-	if (ascii_check(ch)) {
-		if (ch == '\n')
+	const char *top = s + n;
+	assert(top >= s);
+
+	for (; s < top; s++) {
+		if (*s == '\n')
 			ski_do_putchar('\r');
 
-		ski_do_putchar(ch);
-	} else {
-		ski_do_putchar('?');
+		ski_do_putchar((uint8_t) *s);
 	}
 }
 

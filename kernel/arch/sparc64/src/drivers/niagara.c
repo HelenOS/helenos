@@ -56,11 +56,11 @@
 /* Device instance */
 static niagara_instance_t *instance = NULL;
 
-static void niagara_putuchar(outdev_t *, const char32_t);
+static void niagara_write(outdev_t *, const char *, size_t);
 
 /** Character device operations */
 static outdev_operations_t niagara_ops = {
-	.write = niagara_putuchar,
+	.write = niagara_write,
 	.redraw = NULL,
 	.scroll_up = NULL,
 	.scroll_down = NULL
@@ -94,24 +94,27 @@ static volatile niagara_input_buffer_t __attribute__((aligned(PAGE_SIZE)))
 static parea_t inbuf_parea;
 
 /** Write a single character to the standard output. */
-static inline void do_putchar(char c)
+static inline void do_putchar(uint8_t c)
 {
 	/* Repeat until the buffer is non-full */
 	while (__hypercall_fast1(CONS_PUTCHAR, c) == HV_EWOULDBLOCK)
 		;
 }
 
-/** Write a single character to the standard output. */
-static void niagara_putuchar(outdev_t *dev, char32_t ch)
+static void niagara_write(outdev_t *dev, const char *s, size_t n)
 {
-	if ((!outbuf_parea.mapped) || (console_override)) {
-		if (ascii_check(ch)) {
-			do_putchar(ch);
-			if (ch == '\n')
-				do_putchar('\r');
-		} else {
-			do_putchar('?');
-		}
+	/* If the userspace owns the console, do not output anything. */
+	if (outbuf_parea.mapped && !console_override)
+		return;
+
+	const char *top = s + n;
+	assert(top >= s);
+
+	for (; s < top; s++) {
+		if (*s == '\n')
+			do_putchar('\r');
+
+		do_putchar((uint8_t) *s);
 	}
 }
 

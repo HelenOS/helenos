@@ -40,13 +40,6 @@
 static volatile uint64_t *tohost;
 static volatile uint64_t *fromhost;
 
-static outdev_operations_t htifdev_ops = {
-	.write = htif_putuchar,
-	.redraw = NULL,
-	.scroll_up = NULL,
-	.scroll_down = NULL
-};
-
 static void poll_fromhost()
 {
 	uint64_t val = *fromhost;
@@ -55,6 +48,38 @@ static void poll_fromhost()
 
 	*fromhost = 0;
 }
+
+static void htif_cmd(uint8_t device, uint8_t cmd, uint64_t payload)
+{
+	uint64_t val = (((uint64_t) device) << 56) |
+	    (((uint64_t) cmd) << 48) |
+	    (payload & UINT64_C(0xffffffffffff));
+
+	while (*tohost)
+		poll_fromhost();
+
+	*tohost = val;
+}
+
+static void htif_write(outdev_t *dev, const char *s, size_t n)
+{
+	const char *top = s + n;
+	assert(top >= s);
+
+	for (; s < top; s++) {
+		if (*s == '\n')
+			htif_cmd(HTIF_DEVICE_CONSOLE, HTIF_CONSOLE_PUTC, '\r');
+
+		htif_cmd(HTIF_DEVICE_CONSOLE, HTIF_CONSOLE_PUTC, (uint8_t) *s);
+	}
+}
+
+static outdev_operations_t htifdev_ops = {
+	.write = htif_write,
+	.redraw = NULL,
+	.scroll_up = NULL,
+	.scroll_down = NULL
+};
 
 void htif_init(volatile uint64_t *tohost_addr, volatile uint64_t *fromhost_addr)
 {
@@ -70,24 +95,4 @@ outdev_t *htifout_init(void)
 
 	outdev_initialize("htifdev", htifdev, &htifdev_ops);
 	return htifdev;
-}
-
-static void htif_cmd(uint8_t device, uint8_t cmd, uint64_t payload)
-{
-	uint64_t val = (((uint64_t) device) << 56) |
-	    (((uint64_t) cmd) << 48) |
-	    (payload & UINT64_C(0xffffffffffff));
-
-	while (*tohost)
-		poll_fromhost();
-
-	*tohost = val;
-}
-
-void htif_putuchar(outdev_t *dev, const char32_t ch)
-{
-	if (ascii_check(ch))
-		htif_cmd(HTIF_DEVICE_CONSOLE, HTIF_CONSOLE_PUTC, ch);
-	else
-		htif_cmd(HTIF_DEVICE_CONSOLE, HTIF_CONSOLE_PUTC, U_SPECIAL);
 }
