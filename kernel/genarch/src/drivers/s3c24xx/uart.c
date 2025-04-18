@@ -48,11 +48,8 @@
 #include <sysinfo/sysinfo.h>
 #include <str.h>
 
-static void s3c24xx_uart_sendb(outdev_t *dev, uint8_t byte)
+static void s3c24xx_uart_sendb(s3c24xx_uart_t *uart, uint8_t byte)
 {
-	s3c24xx_uart_t *uart =
-	    (s3c24xx_uart_t *) dev->data;
-
 	/* Wait for space becoming available in Tx FIFO. */
 	while ((pio_read_32(&uart->io->ufstat) & S3C24XX_UFSTAT_TX_FULL) != 0)
 		;
@@ -60,19 +57,22 @@ static void s3c24xx_uart_sendb(outdev_t *dev, uint8_t byte)
 	pio_write_32(&uart->io->utxh, byte);
 }
 
-static void s3c24xx_uart_putuchar(outdev_t *dev, char32_t ch)
+static void s3c24xx_uart_write(outdev_t *dev, const char *s, size_t n)
 {
-	s3c24xx_uart_t *uart =
-	    (s3c24xx_uart_t *) dev->data;
+	s3c24xx_uart_t *uart = dev->data;
 
-	if ((!uart->parea.mapped) || (console_override)) {
-		if (!ascii_check(ch)) {
-			s3c24xx_uart_sendb(dev, U_SPECIAL);
-		} else {
-			if (ch == '\n')
-				s3c24xx_uart_sendb(dev, (uint8_t) '\r');
-			s3c24xx_uart_sendb(dev, (uint8_t) ch);
-		}
+	/* If the userspace owns the console, do not output anything. */
+	if (uart->parea.mapped && !console_override)
+		return;
+
+	const char *top = s + n;
+	assert(top >= s);
+
+	for (; s < top; s++) {
+		if (*s == '\n')
+			s3c24xx_uart_sendb(uart, '\r');
+
+		s3c24xx_uart_sendb(uart, (uint8_t) *s);
 	}
 }
 
@@ -93,7 +93,7 @@ static void s3c24xx_uart_irq_handler(irq_t *irq)
 }
 
 static outdev_operations_t s3c24xx_uart_ops = {
-	.write = s3c24xx_uart_putuchar,
+	.write = s3c24xx_uart_write,
 	.redraw = NULL,
 	.scroll_up = NULL,
 	.scroll_down = NULL

@@ -48,20 +48,26 @@ typedef struct {
 	ioport8_t *base;
 } dsrlnout_instance_t;
 
-static void dsrlnout_putuchar(outdev_t *dev, const char32_t ch)
+static void dsrlnout_write(outdev_t *dev, const char *s, size_t n)
 {
 	dsrlnout_instance_t *instance = (dsrlnout_instance_t *) dev->data;
 
-	if ((!instance->parea.mapped) || (console_override)) {
-		if (ascii_check(ch))
-			pio_write_8(instance->base, ch);
-		else
-			pio_write_8(instance->base, U_SPECIAL);
+	if (instance->parea.mapped && !console_override)
+		return;
+
+	const char *top = s + n;
+	assert(top >= s);
+
+	for (; s < top; s++) {
+		if (*s == '\n')
+			pio_write_8(instance->base, '\r');
+
+		pio_write_8(instance->base, (uint8_t) *s);
 	}
 }
 
 static outdev_operations_t dsrlndev_ops = {
-	.write = dsrlnout_putuchar,
+	.write = dsrlnout_write,
 	.redraw = NULL,
 	.scroll_up = NULL,
 	.scroll_down = NULL

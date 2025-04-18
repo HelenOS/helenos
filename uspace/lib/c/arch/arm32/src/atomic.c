@@ -39,11 +39,14 @@ volatile unsigned *ras_page;
 
 unsigned long long __atomic_load_8(const volatile void *mem0, int model)
 {
-	const volatile unsigned long long *mem = mem0;
+	const volatile unsigned *mem = mem0;
 
 	(void) model;
 
-	unsigned long long ret;
+	union {
+		unsigned long long a;
+		unsigned b[2];
+	} ret;
 
 	/*
 	 * The following instructions between labels 1 and 2 constitute a
@@ -52,30 +55,40 @@ unsigned long long __atomic_load_8(const volatile void *mem0, int model)
 	 */
 	asm volatile (
 	    "1:\n"
-	    "	adr %[ret], 1b\n"
-	    "	str %[ret], %[rp0]\n"
-	    "	adr %[ret], 2f\n"
-	    "	str %[ret], %[rp1]\n"
+	    "	adr %[ret0], 1b\n"
+	    "	str %[ret0], %[rp0]\n"
+	    "	adr %[ret0], 2f\n"
+	    "	str %[ret0], %[rp1]\n"
 
-	    "	ldrd %[ret], %[addr]\n"
+	    "	ldr %[ret0], %[addr0]\n"
+	    "   ldr %[ret1], %[addr1]\n"
 	    "2:\n"
-	    : [ret] "=&r" (ret),
+	    : [ret0] "=&r" (ret.b[0]),
+	      [ret1] "=&r" (ret.b[1]),
 	      [rp0] "=m" (ras_page[0]),
 	      [rp1] "=m" (ras_page[1])
-	    : [addr] "m" (*mem)
+	    : [addr0] "m" (mem[0]),
+	      [addr1] "m" (mem[1])
 	);
 
 	ras_page[0] = 0;
 	ras_page[1] = 0xffffffff;
 
-	return ret;
+	return ret.a;
 }
 
 void __atomic_store_8(volatile void *mem0, unsigned long long val, int model)
 {
-	volatile unsigned long long *mem = mem0;
+	volatile unsigned *mem = mem0;
 
 	(void) model;
+
+	union {
+		unsigned long long a;
+		unsigned b[2];
+	} v;
+
+	v.a = val;
 
 	/* scratch register */
 	unsigned tmp;
@@ -92,13 +105,16 @@ void __atomic_store_8(volatile void *mem0, unsigned long long val, int model)
 	    "	adr %[tmp], 2f\n"
 	    "	str %[tmp], %[rp1]\n"
 
-	    "	strd %[imm], %[addr]\n"
+	    "	str %[val0], %[addr0]\n"
+	    "   str %[val1], %[addr1]\n"
 	    "2:\n"
 	    : [tmp] "=&r" (tmp),
 	      [rp0] "=m" (ras_page[0]),
 	      [rp1] "=m" (ras_page[1]),
-	      [addr] "=m" (*mem)
-	    : [imm] "r" (val)
+	      [addr0] "=m" (mem[0]),
+	      [addr1] "=m" (mem[1])
+	    : [val0] "r" (v.b[0]),
+	      [val1] "r" (v.b[1])
 	);
 
 	ras_page[0] = 0;

@@ -48,20 +48,23 @@ static void omap_uart_txb(omap_uart_t *uart, uint8_t b)
 	uart->regs->thr = b;
 }
 
-static void omap_uart_putuchar(outdev_t *dev, char32_t ch)
+static void omap_uart_write(outdev_t *dev, const char *s, size_t n)
 {
 	omap_uart_t *uart = dev->data;
-	if (!ascii_check(ch)) {
-		omap_uart_txb(uart, U_SPECIAL);
-	} else {
-		if (ch == '\n')
+
+	const char *top = s + n;
+	assert(top >= s);
+
+	for (; s < top; s++) {
+		if (*s == '\n')
 			omap_uart_txb(uart, '\r');
-		omap_uart_txb(uart, ch);
+
+		omap_uart_txb(uart, (uint8_t) *s);
 	}
 }
 
 static outdev_operations_t omap_uart_ops = {
-	.write = omap_uart_putuchar,
+	.write = omap_uart_write,
 	.redraw = NULL,
 	.scroll_up = NULL,
 	.scroll_down = NULL
