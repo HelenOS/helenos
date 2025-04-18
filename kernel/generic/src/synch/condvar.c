@@ -47,7 +47,7 @@
  */
 void condvar_initialize(condvar_t *cv)
 {
-	waitq_initialize(&cv->wq);
+	*cv = CONDVAR_INITIALIZER(*cv);
 }
 
 /** Signal the condition has become true to the first waiting thread by waking
@@ -78,7 +78,7 @@ void condvar_broadcast(condvar_t *cv)
  *
  * @return		See comment for waitq_sleep_timeout().
  */
-errno_t condvar_wait_timeout(condvar_t *cv, mutex_t *mtx, uint32_t usec)
+errno_t __condvar_wait_timeout_mutex(condvar_t *cv, mutex_t *mtx, uint32_t usec)
 {
 	wait_guard_t guard = waitq_sleep_prepare(&cv->wq);
 
@@ -91,7 +91,7 @@ errno_t condvar_wait_timeout(condvar_t *cv, mutex_t *mtx, uint32_t usec)
 	return rc;
 }
 
-errno_t condvar_wait(condvar_t *cv, mutex_t *mtx)
+errno_t __condvar_wait_mutex(condvar_t *cv, mutex_t *mtx)
 {
 	wait_guard_t guard = waitq_sleep_prepare(&cv->wq);
 
@@ -104,54 +104,38 @@ errno_t condvar_wait(condvar_t *cv, mutex_t *mtx)
 	return rc;
 }
 
-/** Wait for the condition to become true with a locked spinlock.
- *
- * The function is not aware of irq_spinlock. Therefore do not even
- * try passing irq_spinlock_t to it. Use _condvar_wait_timeout_irq_spinlock()
- * instead.
- *
- * @param cv		Condition variable.
- * @param lock		Locked spinlock.
- * @param usec		Timeout value in microseconds.
- * @param flags		Select mode of operation.
- *
- * For exact description of meaning of possible combinations of usec and flags,
- * see comment for waitq_sleep_timeout().  Note that when
- * SYNCH_FLAGS_NON_BLOCKING is specified here, EAGAIN is always
- * returned.
- *
- * @return See comment for waitq_sleep_timeout().
- */
-errno_t _condvar_wait_timeout_spinlock_impl(condvar_t *cv, spinlock_t *lock,
-    uint32_t usec, int flags)
+/** Same as __condvar_wait_timeout_mutex(), except for spinlock_t. */
+errno_t __condvar_wait_timeout_spinlock(condvar_t *cv, spinlock_t *lock,
+    uint32_t usec)
 {
 	wait_guard_t guard = waitq_sleep_prepare(&cv->wq);
 
 	/* Unlock only after the waitq is locked so we don't miss a wakeup. */
 	spinlock_unlock(lock);
 
-	errno_t rc = waitq_sleep_timeout_unsafe(&cv->wq, usec, flags, guard);
+	errno_t rc = waitq_sleep_timeout_unsafe(&cv->wq, usec,
+	    SYNCH_FLAGS_NON_BLOCKING, guard);
 
 	spinlock_lock(lock);
 	return rc;
 }
 
-/** Wait for the condition to become true with a locked irq spinlock.
- *
- * @param cv		Condition variable.
- * @param lock		Locked irq spinlock.
- * @param usec		Timeout value in microseconds.
- * @param flags		Select mode of operation.
- *
- * For exact description of meaning of possible combinations of usec and flags,
- * see comment for waitq_sleep_timeout().  Note that when
- * SYNCH_FLAGS_NON_BLOCKING is specified here, EAGAIN is always
- * returned.
- *
- * @return See comment for waitq_sleep_timeout().
- */
-errno_t _condvar_wait_timeout_irq_spinlock(condvar_t *cv, irq_spinlock_t *irq_lock,
-    uint32_t usec, int flags)
+errno_t __condvar_wait_spinlock(condvar_t *cv, spinlock_t *mtx)
+{
+	wait_guard_t guard = waitq_sleep_prepare(&cv->wq);
+
+	/* Unlock only after the waitq is locked so we don't miss a wakeup. */
+	spinlock_unlock(mtx);
+
+	errno_t rc = waitq_sleep_unsafe(&cv->wq, guard);
+
+	spinlock_lock(mtx);
+	return rc;
+}
+
+/** Same as __condvar_wait_timeout_mutex(), except for irq_spinlock_t. */
+errno_t __condvar_wait_timeout_irq_spinlock(condvar_t *cv,
+    irq_spinlock_t *irq_lock, uint32_t usec)
 {
 	errno_t rc;
 	/* Save spinlock's state so we can restore it correctly later on. */
@@ -170,7 +154,25 @@ errno_t _condvar_wait_timeout_irq_spinlock(condvar_t *cv, irq_spinlock_t *irq_lo
 	 * timeout handler is guaranteed to run (it is most likely already
 	 * running) and there is no danger of a deadlock.
 	 */
-	rc = _condvar_wait_timeout_spinlock(cv, &irq_lock->lock, usec, flags);
+	rc = __condvar_wait_timeout_spinlock(cv, &irq_lock->lock, usec);
+
+	irq_lock->guard = guard;
+	irq_lock->ipl = ipl;
+
+	return rc;
+}
+
+/** Same as __condvar_wait_mutex(), except for irq_spinlock_t. */
+errno_t __condvar_wait_irq_spinlock(condvar_t *cv, irq_spinlock_t *irq_lock)
+{
+	errno_t rc;
+	/* Save spinlock's state so we can restore it correctly later on. */
+	ipl_t ipl = irq_lock->ipl;
+	bool guard = irq_lock->guard;
+
+	irq_lock->guard = false;
+
+	rc = __condvar_wait_spinlock(cv, &irq_lock->lock);
 
 	irq_lock->guard = guard;
 	irq_lock->ipl = ipl;

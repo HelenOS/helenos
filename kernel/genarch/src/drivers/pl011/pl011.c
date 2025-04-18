@@ -55,7 +55,7 @@ static void pl011_uart_sendb(pl011_uart_t *uart, uint8_t byte)
 	pio_write_32(&uart->regs->data, byte);
 }
 
-static void pl011_uart_putuchar(outdev_t *dev, char32_t ch)
+static void pl011_uart_write(outdev_t *dev, const char *s, size_t n)
 {
 	pl011_uart_t *uart = dev->data;
 
@@ -63,17 +63,19 @@ static void pl011_uart_putuchar(outdev_t *dev, char32_t ch)
 	if (uart->parea.mapped && !console_override)
 		return;
 
-	if (!ascii_check(ch))
-		pl011_uart_sendb(uart, U_SPECIAL);
-	else {
-		if (ch == '\n')
-			pl011_uart_sendb(uart, (uint8_t) '\r');
-		pl011_uart_sendb(uart, (uint8_t) ch);
+	const char *top = s + n;
+	assert(top >= s);
+
+	for (; s < top; s++) {
+		if (*s == '\n')
+			pl011_uart_sendb(uart, '\r');
+
+		pl011_uart_sendb(uart, (uint8_t) *s);
 	}
 }
 
 static outdev_operations_t pl011_uart_ops = {
-	.write = pl011_uart_putuchar,
+	.write = pl011_uart_write,
 	.redraw = NULL,
 	.scroll_up = NULL,
 	.scroll_down = NULL

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,11 +37,15 @@
 #ifndef FUTIL_H
 #define FUTIL_H
 
+#include <errno.h>
 #include <stddef.h>
+#include "types/futil.h"
 
-extern errno_t futil_copy_file(const char *, const char *);
-extern errno_t futil_rcopy_contents(const char *, const char *);
-extern errno_t futil_get_file(const char *, void **, size_t *);
+extern errno_t futil_create(futil_cb_t *, void *, futil_t **);
+extern void futil_destroy(futil_t *);
+extern errno_t futil_copy_file(futil_t *, const char *, const char *);
+extern errno_t futil_rcopy_contents(futil_t *, const char *, const char *);
+extern errno_t futil_get_file(futil_t *, const char *, void **, size_t *);
 
 #endif
 

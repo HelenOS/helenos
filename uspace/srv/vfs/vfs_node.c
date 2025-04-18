@@ -61,7 +61,7 @@ hash_table_t nodes;
 
 static size_t nodes_key_hash(const void *);
 static size_t nodes_hash(const ht_link_t *);
-static bool nodes_key_equal(const void *, const ht_link_t *);
+static bool nodes_key_equal(const void *, size_t, const ht_link_t *);
 static vfs_triplet_t node_triplet(vfs_node_t *node);
 
 /** VFS node hash table operations. */
@@ -293,7 +293,7 @@ static size_t nodes_hash(const ht_link_t *item)
 	return nodes_key_hash(&tri);
 }
 
-static bool nodes_key_equal(const void *key, const ht_link_t *item)
+static bool nodes_key_equal(const void *key, size_t hash, const ht_link_t *item)
 {
 	const vfs_triplet_t *tri = key;
 	vfs_node_t *node = hash_table_get_inst(item, vfs_node_t, nh_link);

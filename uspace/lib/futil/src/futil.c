@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,21 +46,53 @@
 #define BUF_SIZE 16384
 static char buf[BUF_SIZE];
 
+/** Create file utility instance.
+ *
+ * @param cb Callback functions
+ * @param arg Argument to callback functions
+ * @param rfutil Place to store pointer to new file utility instance
+ * @return EOK on succcess, ENOMEM if out of memory.
+ */
+errno_t futil_create(futil_cb_t *cb, void *arg, futil_t **rfutil)
+{
+	futil_t *futil;
+
+	futil = calloc(1, sizeof(futil_t));
+	if (futil == NULL)
+		return ENOMEM;
+
+	futil->cb = cb;
+	futil->cb_arg = arg;
+	*rfutil = futil;
+	return EOK;
+}
+
+/** Destroy file utility instance.
+ *
+ * @param futil File utility instance
+ */
+void futil_destroy(futil_t *futil)
+{
+	free(futil);
+}
+
 /** Copy file.
  *
+ * @param futil File utility instance
  * @param srcp Source path
  * @param dstp Destination path
  *
  * @return EOK on success, EIO on I/O error
  */
-errno_t futil_copy_file(const char *srcp, const char *destp)
+errno_t futil_copy_file(futil_t *futil, const char *srcp, const char *destp)
 {
 	int sf, df;
 	size_t nr, nw;
 	errno_t rc;
 	aoff64_t posr = 0, posw = 0;
 
-	printf("Copy '%s' to '%s'.\n", srcp, destp);
+	if (futil->cb != NULL && futil->cb->copy_file != NULL)
+		futil->cb->copy_file(futil->cb_arg, srcp, destp);
 
 	rc = vfs_lookup_open(srcp, WALK_REGULAR, MODE_READ, &sf);
 	if (rc != EOK)
@@ -98,12 +130,14 @@ error:
 
 /** Copy contents of srcdir (recursively) into destdir.
  *
+ * @param futil File utility instance
  * @param srcdir Source directory
  * @param destdir Destination directory
  *
  * @return EOK on success, ENOMEM if out of memory, EIO on I/O error
  */
-errno_t futil_rcopy_contents(const char *srcdir, const char *destdir)
+errno_t futil_rcopy_contents(futil_t *futil, const char *srcdir,
+    const char *destdir)
 {
 	DIR *dir;
 	struct dirent *de;
@@ -127,15 +161,16 @@ errno_t futil_rcopy_contents(const char *srcdir, const char *destdir)
 			return EIO;
 
 		if (s.is_file) {
-			rc = futil_copy_file(srcp, destp);
+			rc = futil_copy_file(futil, srcp, destp);
 			if (rc != EOK)
 				return EIO;
 		} else if (s.is_directory) {
-			printf("Create directory '%s'\n", destp);
+			if (futil->cb != NULL && futil->cb->create_dir != NULL)
+				futil->cb->create_dir(futil->cb_arg, destp);
 			rc = vfs_link_path(destp, KIND_DIRECTORY, NULL);
 			if (rc != EOK)
 				return EIO;
-			rc = futil_rcopy_contents(srcp, destp);
+			rc = futil_rcopy_contents(futil, srcp, destp);
 			if (rc != EOK)
 				return EIO;
 		} else {
@@ -150,6 +185,7 @@ errno_t futil_rcopy_contents(const char *srcdir, const char *destdir)
 
 /** Return file contents as a heap-allocated block of bytes.
  *
+ * @param futil File utility instance
  * @param srcp File path
  * @param rdata Place to store pointer to data
  * @param rsize Place to store size of data
@@ -157,7 +193,8 @@ errno_t futil_rcopy_contents(const char *srcdir, const char *destdir)
  * @return EOK on success, ENOENT if failed to open file, EIO on other
  *         I/O error, ENOMEM if out of memory
  */
-errno_t futil_get_file(const char *srcp, void **rdata, size_t *rsize)
+errno_t futil_get_file(futil_t *futil, const char *srcp, void **rdata,
+    size_t *rsize)
 {
 	int sf;
 	size_t nr;

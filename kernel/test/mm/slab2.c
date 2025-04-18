@@ -126,8 +126,8 @@ static void totalmemtest(void)
 }
 
 static slab_cache_t *thr_cache;
-static condvar_t thread_starter;
-static mutex_t starter_mutex;
+static CONDVAR_INITIALIZE(thread_starter);
+static MUTEX_INITIALIZE(starter_mutex, MUTEX_PASSIVE);
 
 #define THREADS  8
 
@@ -196,9 +196,6 @@ static void multitest(int size)
 	 */
 
 	TPRINTF("Running stress test with size %d\n", size);
-
-	condvar_initialize(&thread_starter);
-	mutex_initialize(&starter_mutex, MUTEX_PASSIVE);
 
 	thr_cache = slab_cache_create("thread_cache", size, 0, NULL, NULL, 0);
 

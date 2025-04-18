@@ -44,6 +44,13 @@ typedef struct {
 	waitq_t wq;
 } semaphore_t;
 
+#define SEMAPHORE_INITIALIZER(name, count) (semaphore_t) { \
+	.wq = WAITQ_INITIALIZER_WITH_COUNT((name).wq, count), \
+}
+
+#define SEMAPHORE_INITIALIZE(name, count) \
+	semaphore_t name = SEMAPHORE_INITIALIZER(name, count)
+
 extern void semaphore_initialize(semaphore_t *, int);
 extern errno_t semaphore_down_timeout(semaphore_t *, uint32_t);
 extern errno_t semaphore_trydown(semaphore_t *);

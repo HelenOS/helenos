@@ -81,9 +81,9 @@
 
 #else /* CONFIG_DEBUG */
 
-#define assert(expr)
-#define assert_verbose(expr, msg)
-#define static_assert(expr, msg)
+#define assert(expr) ((void) 0)
+#define assert_verbose(expr, msg) ((void) 0)
+#define static_assert(expr, msg) ((void) 0)
 
 #endif /* CONFIG_DEBUG */
 

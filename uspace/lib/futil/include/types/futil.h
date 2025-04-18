@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,18 +26,31 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kernel_generic
+/** @addtogroup futil
  * @{
  */
-/** @file
+/**
+ * @file
+ * @brief
  */
 
-#ifndef KERN_PUTCHAR_H_
-#define KERN_PUTCHAR_H_
+#ifndef TYPES_FUTIL_H
+#define TYPES_FUTIL_H
 
-#include <uchar.h>
+/** File utility callbacks */
+typedef struct {
+	/** Copying file */
+	void (*copy_file)(void *, const char *, const char *);
+	/** Creating directory */
+	void (*create_dir)(void *, const char *);
+} futil_cb_t;
 
-extern void putuchar(char32_t);
+typedef struct {
+	/** Callback functions */
+	futil_cb_t *cb;
+	/** Argument to callback functions */
+	void *cb_arg;
+} futil_t;
 
 #endif
 

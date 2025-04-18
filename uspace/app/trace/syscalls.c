@@ -114,7 +114,8 @@ const sc_desc_t syscall_desc[] = {
 	/* Kernel console syscalls. */
 	[SYS_DEBUG_CONSOLE] = { "debug_console", 0, V_ERRNO },
 
-	[SYS_KLOG] = { "klog", 5, V_ERRNO }
+	[SYS_KLOG] = { "klog", 5, V_ERRNO },
+	[SYS_KIO_READ] = { "kio_read", 3, V_INTEGER },
 };
 
 const size_t syscall_desc_len = (sizeof(syscall_desc) / sizeof(sc_desc_t));

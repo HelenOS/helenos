@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Martin Decky
+ * Copyright (c) 2025 Jiří Zárevúcky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,18 +26,65 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
- * @{
- */
-/** @file
- */
+#include <uchar.h>
+#include <wchar.h>
 
-#ifndef _LIBC_UCHAR_H_
-#define _LIBC_UCHAR_H_
-
-#include <_bits/uchar.h>
-
+#if __STDC_HOSTED__
+#include <fibril.h>
 #endif
 
-/** @}
- */
+wint_t btowc(int c)
+{
+	return (c < 0x80) ? c : WEOF;
+}
+
+int wctob(wint_t c)
+{
+	return c;
+}
+
+int mbsinit(const mbstate_t *ps)
+{
+	return ps == NULL || ps->state == 0;
+}
+
+size_t mbrlen(const char *s, size_t n, mbstate_t *ps)
+{
+#if __STDC_HOSTED__
+	static fibril_local mbstate_t global_state;
+	if (!ps)
+		ps = &global_state;
+#endif
+
+	return mbrtowc(NULL, s, n, ps);
+}
+
+_Static_assert(sizeof(wchar_t) == sizeof(char16_t) || sizeof(wchar_t) == sizeof(char32_t));
+
+size_t mbrtowc(wchar_t *pwc, const char *s, size_t n, mbstate_t *ps)
+{
+#if __STDC_HOSTED__
+	static fibril_local mbstate_t global_state;
+	if (!ps)
+		ps = &global_state;
+#endif
+
+	if (sizeof(wchar_t) == sizeof(char16_t))
+		return mbrtoc16((char16_t *) pwc, s, n, ps);
+	else
+		return mbrtoc32((char32_t *) pwc, s, n, ps);
+}
+
+size_t wcrtomb(char *s, wchar_t wc, mbstate_t * ps)
+{
+#if __STDC_HOSTED__
+	static fibril_local mbstate_t global_state;
+	if (!ps)
+		ps = &global_state;
+#endif
+
+	if (sizeof(wchar_t) == sizeof(char16_t))
+		return c16rtomb(s, (char16_t) wc, ps);
+	else
+		return c32rtomb(s, (char32_t) wc, ps);
+}

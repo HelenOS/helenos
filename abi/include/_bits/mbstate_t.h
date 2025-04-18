@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2025 Jiří Zárevúcky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,27 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kernel_generic
+/** @addtogroup bits
  * @{
  */
 /** @file
  */
 
-#include <print.h>
-#include <printf/printf_core.h>
+#ifndef _BITS_MBSTATE_T_H_
+#define _BITS_MBSTATE_T_H_
 
-int snprintf(char *str, size_t size, const char *fmt, ...)
-{
-	int ret;
-	va_list args;
+typedef struct {
+	unsigned short state;
+} mbstate_t;
 
-	va_start(args, fmt);
-	ret = vsnprintf(str, size, fmt, args);
-
-	va_end(args);
-
-	return ret;
-}
+#endif
 
 /** @}
  */

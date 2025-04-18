@@ -666,10 +666,7 @@ void thread_detach(thread_t *thread)
  */
 void thread_usleep(uint32_t usec)
 {
-	waitq_t wq;
-
-	waitq_initialize(&wq);
-
+	WAITQ_INITIALIZE(wq);
 	(void) waitq_sleep_timeout(&wq, usec);
 }
 

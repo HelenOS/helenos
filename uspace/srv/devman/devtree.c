@@ -31,7 +31,6 @@
  * @{
  */
 
-#include <errno.h>
 #include <io/log.h>
 
 #include "dev.h"
@@ -60,14 +59,14 @@ static size_t devman_functions_hash(const ht_link_t *item)
 	return handle_key_hash(&fun->handle);
 }
 
-static bool devman_devices_key_equal(const void *key, const ht_link_t *item)
+static bool devman_devices_key_equal(const void *key, size_t hash, const ht_link_t *item)
 {
 	const devman_handle_t *handle = key;
 	dev_node_t *dev = hash_table_get_inst(item, dev_node_t, devman_dev);
 	return dev->handle == *handle;
 }
 
-static bool devman_functions_key_equal(const void *key, const ht_link_t *item)
+static bool devman_functions_key_equal(const void *key, size_t hash, const ht_link_t *item)
 {
 	const devman_handle_t *handle = key;
 	fun_node_t *fun = hash_table_get_inst(item, fun_node_t, devman_fun);
@@ -86,7 +85,7 @@ static size_t loc_functions_hash(const ht_link_t *item)
 	return service_id_key_hash(&fun->service_id);
 }
 
-static bool loc_functions_key_equal(const void *key, const ht_link_t *item)
+static bool loc_functions_key_equal(const void *key, size_t hash, const ht_link_t *item)
 {
 	const service_id_t *service_id = key;
 	fun_node_t *fun = hash_table_get_inst(item, fun_node_t, loc_fun);

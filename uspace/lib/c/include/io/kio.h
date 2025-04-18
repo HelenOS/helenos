@@ -35,11 +35,12 @@
 #ifndef _LIBC_IO_KIO_H_
 #define _LIBC_IO_KIO_H_
 
-#include <stddef.h>
-#include <stdarg.h>
-#include <io/verify.h>
 #include <_bits/errno.h>
 #include <_bits/size_t.h>
+#include <io/verify.h>
+#include <stdarg.h>
+#include <stddef.h>
+#include <uchar.h>
 
 extern void __kio_init(void);
 extern void __kio_fini(void);
@@ -49,6 +50,8 @@ extern void kio_command(const void *, size_t);
 extern int kio_printf(const char *, ...)
     _HELENOS_PRINTF_ATTRIBUTE(1, 2);
 extern int kio_vprintf(const char *, va_list);
+
+extern size_t kio_read(char *buf, size_t n, size_t at);
 
 /*
  * In some files, we have conditional DPRINTF(...) macro that is defined empty

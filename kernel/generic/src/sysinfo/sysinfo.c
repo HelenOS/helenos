@@ -33,16 +33,16 @@
 /** @file
  */
 
-#include <assert.h>
-#include <sysinfo/sysinfo.h>
-#include <mm/slab.h>
-#include <stdio.h>
-#include <syscall/copy.h>
-#include <synch/mutex.h>
 #include <arch/asm.h>
+#include <assert.h>
 #include <errno.h>
 #include <macros.h>
+#include <mm/slab.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <synch/mutex.h>
+#include <syscall/copy.h>
+#include <sysinfo/sysinfo.h>
 
 /** Maximal sysinfo path length */
 #define SYSINFO_MAX_PATH  2048
@@ -56,7 +56,7 @@ static sysinfo_item_t *global_root = NULL;
 static slab_cache_t *sysinfo_item_cache;
 
 /** Sysinfo lock */
-static mutex_t sysinfo_lock;
+static MUTEX_INITIALIZE(sysinfo_lock, MUTEX_PASSIVE);
 
 /** Sysinfo item constructor
  *
@@ -101,8 +101,6 @@ void sysinfo_init(void)
 	sysinfo_item_cache = slab_cache_create("sysinfo_item_t",
 	    sizeof(sysinfo_item_t), 0, sysinfo_item_constructor,
 	    sysinfo_item_destructor, SLAB_CACHE_MAGDEFERRED);
-
-	mutex_initialize(&sysinfo_lock, MUTEX_ACTIVE);
 }
 
 /** Recursively find an item in sysinfo tree

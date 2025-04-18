@@ -40,6 +40,20 @@
 #include <abi/synch.h>
 #include <adt/list.h>
 
+#define WAITQ_INITIALIZER_WITH_COUNT(name, count) (waitq_t) { \
+	.lock = IRQ_SPINLOCK_INITIALIZER(#name ".lock"), \
+	.sleepers = LIST_INITIALIZER((name).sleepers), \
+	.wakeup_balance = (count), \
+}
+
+#define WAITQ_INITIALIZER(name) WAITQ_INITIALIZER_WITH_COUNT(name, 0)
+
+#define WAITQ_INITIALIZE_WITH_COUNT(name, count) \
+	waitq_t name = WAITQ_INITIALIZER_WITH_COUNT(name, count)
+
+#define WAITQ_INITIALIZE(name) \
+	waitq_t name = WAITQ_INITIALIZER(name)
+
 /** Wait queue structure.
  *
  */

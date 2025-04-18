@@ -68,13 +68,14 @@ typedef struct {
 	uint8_t *addr;
 	uint8_t *backbuf;
 	ioport8_t *base;
+	mbstate_t mbstate;
 } ega_instance_t;
 
-static void ega_putuchar(outdev_t *, char32_t);
+static void ega_write(outdev_t *, const char *, size_t);
 static void ega_redraw(outdev_t *);
 
 static outdev_operations_t egadev_ops = {
-	.write = ega_putuchar,
+	.write = ega_write,
 	.redraw = ega_redraw,
 	.scroll_up = NULL,
 	.scroll_down = NULL
@@ -537,12 +538,8 @@ static void ega_display_wchar(ega_instance_t *instance, char32_t ch)
 	}
 }
 
-static void ega_putuchar(outdev_t *dev, char32_t ch)
+static void _putuchar(ega_instance_t *instance, char32_t ch)
 {
-	ega_instance_t *instance = (ega_instance_t *) dev->data;
-
-	irq_spinlock_lock(&instance->lock, true);
-
 	switch (ch) {
 	case '\n':
 		instance->cursor = (instance->cursor + EGA_COLS) -
@@ -563,6 +560,19 @@ static void ega_putuchar(outdev_t *dev, char32_t ch)
 	}
 	ega_check_cursor(instance);
 	ega_move_cursor(instance);
+}
+
+static void ega_write(outdev_t *dev, const char *s, size_t n)
+{
+	ega_instance_t *instance = (ega_instance_t *) dev->data;
+
+	irq_spinlock_lock(&instance->lock, true);
+
+	size_t offset = 0;
+	char32_t ch;
+
+	while ((ch = str_decode_r(s, &offset, n, U_SPECIAL, &instance->mbstate)))
+		_putuchar(instance, ch);
 
 	irq_spinlock_unlock(&instance->lock, true);
 }

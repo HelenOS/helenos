@@ -37,7 +37,6 @@
  */
 
 #include "tmpfs.h"
-#include "../../vfs/vfs.h"
 #include <macros.h>
 #include <stdint.h>
 #include <async.h>
@@ -158,7 +157,8 @@ static size_t nodes_hash(const ht_link_t *item)
 	return hash_combine(nodep->service_id, nodep->index);
 }
 
-static bool nodes_key_equal(const void *key_arg, const ht_link_t *item)
+static bool nodes_key_equal(const void *key_arg, size_t hash,
+    const ht_link_t *item)
 {
 	tmpfs_node_t *node = hash_table_get_inst(item, tmpfs_node_t, nh_link);
 	const node_key_t *key = key_arg;

@@ -33,6 +33,7 @@
 #define BOOT_MACROS_H_
 
 #define min(a, b)  ((a) < (b) ? (a) : (b))
+#define max(a, b)  ((a) > (b) ? (a) : (b))
 
 #define isdigit(d)  (((d) >= '0') && ((d) <= '9'))
 

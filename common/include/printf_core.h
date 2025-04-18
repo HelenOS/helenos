@@ -35,17 +35,19 @@
 #ifndef _LIBC_PRINTF_CORE_H_
 #define _LIBC_PRINTF_CORE_H_
 
-#include <stddef.h>
+#include <errno.h>
 #include <stdarg.h>
+#include <stddef.h>
 #include <uchar.h>
 
 /** Structure for specifying output methods for different printf clones. */
 typedef struct {
-	/* String output function, returns number of printed characters or EOF */
-	int (*str_write)(const char *, size_t, void *);
-
-	/* Wide string output function, returns number of printed characters or EOF */
-	int (*wstr_write)(const char32_t *, size_t, void *);
+	/*
+	 * String output function, returns EOK on success.
+	 * Only returns an error when an irrecoverable failure occurs and
+	 * the string cannot be fully output.
+	 */
+	errno_t (*write)(const char *, size_t, void *);
 
 	/* User data - output stream specification, state, locks, etc. */
 	void *data;

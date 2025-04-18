@@ -83,7 +83,7 @@ static size_t pending_call_hash(const ht_link_t *item)
 	return cap_handle_raw(hs->call_handle);
 }
 
-static bool pending_call_key_equal(const void *key, const ht_link_t *item)
+static bool pending_call_key_equal(const void *key, size_t hash, const ht_link_t *item)
 {
 	const cap_call_handle_t *chandle = key;
 	pending_call_t *hs = hash_table_get_inst(item, pending_call_t, link);

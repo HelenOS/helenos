@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 CZ.NIC, z.s.p.o.
+ * Copyright (c) 2025 Jiří Zárevúcky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,26 +26,35 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/*
- * Authors:
- *	Jiří Zárevúcky (jzr) <zarevucky.jiri@gmail.com>
- */
-
 /** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef _LIBC_WCHAR_H_
-#define _LIBC_WCHAR_H_
+#ifndef _LIBC_UCHAR_H_
+#define _LIBC_UCHAR_H_
 
+#include <_bits/mbstate_t.h>
 #include <_bits/size_t.h>
-#include <_bits/wchar_t.h>
-#include <_bits/wchar_limits.h>
-#include <_bits/wint_t.h>
-#include <_bits/NULL.h>
-#include <_bits/WEOF.h>
+#include <_bits/uchar.h>
+#include <stdint.h>
+
+size_t mbrtoc8(char8_t *__restrict pc8, const char *__restrict s, size_t n,
+    mbstate_t *__restrict ps);
+size_t c8rtomb(char *__restrict s, char8_t c8, mbstate_t *__restrict ps);
+size_t mbrtoc16(char16_t *__restrict pc16, const char *__restrict s, size_t n,
+    mbstate_t *__restrict ps);
+size_t c16rtomb(char *__restrict s, char16_t c16, mbstate_t *__restrict ps);
+size_t mbrtoc32(char32_t *__restrict pc32, const char *__restrict s, size_t n,
+    mbstate_t *__restrict ps);
+size_t c32rtomb(char *__restrict s, char32_t c32, mbstate_t *__restrict ps);
+
+#ifdef _HELENOS_SOURCE
+#define UCHAR_ILSEQ      ((size_t) -1)
+#define UCHAR_INCOMPLETE ((size_t) -2)
+#define UCHAR_CONTINUED  ((size_t) -3)
+#endif
 
 #endif
 

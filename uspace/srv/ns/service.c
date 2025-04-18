@@ -78,7 +78,8 @@ static size_t service_hash(const ht_link_t *item)
 	return service->service;
 }
 
-static bool service_key_equal(const void *key, const ht_link_t *item)
+static bool service_key_equal(const void *key, size_t hash,
+    const ht_link_t *item)
 {
 	const service_t *srv = key;
 	hashed_service_t *service =
@@ -101,7 +102,7 @@ static size_t iface_hash(const ht_link_t *item)
 	return iface->iface;
 }
 
-static bool iface_key_equal(const void *key, const ht_link_t *item)
+static bool iface_key_equal(const void *key, size_t hash, const ht_link_t *item)
 {
 	const iface_t *kiface = key;
 	hashed_iface_t *iface =

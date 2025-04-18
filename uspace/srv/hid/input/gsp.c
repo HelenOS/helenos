@@ -75,7 +75,7 @@ static size_t trans_hash(const ht_link_t *item)
 	return hash_combine(t->input, t->old_state);
 }
 
-static bool trans_key_equal(const void *key, const ht_link_t *item)
+static bool trans_key_equal(const void *key, size_t hash, const ht_link_t *item)
 {
 	const trans_key_t *trans_key = key;
 	gsp_trans_t *t = hash_table_get_inst(item, gsp_trans_t, link);

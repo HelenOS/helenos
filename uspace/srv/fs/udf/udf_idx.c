@@ -34,7 +34,6 @@
  * @brief Very simple UDF hashtable for nodes
  */
 
-#include "../../vfs/vfs.h"
 #include <errno.h>
 #include <str.h>
 #include <assert.h>
@@ -68,7 +67,7 @@ static size_t udf_idx_key_hash(const void *k)
 	return hash_combine(key->service_id, key->index);
 }
 
-static bool udf_idx_key_equal(const void *k, const ht_link_t *item)
+static bool udf_idx_key_equal(const void *k, size_t hash, const ht_link_t *item)
 {
 	const udf_ht_key_t *key = k;
 	udf_node_t *node = hash_table_get_inst(item, udf_node_t, link);

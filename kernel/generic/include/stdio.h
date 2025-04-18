@@ -36,7 +36,6 @@
 #define KERN_STDIO_H_
 
 #include <print.h>
-#include <putchar.h>
 
 #endif
 

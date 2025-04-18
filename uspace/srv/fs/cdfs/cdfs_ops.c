@@ -297,7 +297,7 @@ static size_t nodes_hash(const ht_link_t *item)
 	return hash_combine(node->fs->service_id, node->index);
 }
 
-static bool nodes_key_equal(const void *k, const ht_link_t *item)
+static bool nodes_key_equal(const void *k, size_t hash, const ht_link_t *item)
 {
 	cdfs_node_t *node = hash_table_get_inst(item, cdfs_node_t, nh_link);
 	const ht_key_t *key = k;

@@ -246,17 +246,12 @@ ht_link_t *hash_table_find(const hash_table_t *h, const void *key)
 {
 	assert(h && h->bucket);
 
-	size_t idx = h->op->key_hash(key) % h->bucket_cnt;
+	size_t hash = h->op->key_hash(key);
+	size_t idx = hash % h->bucket_cnt;
 
 	list_foreach(h->bucket[idx], link, ht_link_t, cur_link) {
-		/*
-		 * Is this is the item we are looking for? We could have first
-		 * checked if the hashes match but op->key_equal() may very well be
-		 * just as fast as op->hash().
-		 */
-		if (h->op->key_equal(key, cur_link)) {
+		if (h->op->key_equal(key, hash, cur_link))
 			return cur_link;
-		}
 	}
 
 	return NULL;
@@ -264,30 +259,21 @@ ht_link_t *hash_table_find(const hash_table_t *h, const void *key)
 
 /** Find the next item equal to item. */
 ht_link_t *
-hash_table_find_next(const hash_table_t *h, ht_link_t *first, ht_link_t *item)
+hash_table_find_next(const hash_table_t *h, ht_link_t *item)
 {
 	assert(item);
 	assert(h && h->bucket);
 
 	size_t idx = h->op->hash(item) % h->bucket_cnt;
+	list_t *list = &h->bucket[idx];
+	link_t *cur = list_next(&item->link, list);
 
-	/* Traverse the circular list until we reach the starting item again. */
-	for (link_t *cur = item->link.next; cur != &first->link;
-	    cur = cur->next) {
-		assert(cur);
-
-		if (cur == &h->bucket[idx].head)
-			continue;
-
+	/* Traverse the list until we reach its end. */
+	for (; cur != NULL; cur = list_next(cur, list)) {
 		ht_link_t *cur_link = member_to_inst(cur, ht_link_t, link);
-		/*
-		 * Is this is the item we are looking for? We could have first
-		 * checked if the hashes match but op->equal() may very well be
-		 * just as fast as op->hash().
-		 */
-		if (h->op->equal(cur_link, item)) {
+
+		if (h->op->equal(cur_link, item))
 			return cur_link;
-		}
 	}
 
 	return NULL;
@@ -308,14 +294,15 @@ size_t hash_table_remove(hash_table_t *h, const void *key)
 	assert(h && h->bucket);
 	assert(!h->apply_ongoing);
 
-	size_t idx = h->op->key_hash(key) % h->bucket_cnt;
+	size_t hash = h->op->key_hash(key);
+	size_t idx = hash % h->bucket_cnt;
 
 	size_t removed = 0;
 
 	list_foreach_safe(h->bucket[idx], cur, next) {
 		ht_link_t *cur_link = member_to_inst(cur, ht_link_t, link);
 
-		if (h->op->key_equal(key, cur_link)) {
+		if (h->op->key_equal(key, hash, cur_link)) {
 			++removed;
 			list_remove(cur);
 

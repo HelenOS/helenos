@@ -32,46 +32,45 @@
 /** @file
  */
 
-#include <sysinfo/sysinfo.h>
-#include <synch/spinlock.h>
-#include <typedefs.h>
-#include <ddi/irq.h>
+#include <abi/log.h>
+#include <arch.h>
+#include <atomic.h>
+#include <console/console.h>
 #include <ddi/ddi.h>
+#include <ddi/irq.h>
+#include <errno.h>
 #include <ipc/event.h>
 #include <ipc/irq.h>
-#include <arch.h>
-#include <panic.h>
-#include <putchar.h>
-#include <atomic.h>
-#include <syscall/copy.h>
-#include <errno.h>
-#include <str.h>
-#include <print.h>
-#include <printf/printf_core.h>
-#include <stdarg.h>
 #include <log.h>
-#include <console/console.h>
-#include <abi/log.h>
+#include <panic.h>
+#include <print.h>
+#include <printf_core.h>
+#include <stdarg.h>
 #include <stdlib.h>
+#include <str.h>
+#include <synch/spinlock.h>
+#include <syscall/copy.h>
+#include <sysinfo/sysinfo.h>
+#include <typedefs.h>
 
 #define LOG_PAGES    8
 #define LOG_LENGTH   (LOG_PAGES * PAGE_SIZE)
 #define LOG_ENTRY_HEADER_LENGTH (sizeof(size_t) + sizeof(uint32_t))
 
 /** Cyclic buffer holding the data for kernel log */
-uint8_t log_buffer[LOG_LENGTH] __attribute__((aligned(PAGE_SIZE)));
+static uint8_t log_buffer[LOG_LENGTH] __attribute__((aligned(PAGE_SIZE)));
 
 /** Kernel log initialized */
 static atomic_bool log_inited = false;
 
 /** Position in the cyclic buffer where the first log entry starts */
-size_t log_start = 0;
+static size_t log_start = 0;
 
 /** Sum of length of all log entries currently stored in the cyclic buffer */
-size_t log_used = 0;
+static size_t log_used = 0;
 
 /** Log spinlock */
-SPINLOCK_STATIC_INITIALIZE_NAME(log_lock, "log_lock");
+static IRQ_SPINLOCK_INITIALIZE(log_lock);
 
 /** Overall count of logged messages, which may overflow as needed */
 static uint32_t log_counter = 0;
@@ -150,8 +149,9 @@ static void log_append(const uint8_t *data, size_t len)
  */
 void log_begin(log_facility_t fac, log_level_t level)
 {
-	spinlock_lock(&log_lock);
-	spinlock_lock(&kio_lock);
+	console_lock();
+	irq_spinlock_lock(&log_lock, true);
+	irq_spinlock_lock(&kio_lock, true);
 
 	log_current_start = (log_start + log_used) % LOG_LENGTH;
 	log_current_len = 0;
@@ -177,14 +177,15 @@ void log_end(void)
 	log_copy_to((uint8_t *) &log_current_len, log_current_start, sizeof(size_t));
 	log_used += log_current_len;
 
-	kio_push_char('\n');
-	spinlock_unlock(&kio_lock);
-	spinlock_unlock(&log_lock);
+	kio_push_bytes("\n", 1);
+	irq_spinlock_unlock(&kio_lock, true);
+	irq_spinlock_unlock(&log_lock, true);
 
 	/* This has to be called after we released the locks above */
 	kio_flush();
 	kio_update(NULL);
 	log_update(NULL);
+	console_unlock();
 }
 
 static void log_update(void *event)
@@ -192,46 +193,17 @@ static void log_update(void *event)
 	if (!atomic_load(&log_inited))
 		return;
 
-	spinlock_lock(&log_lock);
+	irq_spinlock_lock(&log_lock, true);
 	if (next_for_uspace < log_used)
 		event_notify_0(EVENT_KLOG, true);
-	spinlock_unlock(&log_lock);
+	irq_spinlock_unlock(&log_lock, true);
 }
 
 static int log_printf_str_write(const char *str, size_t size, void *data)
 {
-	size_t offset = 0;
-	size_t chars = 0;
-
-	while (offset < size) {
-		kio_push_char(str_decode(str, &offset, size));
-		chars++;
-	}
-
+	kio_push_bytes(str, size);
 	log_append((const uint8_t *)str, size);
-
-	return chars;
-}
-
-static int log_printf_wstr_write(const char32_t *wstr, size_t size, void *data)
-{
-	char buffer[16];
-	size_t offset = 0;
-	size_t chars = 0;
-
-	for (offset = 0; offset < size; offset += sizeof(char32_t), chars++) {
-		kio_push_char(wstr[chars]);
-
-		size_t buffer_offset = 0;
-		errno_t rc = chr_encode(wstr[chars], buffer, &buffer_offset, 16);
-		if (rc != EOK) {
-			return EOF;
-		}
-
-		log_append((const uint8_t *)buffer, buffer_offset);
-	}
-
-	return chars;
+	return EOK;
 }
 
 /** Append a message to the currently being written entry.
@@ -240,17 +212,12 @@ static int log_printf_wstr_write(const char32_t *wstr, size_t size, void *data)
  */
 int log_vprintf(const char *fmt, va_list args)
 {
-	int ret;
-
 	printf_spec_t ps = {
 		log_printf_str_write,
-		log_printf_wstr_write,
 		NULL
 	};
 
-	ret = printf_core(fmt, &ps, args);
-
-	return ret;
+	return printf_core(fmt, &ps, args);
 }
 
 /** Append a message to the currently being written entry.
@@ -333,7 +300,7 @@ sys_errno_t sys_klog(sysarg_t operation, uspace_addr_t buf, size_t size,
 
 		rc = EOK;
 
-		spinlock_lock(&log_lock);
+		irq_spinlock_lock(&log_lock, true);
 
 		while (next_for_uspace < log_used) {
 			size_t pos = (log_start + next_for_uspace) % LOG_LENGTH;
@@ -363,7 +330,7 @@ sys_errno_t sys_klog(sysarg_t operation, uspace_addr_t buf, size_t size,
 			next_for_uspace += entry_len;
 		}
 
-		spinlock_unlock(&log_lock);
+		irq_spinlock_unlock(&log_lock, true);
 
 		if (rc != EOK) {
 			free(data);

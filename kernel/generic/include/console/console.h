@@ -35,8 +35,6 @@
 #ifndef KERN_CONSOLE_H_
 #define KERN_CONSOLE_H_
 
-#include <typedefs.h>
-#include <print.h>
 #include <console/chardev.h>
 #include <synch/spinlock.h>
 
@@ -65,15 +63,21 @@ extern void console_init(void);
 extern void kio_init(void);
 extern void kio_update(void *);
 extern void kio_flush(void);
-extern void kio_push_char(const char32_t);
-SPINLOCK_EXTERN(kio_lock);
+extern void kio_push_bytes(const char *, size_t);
+extern irq_spinlock_t kio_lock;
 
+extern sysarg_t sys_kio_read(uspace_addr_t buf, size_t size, size_t at);
 extern sys_errno_t sys_kio(int cmd, uspace_addr_t buf, size_t size);
 
 extern void grab_console(void);
 extern void release_console(void);
 
 extern sysarg_t sys_debug_console(void);
+
+extern void console_lock(void);
+extern void console_unlock(void);
+
+extern void putstr(const char *s, size_t n);
 
 #endif /* KERN_CONSOLE_H_ */
 

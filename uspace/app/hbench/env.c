@@ -33,6 +33,7 @@
  * @file
  */
 
+#include <adt/hash.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <str.h>
@@ -41,6 +42,7 @@
 typedef struct {
 	ht_link_t link;
 
+	size_t hash;
 	char *key;
 	char *value;
 } param_t;
@@ -48,20 +50,22 @@ typedef struct {
 static size_t param_hash(const ht_link_t *item)
 {
 	param_t *param = hash_table_get_inst(item, param_t, link);
-	return str_size(param->key);
+	return param->hash;
 }
 
 static size_t param_key_hash(const void *key)
 {
-	const char *key_str = key;
-	return str_size(key_str);
+	return hash_string(key);
 }
 
-static bool param_key_equal(const void *key, const ht_link_t *item)
+static bool param_key_equal(const void *key, size_t hash, const ht_link_t *item)
 {
 	param_t *param = hash_table_get_inst(item, param_t, link);
-	const char *key_str = key;
 
+	if (param->hash != hash)
+		return false;
+
+	const char *key_str = key;
 	return str_cmp(param->key, key_str) == 0;
 }
 
@@ -70,7 +74,7 @@ static bool param_equal(const ht_link_t *link_a, const ht_link_t *link_b)
 	param_t *a = hash_table_get_inst(link_a, param_t, link);
 	param_t *b = hash_table_get_inst(link_b, param_t, link);
 
-	return str_cmp(a->key, b->key) == 0;
+	return a->hash == b->hash && str_cmp(a->key, b->key) == 0;
 }
 
 static void param_remove(ht_link_t *item)
@@ -115,6 +119,7 @@ errno_t bench_env_param_set(bench_env_t *env, const char *key, const char *value
 
 	param->key = str_dup(key);
 	param->value = str_dup(value);
+	param->hash = hash_string(key);
 
 	if ((param->key == NULL) || (param->value == NULL)) {
 		free(param->key);
@@ -131,7 +136,7 @@ errno_t bench_env_param_set(bench_env_t *env, const char *key, const char *value
 
 const char *bench_env_param_get(bench_env_t *env, const char *key, const char *default_value)
 {
-	ht_link_t *item = hash_table_find(&env->parameters, (char *) key);
+	ht_link_t *item = hash_table_find(&env->parameters, key);
 
 	if (item == NULL) {
 		return default_value;

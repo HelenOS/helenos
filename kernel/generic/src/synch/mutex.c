@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2001-2004 Jakub Jermar
- * Copyright (c) 2023 Jiří Zárevúcky
+ * Copyright (c) 2025 Jiří Zárevúcky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,12 +38,10 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <proc/thread.h>
+#include <stdatomic.h>
 #include <synch/mutex.h>
 #include <synch/semaphore.h>
-#include <arch.h>
-#include <stacktrace.h>
-#include <cpu.h>
-#include <proc/thread.h>
 
 /** Initialize mutex.
  *
@@ -52,10 +50,24 @@
  */
 void mutex_initialize(mutex_t *mtx, mutex_type_t type)
 {
-	mtx->type = type;
-	mtx->owner = NULL;
-	mtx->nesting = 0;
-	semaphore_initialize(&mtx->sem, 1);
+	*mtx = MUTEX_INITIALIZER(*mtx, type);
+}
+
+/** A race in mtx->owner access is unavoidable, so we have to make
+ * access to it formally atomic. These are convenience functions to
+ * read/write the variable without memory barriers, since we don't need
+ * them and C11 atomics default to the strongest possible memory ordering
+ * by default, which is utterly ridiculous.
+ */
+static inline thread_t *_get_owner(mutex_t *mtx)
+{
+	return atomic_load_explicit(&mtx->owner, memory_order_relaxed);
+}
+
+/** Counterpart to _get_owner(). */
+static inline void _set_owner(mutex_t *mtx, thread_t *owner)
+{
+	atomic_store_explicit(&mtx->owner, owner, memory_order_relaxed);
 }
 
 /** Find out whether the mutex is currently locked.
@@ -66,32 +78,10 @@ void mutex_initialize(mutex_t *mtx, mutex_type_t type)
  */
 bool mutex_locked(mutex_t *mtx)
 {
-	errno_t rc = semaphore_trydown(&mtx->sem);
-	if (rc == EOK) {
-		semaphore_up(&mtx->sem);
-	}
-	return rc != EOK;
-}
+	if (!THREAD)
+		return mtx->nesting > 0;
 
-static void mutex_lock_active(mutex_t *mtx)
-{
-	assert((mtx->type == MUTEX_ACTIVE) || !THREAD);
-
-	const unsigned deadlock_treshold = 100000000;
-	unsigned int cnt = 0;
-	bool deadlock_reported = false;
-
-	while (semaphore_trydown(&mtx->sem) != EOK) {
-		if (cnt++ > deadlock_treshold) {
-			printf("cpu%u: looping on active mutex %p\n", CPU->id, mtx);
-			stack_trace();
-			cnt = 0;
-			deadlock_reported = true;
-		}
-	}
-
-	if (deadlock_reported)
-		printf("cpu%u: not deadlocked\n", CPU->id);
+	return _get_owner(mtx) == THREAD;
 }
 
 /** Acquire mutex.
@@ -100,19 +90,24 @@ static void mutex_lock_active(mutex_t *mtx)
  */
 void mutex_lock(mutex_t *mtx)
 {
-	if (mtx->type == MUTEX_RECURSIVE && mtx->owner == THREAD) {
-		assert(THREAD);
+	if (!THREAD) {
+		assert(mtx->type == MUTEX_RECURSIVE || mtx->nesting == 0);
 		mtx->nesting++;
 		return;
 	}
 
-	if (mtx->type == MUTEX_ACTIVE || !THREAD) {
-		mutex_lock_active(mtx);
+	if (_get_owner(mtx) == THREAD) {
+		/* This will also detect nested locks on a non-recursive mutex. */
+		assert(mtx->type == MUTEX_RECURSIVE);
+		assert(mtx->nesting > 0);
+		mtx->nesting++;
 		return;
 	}
 
 	semaphore_down(&mtx->sem);
-	mtx->owner = THREAD;
+
+	_set_owner(mtx, THREAD);
+	assert(mtx->nesting == 0);
 	mtx->nesting = 1;
 }
 
@@ -125,23 +120,27 @@ void mutex_lock(mutex_t *mtx)
  */
 errno_t mutex_lock_timeout(mutex_t *mtx, uint32_t usec)
 {
-	if (usec != 0) {
-		assert(mtx->type != MUTEX_ACTIVE);
-		assert(THREAD);
+	if (!THREAD) {
+		assert(mtx->type == MUTEX_RECURSIVE || mtx->nesting == 0);
+		mtx->nesting++;
+		return EOK;
 	}
 
-	if (mtx->type == MUTEX_RECURSIVE && mtx->owner == THREAD) {
-		assert(THREAD);
+	if (_get_owner(mtx) == THREAD) {
+		assert(mtx->type == MUTEX_RECURSIVE);
+		assert(mtx->nesting > 0);
 		mtx->nesting++;
 		return EOK;
 	}
 
 	errno_t rc = semaphore_down_timeout(&mtx->sem, usec);
-	if (rc == EOK) {
-		mtx->owner = THREAD;
-		mtx->nesting = 1;
-	}
-	return rc;
+	if (rc != EOK)
+		return rc;
+
+	_set_owner(mtx, THREAD);
+	assert(mtx->nesting == 0);
+	mtx->nesting = 1;
+	return EOK;
 }
 
 /** Attempt to acquire mutex without blocking.
@@ -159,12 +158,19 @@ errno_t mutex_trylock(mutex_t *mtx)
  */
 void mutex_unlock(mutex_t *mtx)
 {
-	if (mtx->type == MUTEX_RECURSIVE) {
-		assert(mtx->owner == THREAD);
-		if (--mtx->nesting > 0)
-			return;
-		mtx->owner = NULL;
+	if (--mtx->nesting > 0) {
+		assert(mtx->type == MUTEX_RECURSIVE);
+		return;
 	}
+
+	assert(mtx->nesting == 0);
+
+	if (!THREAD)
+		return;
+
+	assert(_get_owner(mtx) == THREAD);
+	_set_owner(mtx, NULL);
+
 	semaphore_up(&mtx->sem);
 }
 

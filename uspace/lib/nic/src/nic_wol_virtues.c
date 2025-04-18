@@ -56,7 +56,7 @@ static size_t nic_wv_hash(const ht_link_t *item)
 	return virtue->id;
 }
 
-static bool nic_wv_key_equal(const void *key, const ht_link_t *item)
+static bool nic_wv_key_equal(const void *key, size_t hash, const ht_link_t *item)
 {
 	const nic_wv_id_t *k = key;
 	const nic_wol_virtue_t *virtue = (const nic_wol_virtue_t *) item;

@@ -54,7 +54,7 @@
 
 static size_t ht_hash(const ht_link_t *);
 static size_t ht_key_hash(const void *);
-static bool ht_key_equal(const void *, const ht_link_t *);
+static bool ht_key_equal(const void *, size_t, const ht_link_t *);
 static void ht_remove_callback(ht_link_t *);
 
 static void ht_mapping_insert(as_t *, uintptr_t, uintptr_t, unsigned int);
@@ -118,7 +118,7 @@ size_t ht_key_hash(const void *arg)
 }
 
 /** Return true if the key is equal to the item's lookup key. */
-bool ht_key_equal(const void *arg, const ht_link_t *item)
+bool ht_key_equal(const void *arg, size_t hash, const ht_link_t *item)
 {
 	const uintptr_t *key = arg;
 	pte_t *pte = hash_table_get_inst(item, pte_t, link);

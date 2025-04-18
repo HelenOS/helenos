@@ -43,17 +43,26 @@
 typedef enum {
 	MUTEX_PASSIVE,
 	MUTEX_RECURSIVE,
-	MUTEX_ACTIVE
 } mutex_type_t;
 
 struct thread;
 
 typedef struct {
 	mutex_type_t type;
+	int nesting;
 	semaphore_t sem;
-	struct thread *owner;
-	unsigned nesting;
+	_Atomic(struct thread *) owner;
 } mutex_t;
+
+#define MUTEX_INITIALIZER(name, mtype) (mutex_t) { \
+	.type = (mtype), \
+	.nesting = 0, \
+	.sem = SEMAPHORE_INITIALIZER((name).sem, 1), \
+	.owner = NULL, \
+}
+
+#define MUTEX_INITIALIZE(name, mtype) \
+	mutex_t name = MUTEX_INITIALIZER(name, mtype)
 
 extern void mutex_initialize(mutex_t *, mutex_type_t);
 extern bool mutex_locked(mutex_t *);

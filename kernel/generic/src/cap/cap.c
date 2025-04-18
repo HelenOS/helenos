@@ -117,7 +117,7 @@ static size_t caps_key_hash(const void *key)
 	return hash_mix(cap_handle_raw(*handle));
 }
 
-static bool caps_key_equal(const void *key, const ht_link_t *item)
+static bool caps_key_equal(const void *key, size_t hash, const ht_link_t *item)
 {
 	const cap_handle_t *handle = key;
 	cap_t *cap = hash_table_get_inst(item, cap_t, caps_link);

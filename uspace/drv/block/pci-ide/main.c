@@ -135,6 +135,7 @@ static errno_t pci_ide_dev_add(ddf_dev_t *dev)
 	pci_ide_ctrl_t *ctrl;
 	pci_ide_hwres_t res;
 	async_sess_t *parent_sess;
+	unsigned chans;
 	errno_t rc;
 
 	rc = pci_ide_get_res(dev, &res);
@@ -156,16 +157,22 @@ static errno_t pci_ide_dev_add(ddf_dev_t *dev)
 	if (rc != EOK)
 		goto error;
 
+	chans = 0;
+
 	rc = pci_ide_channel_init(ctrl, &ctrl->channel[0], 0, &res);
-	if (rc == ENOENT)
+	if (rc == EOK)
+		++chans;
+	else if (rc != ENOENT)
 		goto error;
 
 	rc = pci_ide_channel_init(ctrl, &ctrl->channel[1], 1, &res);
-	if (rc == ENOENT)
+	if (rc == EOK)
+		++chans;
+	else if (rc != ENOENT)
 		goto error;
 
-	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Failed initializing ATA controller.");
+	if (chans == 0) {
+		ddf_msg(LVL_ERROR, "No PCI IDE devices found.");
 		rc = EIO;
 		goto error;
 	}

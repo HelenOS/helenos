@@ -82,7 +82,8 @@ static size_t services_hash(const ht_link_t *item)
 	return dev->service_id;
 }
 
-static bool services_key_equal(const void *key, const ht_link_t *item)
+static bool services_key_equal(const void *key, size_t hash,
+    const ht_link_t *item)
 {
 	const service_id_t *k = key;
 	service_t *dev = hash_table_get_inst(item, service_t, link);

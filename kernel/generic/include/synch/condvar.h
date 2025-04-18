@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2025 Jiří Zárevúcky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,25 +46,35 @@ typedef struct {
 	waitq_t wq;
 } condvar_t;
 
-#ifdef CONFIG_SMP
-#define _condvar_wait_timeout_spinlock(cv, lock, usec, flags) \
-	_condvar_wait_timeout_spinlock_impl((cv), (lock), (usec), (flags))
-#else
-#define _condvar_wait_timeout_spinlock(cv, lock, usec, flags) \
-	_condvar_wait_timeout_spinlock_impl((cv), NULL, (usec), (flags))
-#endif
+#define CONDVAR_INITIALIZER(name) (condvar_t) { \
+	.wq = WAITQ_INITIALIZER((name).wq), \
+}
+
+#define CONDVAR_INITIALIZE(name) \
+	condvar_t name = CONDVAR_INITIALIZER(name)
 
 extern void condvar_initialize(condvar_t *cv);
 extern void condvar_signal(condvar_t *cv);
 extern void condvar_broadcast(condvar_t *cv);
 
-extern errno_t condvar_wait(condvar_t *cv, mutex_t *mtx);
-extern errno_t condvar_wait_timeout(condvar_t *cv, mutex_t *mtx, uint32_t usec);
+extern errno_t __condvar_wait_mutex(condvar_t *cv, mutex_t *mtx);
+extern errno_t __condvar_wait_spinlock(condvar_t *cv, spinlock_t *mtx);
+extern errno_t __condvar_wait_irq_spinlock(condvar_t *cv, irq_spinlock_t *mtx);
+extern errno_t __condvar_wait_timeout_mutex(condvar_t *cv, mutex_t *mtx, uint32_t usec);
+extern errno_t __condvar_wait_timeout_spinlock(condvar_t *cv, spinlock_t *mtx, uint32_t usec);
+extern errno_t __condvar_wait_timeout_irq_spinlock(condvar_t *cv, irq_spinlock_t *mtx, uint32_t usec);
 
-extern errno_t _condvar_wait_timeout_spinlock_impl(condvar_t *cv, spinlock_t *lock,
-    uint32_t usec, int flags);
-extern errno_t _condvar_wait_timeout_irq_spinlock(condvar_t *cv,
-    irq_spinlock_t *irq_lock, uint32_t usec, int flags);
+#define condvar_wait(cv, mtx) (_Generic((mtx), \
+	mutex_t *: __condvar_wait_mutex, \
+	spinlock_t *: __condvar_wait_spinlock, \
+	irq_spinlock_t *: __condvar_wait_irq_spinlock \
+)(cv, mtx))
+
+#define condvar_wait_timeout(cv, mtx, usec) (_Generic((mtx), \
+	mutex_t *: __condvar_wait_timeout_mutex, \
+	spinlock_t *: __condvar_wait_timeout_spinlock, \
+	irq_spinlock_t *: __condvar_wait_timeout_irq_spinlock \
+)(cv, mtx))
 
 #endif
 

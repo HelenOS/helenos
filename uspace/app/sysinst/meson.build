@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2014 Jiri Svoboda
+# Copyright (c) 2025 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'block', 'fdisk', 'futil', 'sif' ]
+deps = [ 'block', 'fdisk', 'futil', 'sif', 'system', 'ui' ]
 src = files(
 	'rdimg.c',
 	'sysinst.c',

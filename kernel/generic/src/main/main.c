@@ -52,7 +52,6 @@
 #include <context.h>
 #include <stdio.h>
 #include <panic.h>
-#include <assert.h>
 #include <config.h>
 #include <time/clock.h>
 #include <time/timeout.h>

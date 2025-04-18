@@ -49,7 +49,6 @@
 #include <macros.h>
 #include <as.h>
 #include <abi/mm/as.h>
-#include "../private/libc.h"
 #include "../private/fibril.h"
 
 /** Interface data */
@@ -114,7 +113,7 @@ static size_t interface_hash(const ht_link_t *item)
 	return interface_key_hash(&interface->iface);
 }
 
-static bool interface_key_equal(const void *key, const ht_link_t *item)
+static bool interface_key_equal(const void *key, size_t hash, const ht_link_t *item)
 {
 	const iface_t *iface = key;
 	interface_t *interface = hash_table_get_inst(item, interface_t, link);
@@ -142,7 +141,7 @@ static size_t port_hash(const ht_link_t *item)
 	return port_key_hash(&port->id);
 }
 
-static bool port_key_equal(const void *key, const ht_link_t *item)
+static bool port_key_equal(const void *key, size_t hash, const ht_link_t *item)
 {
 	const port_id_t *port_id = key;
 	port_t *port = hash_table_get_inst(item, port_t, link);

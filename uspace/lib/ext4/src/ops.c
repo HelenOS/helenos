@@ -112,7 +112,7 @@ static size_t open_nodes_hash(const ht_link_t *item)
 	return hash_combine(enode->instance->service_id, enode->inode_ref->index);
 }
 
-static bool open_nodes_key_equal(const void *key_arg, const ht_link_t *item)
+static bool open_nodes_key_equal(const void *key_arg, size_t hash, const ht_link_t *item)
 {
 	const node_key_t *key = key_arg;
 	ext4_node_t *enode = hash_table_get_inst(item, ext4_node_t, link);

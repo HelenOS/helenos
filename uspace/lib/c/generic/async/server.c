@@ -241,7 +241,7 @@ static size_t client_hash(const ht_link_t *item)
 	return client_key_hash(&client->in_task_id);
 }
 
-static bool client_key_equal(const void *key, const ht_link_t *item)
+static bool client_key_equal(const void *key, size_t, const ht_link_t *item)
 {
 	const task_id_t *in_task_id = key;
 	client_t *client = hash_table_get_inst(item, client_t, link);
@@ -501,7 +501,7 @@ static size_t notification_hash(const ht_link_t *item)
 	return notification_key_hash(&notification->imethod);
 }
 
-static bool notification_key_equal(const void *key, const ht_link_t *item)
+static bool notification_key_equal(const void *key, size_t hash, const ht_link_t *item)
 {
 	const sysarg_t *id = key;
 	notification_t *notification =

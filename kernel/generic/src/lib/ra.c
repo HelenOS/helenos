@@ -73,7 +73,7 @@ static size_t used_key_hash(const void *key)
 }
 
 /** Return true if the key is equal to the item's lookup key */
-static bool used_key_equal(const void *key, const ht_link_t *item)
+static bool used_key_equal(const void *key, size_t, const ht_link_t *item)
 {
 	const uintptr_t *base = key;
 	ra_segment_t *seg = hash_table_get_inst(item, ra_segment_t, uh_link);
