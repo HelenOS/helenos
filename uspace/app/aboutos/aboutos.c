@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Wayne Michael Thornton (WMT) <wmthornton-dev@outlook.com>
  * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2012 Petr Koupy
  * All rights reserved.
@@ -166,6 +167,7 @@ int main(int argc, char *argv[])
 
 	ui_wnd_params_init(&params);
 	params.caption = "About HelenOS";
+	params.placement = ui_wnd_place_center;
 
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {

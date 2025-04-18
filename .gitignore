@@ -8,3 +8,6 @@ tags
 tools/sycek/
 tools/xcw/demo/viewer
 /.cache
+/PKG
+/downloads
+/amd64-helenos
