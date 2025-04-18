@@ -53,7 +53,7 @@ typedef enum {
 extern errno_t rc4(uint8_t *, size_t, uint8_t *, size_t, size_t, uint8_t *);
 extern errno_t aes_encrypt(uint8_t *, uint8_t *, uint8_t *);
 extern errno_t aes_decrypt(uint8_t *, uint8_t *, uint8_t *);
-extern errno_t create_hash(uint8_t *, size_t, uint8_t *, hash_func_t);
+extern errno_t create_hash(const uint8_t *, size_t, uint8_t *, hash_func_t);
 extern errno_t hmac(uint8_t *, size_t, uint8_t *, size_t, uint8_t *, hash_func_t);
 extern errno_t pbkdf2(uint8_t *, size_t, uint8_t *, size_t, uint8_t *);
 

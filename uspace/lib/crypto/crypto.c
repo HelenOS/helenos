@@ -195,7 +195,7 @@ static void sha1_proc(uint32_t *h, uint32_t *sched_arr)
  *         is not allocated, otherwise EOK.
  *
  */
-errno_t create_hash(uint8_t *input, size_t input_size, uint8_t *output,
+errno_t create_hash(const uint8_t *input, size_t input_size, uint8_t *output,
     hash_func_t hash_sel)
 {
 	assert(input_size < SSIZE_MAX);
