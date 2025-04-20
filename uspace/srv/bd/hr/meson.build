@@ -26,11 +26,12 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'block', 'device' ]
+deps = [ 'block', 'crypto', 'device' ]
 src = files(
             'fge.c',
             'hr.c',
             'io.c',
+            'metadata/foreign/geom/mirror.c',
             'metadata/native.c',
             'raid0.c',
             'raid1.c',

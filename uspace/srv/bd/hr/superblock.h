@@ -42,7 +42,8 @@ typedef struct hr_volume hr_volume_t;
 
 typedef enum {
 	HR_METADATA_NATIVE	= 0,
-	HR_METADATA_LAST_DUMMY	= 1
+	HR_METADATA_GEOM_MIRROR	= 1,
+	HR_METADATA_LAST_DUMMY	= 2
 } metadata_type_t;
 
 #define HR_METADATA_HOTSPARE_SUPPORT 0x01
@@ -51,8 +52,8 @@ typedef struct hr_superblock_ops {
 	void		*(*alloc_struct)(void);
 	errno_t		 (*init_vol2meta)(const hr_volume_t *, void *);
 	errno_t		 (*init_meta2vol)(const list_t *, hr_volume_t *);
-	void		 (*encode)(const void *, void *);
-	void		 (*decode)(const void *, void *);
+	void		 (*encode)(void *, void *);
+	errno_t		 (*decode)(const void *, void *);
 	errno_t		 (*get_block)(service_id_t, void **);
 	errno_t		 (*write_block)(service_id_t, const void *);
 	bool		 (*has_valid_magic)(const void *);

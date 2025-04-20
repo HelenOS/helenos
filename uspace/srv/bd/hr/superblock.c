@@ -45,15 +45,19 @@
 #include <stdio.h>
 #include <str.h>
 
-#include "metadata/native.h"
 #include "superblock.h"
 #include "util.h"
 #include "var.h"
 
+#include "metadata/foreign/geom/g_mirror.h"
+#include "metadata/native.h"
+
 extern hr_superblock_ops_t metadata_native_ops;
+extern hr_superblock_ops_t metadata_gmirror_ops;
 
 static hr_superblock_ops_t *hr_superblock_ops_all[] = {
-	[HR_METADATA_NATIVE] = &metadata_native_ops
+	[HR_METADATA_NATIVE] = &metadata_native_ops,
+	[HR_METADATA_GEOM_MIRROR] = &metadata_gmirror_ops
 };
 
 hr_superblock_ops_t *get_type_ops(metadata_type_t type)
@@ -95,9 +99,14 @@ errno_t find_metadata(service_id_t svc_id, void **rmetadata,
 			continue;
 		}
 
-		meta_ops->decode(meta_block, metadata_struct);
+		rc = meta_ops->decode(meta_block, metadata_struct);
 
 		free(meta_block);
+
+		if (rc != EOK) {
+			free(metadata_struct);
+			continue;
+		}
 
 		if (!meta_ops->has_valid_magic(metadata_struct)) {
 			free(metadata_struct);

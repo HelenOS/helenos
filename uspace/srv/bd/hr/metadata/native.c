@@ -56,8 +56,8 @@ static void		*meta_native_alloc_struct(void);
 static errno_t		 meta_native_init_vol2meta(const hr_volume_t *, void *);
 static errno_t		 meta_native_init_meta2vol(const list_t *,
     hr_volume_t *);
-static void		 meta_native_encode(const void *, void *);
-static void		 meta_native_decode(const void *, void *);
+static void		 meta_native_encode(void *, void *);
+static errno_t		 meta_native_decode(const void *, void *);
 static errno_t		 meta_native_get_block(service_id_t, void **);
 static errno_t		 meta_native_write_block(service_id_t, const void *);
 static bool		 meta_native_has_valid_magic(const void *);
@@ -191,7 +191,7 @@ error:
 	return rc;
 }
 
-static void meta_native_encode(const void *md_v, void *block)
+static void meta_native_encode(void *md_v, void *block)
 {
 	HR_DEBUG("%s()", __func__);
 
@@ -224,7 +224,7 @@ static void meta_native_encode(const void *md_v, void *block)
 	memcpy(block, &scratch_md, sizeof(hr_metadata_t));
 }
 
-static void meta_native_decode(const void *block, void *md_v)
+static errno_t meta_native_decode(const void *block, void *md_v)
 {
 	HR_DEBUG("%s()", __func__);
 
@@ -254,6 +254,8 @@ static void meta_native_decode(const void *block, void *md_v)
 	metadata->strip_size = uint32_t_le2host(scratch_md.strip_size);
 	metadata->bsize = uint32_t_le2host(scratch_md.bsize);
 	memcpy(metadata->devname, scratch_md.devname, HR_DEVNAME_LEN);
+
+	return EOK;
 }
 
 static errno_t meta_native_get_block(service_id_t dev, void **rblock)
