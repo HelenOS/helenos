@@ -55,6 +55,9 @@ struct dev_list_member {
 #define HR_DEBUG(format, ...) \
     log_msg(LOG_DEFAULT, LVL_DEBUG, format, ##__VA_ARGS__)
 
+#define HR_NOTE(format, ...) \
+    log_msg(LOG_DEFAULT, LVL_NOTE, format, ##__VA_ARGS__)
+
 #define HR_WARN(format, ...) \
     log_msg(LOG_DEFAULT, LVL_WARN, format, ##__VA_ARGS__)
 

@@ -382,7 +382,7 @@ void hr_update_ext_status(hr_volume_t *vol, size_t ext_idx, hr_ext_status_t s)
 	assert(ext_idx < vol->extent_no);
 
 	hr_ext_status_t old = vol->extents[ext_idx].status;
-	HR_WARN("\"%s\": changing extent %zu state: %s -> %s\n",
+	HR_NOTE("\"%s\": changing extent %zu state: %s -> %s\n",
 	    vol->devname, ext_idx, hr_get_ext_status_msg(old),
 	    hr_get_ext_status_msg(s));
 	vol->extents[ext_idx].status = s;
@@ -396,7 +396,7 @@ void hr_update_hotspare_status(hr_volume_t *vol, size_t hs_idx,
 	assert(hs_idx < vol->hotspare_no);
 
 	hr_ext_status_t old = vol->hotspares[hs_idx].status;
-	HR_WARN("\"%s\": changing hotspare %zu state: %s -> %s\n",
+	HR_NOTE("\"%s\": changing hotspare %zu state: %s -> %s\n",
 	    vol->devname, hs_idx, hr_get_ext_status_msg(old),
 	    hr_get_ext_status_msg(s));
 	vol->hotspares[hs_idx].status = s;
@@ -406,7 +406,7 @@ void hr_update_vol_status(hr_volume_t *vol, hr_vol_status_t new)
 {
 	assert(fibril_rwlock_is_write_locked(&vol->states_lock));
 
-	HR_WARN("\"%s\": changing volume state: %s -> %s\n", vol->devname,
+	HR_NOTE("\"%s\": changing volume state: %s -> %s\n", vol->devname,
 	    hr_get_vol_status_msg(vol->status), hr_get_vol_status_msg(new));
 	vol->status = new;
 }
@@ -419,7 +419,7 @@ void hr_update_ext_svc_id(hr_volume_t *vol, size_t ext_idx, service_id_t new)
 	assert(ext_idx < vol->extent_no);
 
 	service_id_t old = vol->extents[ext_idx].svc_id;
-	HR_WARN("\"%s\": changing extent no. %zu svc_id: (%" PRIun ") -> "
+	HR_NOTE("\"%s\": changing extent no. %zu svc_id: (%" PRIun ") -> "
 	    "(%" PRIun ")\n", vol->devname, ext_idx, old, new);
 	vol->extents[ext_idx].svc_id = new;
 }
@@ -432,7 +432,7 @@ void hr_update_hotspare_svc_id(hr_volume_t *vol, size_t hs_idx,
 	assert(hs_idx < vol->hotspare_no);
 
 	service_id_t old = vol->hotspares[hs_idx].svc_id;
-	HR_WARN("\"%s\": changing hotspare no. %zu svc_id: (%" PRIun ") -> "
+	HR_NOTE("\"%s\": changing hotspare no. %zu svc_id: (%" PRIun ") -> "
 	    "(%" PRIun ")\n", vol->devname, hs_idx, old, new);
 	vol->hotspares[hs_idx].svc_id = new;
 }
