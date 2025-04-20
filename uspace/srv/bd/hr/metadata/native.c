@@ -98,11 +98,11 @@ static void *meta_native_alloc_struct(void)
 	return calloc(1, sizeof(hr_metadata_t));
 }
 
-static errno_t meta_native_init_vol2meta(const hr_volume_t *vol, void *mdp)
+static errno_t meta_native_init_vol2meta(const hr_volume_t *vol, void *md_v)
 {
 	HR_DEBUG("%s()", __func__);
 
-	hr_metadata_t *md = (hr_metadata_t *)mdp;
+	hr_metadata_t *md = md_v;
 
 	str_cpy(md->magic, HR_NATIVE_MAGIC_SIZE, HR_NATIVE_MAGIC_STR);
 
@@ -193,11 +193,11 @@ error:
 	return rc;
 }
 
-static void meta_native_encode(const void *mdp, void *block)
+static void meta_native_encode(const void *md_v, void *block)
 {
 	HR_DEBUG("%s()", __func__);
 
-	const hr_metadata_t *metadata = (hr_metadata_t *)mdp;
+	const hr_metadata_t *metadata = md_v;
 
 	/*
 	 * Use scratch metadata for easier encoding without the need
@@ -227,11 +227,11 @@ static void meta_native_encode(const void *mdp, void *block)
 	memcpy(block, &scratch_md, sizeof(hr_metadata_t));
 }
 
-static void meta_native_decode(const void *block, void *mdp)
+static void meta_native_decode(const void *block, void *md_v)
 {
 	HR_DEBUG("%s()", __func__);
 
-	hr_metadata_t *metadata = (hr_metadata_t *)mdp;
+	hr_metadata_t *metadata = md_v;
 
 	/*
 	 * Use scratch metadata for easier decoding without the need
@@ -332,11 +332,11 @@ static errno_t meta_native_write_block(service_id_t dev, const void *block)
 	return rc;
 }
 
-static bool meta_native_has_valid_magic(const void *mdp)
+static bool meta_native_has_valid_magic(const void *md_v)
 {
 	HR_DEBUG("%s()", __func__);
 
-	const hr_metadata_t *md = (hr_metadata_t *)mdp;
+	const hr_metadata_t *md = md_v;
 
 	if (str_lcmp(md->magic, HR_NATIVE_MAGIC_STR, HR_NATIVE_MAGIC_SIZE) != 0)
 		return false;
@@ -354,11 +354,11 @@ static bool meta_native_compare_uuids(const void *m1p, const void *m2p)
 	return false;
 }
 
-static void meta_native_inc_counter(void *m)
+static void meta_native_inc_counter(void *md_v)
 {
-	hr_metadata_t *meta = (hr_metadata_t *)m;
+	hr_metadata_t *md = md_v;
 
-	meta->counter++;
+	md->counter++;
 }
 
 /*
@@ -411,19 +411,18 @@ static errno_t meta_native_save(hr_volume_t *vol, bool with_state_callback)
 	return EOK;
 }
 
-
-static const char *meta_native_get_devname(const void *m)
+static const char *meta_native_get_devname(const void *md_v)
 {
-	hr_metadata_t *meta = (hr_metadata_t *)m;
+	const hr_metadata_t *md = md_v;
 
-	return meta->devname;
+	return md->devname;
 }
 
-static hr_level_t meta_native_get_level(const void *m)
+static hr_level_t meta_native_get_level(const void *md_v)
 {
-	hr_metadata_t *meta = (hr_metadata_t *)m;
+	const hr_metadata_t *md = md_v;
 
-	return meta->level;
+	return md->level;
 }
 
 static uint64_t meta_native_get_data_offset(void)
@@ -450,11 +449,11 @@ static metadata_type_t meta_native_get_type(void)
 	return HR_METADATA_NATIVE;
 }
 
-static void meta_native_dump(const void *mdp)
+static void meta_native_dump(const void *md_v)
 {
 	HR_DEBUG("%s()", __func__);
 
-	const hr_metadata_t *metadata = (hr_metadata_t *)mdp;
+	const hr_metadata_t *metadata = md_v;
 
 	printf("\tmagic: %s\n", metadata->magic);
 	printf("\tUUID: ");
