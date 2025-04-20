@@ -248,8 +248,8 @@ errno_t hr_init_extents_from_cfg(hr_volume_t *vol, hr_config_t *cfg)
 		    svc_id);
 		rc = block_init(svc_id);
 		if (rc != EOK) {
-			HR_DEBUG("%s(): initing (%" PRIun ") failed, aborting\n",
-			    __func__, svc_id);
+			HR_DEBUG("%s(): initing (%" PRIun ") failed, "
+			    "aborting\n", __func__, svc_id);
 			goto error;
 		}
 
@@ -299,15 +299,16 @@ void hr_fini_devs(hr_volume_t *vol)
 
 	for (i = 0; i < vol->extent_no; i++) {
 		if (vol->extents[i].svc_id != 0) {
-			HR_DEBUG("hr_fini_devs(): block_fini() on (%" PRIun ")\n",
-			    vol->extents[i].svc_id);
+			HR_DEBUG("hr_fini_devs(): block_fini() on "
+			    "(%" PRIun ")\n", vol->extents[i].svc_id);
 			block_fini(vol->extents[i].svc_id);
 		}
 	}
 
 	for (i = 0; i < vol->hotspare_no; i++) {
 		if (vol->hotspares[i].svc_id != 0) {
-			HR_DEBUG("hr_fini_devs(): block_fini() on (%" PRIun ")\n",
+			HR_DEBUG("hr_fini_devs(): block_fini() on "
+			    "(%" PRIun ")\n",
 			    vol->hotspares[i].svc_id);
 			block_fini(vol->hotspares[i].svc_id);
 		}
@@ -626,6 +627,7 @@ static void free_svc_id_list(list_t *list)
 	struct dev_list_member *dev_id;
 	while (!list_empty(list)) {
 		dev_id = list_pop(list, struct dev_list_member, link);
+
 		free_dev_list_member(dev_id);
 	}
 }
