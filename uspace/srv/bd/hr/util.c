@@ -745,11 +745,14 @@ static void block_fini_dev_list(list_t *list)
 }
 
 static errno_t hr_util_get_matching_md_svcs_list(list_t *rlist, list_t *list,
-    service_id_t svc_id, metadata_type_t type, void *metadata_struct_main)
+    service_id_t svc_id, metadata_type_t type_main, void *metadata_struct_main)
 {
 	HR_DEBUG("%s()", __func__);
 
 	errno_t rc = EOK;
+
+	hr_superblock_ops_t *meta_ops = get_type_ops(type_main);
+	meta_ops->dump(metadata_struct_main);
 
 	list_foreach(*list, link, struct dev_list_member, iter) {
 		if (iter->svc_id == svc_id)
@@ -764,7 +767,10 @@ static errno_t hr_util_get_matching_md_svcs_list(list_t *rlist, list_t *list,
 		if (rc != EOK)
 			goto error;
 
-		hr_superblock_ops_t *meta_ops = get_type_ops(type);
+		if (type != type_main) {
+			free(metadata_struct);
+			continue;
+		}
 
 		if (!meta_ops->compare_uuids(metadata_struct_main,
 		    metadata_struct)) {
