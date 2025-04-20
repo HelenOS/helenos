@@ -752,7 +752,6 @@ static errno_t hr_util_get_matching_md_svcs_list(list_t *rlist, list_t *list,
 	errno_t rc = EOK;
 
 	hr_superblock_ops_t *meta_ops = get_type_ops(type_main);
-	meta_ops->dump(metadata_struct_main);
 
 	list_foreach(*list, link, struct dev_list_member, iter) {
 		if (iter->svc_id == svc_id)
