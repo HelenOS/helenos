@@ -376,6 +376,7 @@ static void hr_print_status_srv(ipc_call_t *icall)
 		info.hotspare_no = vol->hotspare_no;
 		info.level = vol->level;
 		/* print usable number of blocks */
+		/* TODO: change to data_blkno */
 		info.nblocks = vol->data_blkno;
 		info.strip_size = vol->strip_size;
 		info.bsize = vol->bsize;

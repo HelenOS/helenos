@@ -54,19 +54,17 @@ struct hr_metadata {
 
 	uint8_t		uuid[HR_NATIVE_UUID_LEN];
 
-	/* TODO: change to blkno */
-	uint64_t	nblocks;		/* all blocks */
 	uint64_t	data_blkno;		/* usable blocks */
+	uint64_t	truncated_blkno;	/* size of smallest extent */
 
-	uint64_t	truncated_blkno;	/* usable blocks */
 	uint64_t	data_offset;
+	uint64_t	counter;
 
-	uint64_t	counter;		/* XXX: yet unused */
 	uint32_t	version;		/* XXX: yet unused */
 	uint32_t	extent_no;
-
 	uint32_t	index;			/* index of extent in volume */
 	uint32_t	level;
+
 	uint32_t	layout;
 	uint32_t	strip_size;
 

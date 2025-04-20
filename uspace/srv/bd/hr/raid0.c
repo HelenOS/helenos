@@ -122,7 +122,6 @@ errno_t hr_raid0_init(hr_volume_t *vol)
 	uint64_t total_blkno = truncated_blkno * vol->extent_no;
 
 	vol->truncated_blkno = truncated_blkno;
-	vol->nblocks = total_blkno;
 	vol->data_offset = vol->meta_ops->get_data_offset();
 
 	vol->data_blkno = total_blkno;

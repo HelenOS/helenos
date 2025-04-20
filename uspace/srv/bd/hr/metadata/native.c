@@ -121,7 +121,6 @@ static errno_t meta_native_init_vol2meta(const hr_volume_t *vol, void *md_v)
 	memcpy(md->uuid, &uuid, HR_NATIVE_UUID_LEN);
 	/* uuid_encode(&uuid, metadata->uuid); */
 
-	md->nblocks = vol->nblocks;
 	md->data_blkno = vol->data_blkno;
 	md->truncated_blkno = vol->truncated_blkno;
 	md->data_offset = vol->data_offset;
@@ -154,7 +153,6 @@ static errno_t meta_native_init_meta2vol(const list_t *list, hr_volume_t *vol)
 
 	assert(main_meta != NULL);
 
-	vol->nblocks = main_meta->nblocks;
 	vol->data_blkno = main_meta->data_blkno;
 	vol->truncated_blkno = main_meta->truncated_blkno;
 	vol->data_offset = main_meta->data_offset;
@@ -209,7 +207,6 @@ static void meta_native_encode(const void *md_v, void *block)
 	memcpy(scratch_md.uuid, metadata->uuid, HR_NATIVE_UUID_LEN);
 	/* uuid_decode((uint8_t *)scratch_md.uuid, (uuid_t *)metadata->uuid); */
 
-	scratch_md.nblocks = host2uint64_t_le(metadata->nblocks);
 	scratch_md.data_blkno = host2uint64_t_le(metadata->data_blkno);
 	scratch_md.truncated_blkno = host2uint64_t_le(
 	    metadata->truncated_blkno);
@@ -244,7 +241,6 @@ static void meta_native_decode(const void *block, void *md_v)
 	memcpy(metadata->uuid, scratch_md.uuid, HR_NATIVE_UUID_LEN);
 	/* uuid_decode((uint8_t *)scratch_md.uuid, (uuid_t *)metadata->uuid); */
 
-	metadata->nblocks = uint64_t_le2host(scratch_md.nblocks);
 	metadata->data_blkno = uint64_t_le2host(scratch_md.data_blkno);
 	metadata->truncated_blkno = uint64_t_le2host(
 	    scratch_md.truncated_blkno);
@@ -463,7 +459,6 @@ static void meta_native_dump(const void *md_v)
 			printf(" ");
 	}
 	printf("\n");
-	printf("\tnblocks: %" PRIu64 "\n", metadata->nblocks);
 	printf("\tdata_blkno: %" PRIu64 "\n", metadata->data_blkno);
 	printf("\ttruncated_blkno: %" PRIu64 "\n", metadata->truncated_blkno);
 	printf("\tdata_offset: %" PRIu64 "\n", metadata->data_offset);

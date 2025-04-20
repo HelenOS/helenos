@@ -136,7 +136,6 @@ errno_t hr_raid1_init(hr_volume_t *vol)
 	}
 
 	vol->truncated_blkno = truncated_blkno;
-	vol->nblocks = truncated_blkno;
 	vol->data_offset = vol->meta_ops->get_data_offset();
 	vol->data_blkno = truncated_blkno - vol->meta_ops->get_size();
 	vol->strip_size = 0;

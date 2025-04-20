@@ -80,7 +80,6 @@ typedef struct hr_volume {
 	/* invariants */
 	size_t		 extent_no;		/* number of extents */
 	size_t		 bsize;			/* block size */
-	uint64_t	 nblocks;		/* no. of all usable blocks */
 	uint64_t	 truncated_blkno;	/* blkno per extent */
 	uint64_t	 data_blkno;		/* no. of user usable blocks */
 	uint64_t	 data_offset;		/* user data offset in blocks */
