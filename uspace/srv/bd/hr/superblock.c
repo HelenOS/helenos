@@ -87,10 +87,13 @@ errno_t find_metadata(service_id_t svc_id, void **rmetadata,
 			return ENOMEM;
 
 		rc = meta_ops->get_block(svc_id, &meta_block);
-		if (rc == ENOMEM)
+		if (rc == ENOMEM) {
+			free(metadata_struct);
 			return ENOMEM;
-		if (rc != EOK)
+		} else if (rc != EOK) {
+			free(metadata_struct);
 			continue;
+		}
 
 		meta_ops->decode(meta_block, metadata_struct);
 
