@@ -78,7 +78,7 @@ static void hr_create_srv(ipc_call_t *icall)
 	errno_t rc;
 	size_t i, size;
 	hr_config_t *cfg;
-	hr_volume_t *new_volume;
+	hr_volume_t *vol;
 	ipc_call_t call;
 
 	if (!async_data_write_receive(&call, &size)) {
@@ -126,50 +126,51 @@ static void hr_create_srv(ipc_call_t *icall)
 		}
 	}
 
-	rc = hr_create_vol_struct(&new_volume, cfg->level, cfg->devname);
+	rc = hr_create_vol_struct(&vol, cfg->level, cfg->devname,
+	    HR_METADATA_NATIVE);
 	if (rc != EOK) {
 		free(cfg);
 		async_answer_0(icall, rc);
 		return;
 	}
 
-	rc = hr_init_extents_from_cfg(new_volume, cfg);
+	rc = hr_init_extents_from_cfg(vol, cfg);
 	if (rc != EOK)
 		goto error;
 
-	new_volume->hr_ops.init(new_volume);
+	vol->hr_ops.init(vol);
 	if (rc != EOK)
 		goto error;
 
-	rc = hr_metadata_init(new_volume, new_volume->in_mem_md);
+	rc = vol->meta_ops->init_vol2meta(vol, vol->in_mem_md);
 	if (rc != EOK)
 		goto error;
 
-	rc = new_volume->hr_ops.create(new_volume);
+	rc = vol->hr_ops.create(vol);
 	if (rc != EOK)
 		goto error;
 
-	rc = hr_metadata_save(new_volume, WITH_STATE_CALLBACK);
+	rc = vol->meta_ops->save(vol, WITH_STATE_CALLBACK);
 	if (rc != EOK)
 		goto error;
 
-	rc = hr_register_volume(new_volume);
+	rc = hr_register_volume(vol);
 	if (rc != EOK)
 		goto error;
 
 	fibril_rwlock_write_lock(&hr_volumes_lock);
-	list_append(&new_volume->lvolumes, &hr_volumes);
+	list_append(&vol->lvolumes, &hr_volumes);
 	fibril_rwlock_write_unlock(&hr_volumes_lock);
 
-	HR_DEBUG("created volume \"%s\" (%" PRIun ")\n", new_volume->devname,
-	    new_volume->svc_id);
+	HR_DEBUG("created volume \"%s\" (%" PRIun ")\n", vol->devname,
+	    vol->svc_id);
 
 	free(cfg);
 	async_answer_0(icall, rc);
 	return;
 error:
 	free(cfg);
-	hr_destroy_vol_struct(new_volume);
+	hr_destroy_vol_struct(vol);
 	async_answer_0(icall, rc);
 }
 

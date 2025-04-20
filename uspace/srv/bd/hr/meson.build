@@ -31,6 +31,7 @@ src = files(
             'fge.c',
             'hr.c',
             'io.c',
+            'metadata/native.c',
             'raid0.c',
             'raid1.c',
             'raid5.c',

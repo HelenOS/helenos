@@ -36,11 +36,21 @@
 #ifndef _HR_UTIL_H
 #define _HR_UTIL_H
 
+#include <adt/list.h>
 #include <errno.h>
 #include <hr.h>
 #include <io/log.h>
 
+#include "superblock.h"
 #include "var.h"
+
+struct dev_list_member {
+	link_t		 link;
+	service_id_t	 svc_id;
+	void		*md;
+	bool		 inited;
+	bool		 md_present;
+};
 
 #define HR_DEBUG(format, ...) \
     log_msg(LOG_DEFAULT, LVL_DEBUG, format, ##__VA_ARGS__)
@@ -53,7 +63,7 @@
 
 
 extern errno_t		 hr_create_vol_struct(hr_volume_t **, hr_level_t,
-    const char *);
+    const char *, metadata_type_t);
 extern void		 hr_destroy_vol_struct(hr_volume_t *);
 extern hr_volume_t	*hr_get_volume(service_id_t);
 extern errno_t		 hr_remove_volume(service_id_t);

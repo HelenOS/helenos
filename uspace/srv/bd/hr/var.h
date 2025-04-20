@@ -52,6 +52,7 @@
 struct hr_volume;
 typedef struct hr_volume hr_volume_t;
 typedef struct hr_metadata hr_metadata_t;
+typedef struct hr_superblock_ops hr_superblock_ops_t;
 
 typedef struct hr_ops {
 	errno_t		(*create)(hr_volume_t *);
@@ -71,18 +72,10 @@ typedef struct hr_volume {
 	fibril_mutex_t	 range_lock_list_lock;	/* range locks list lock */
 	hr_fpool_t	*fge;			/* fibril pool */
 
-	/*
-	 * TODO: also print in info, doesn't have
-	 * to be part of hr_volume_t but just the info
-	 * that is passed to be printed
-	 *
-	 * Probably just defer this decition until foreign md
-	 * will be handled.
-	 */
-	uint32_t	 metadata_version;
-
-	hr_metadata_t	*in_mem_md;
+	void		*in_mem_md;
 	fibril_mutex_t	 md_lock;		/* lock protecting in_mem_md */
+
+	hr_superblock_ops_t *meta_ops;
 
 	/* invariants */
 	size_t		 extent_no;		/* number of extents */

@@ -33,6 +33,7 @@
  * @file
  */
 
+#include <abi/ipc/ipc.h>
 #include <bd_srv.h>
 #include <block.h>
 #include <errno.h>
@@ -136,8 +137,8 @@ errno_t hr_raid1_init(hr_volume_t *vol)
 
 	vol->truncated_blkno = truncated_blkno;
 	vol->nblocks = truncated_blkno;
-	vol->data_offset = HR_DATA_OFF;
-	vol->data_blkno = truncated_blkno - HR_META_SIZE;
+	vol->data_offset = vol->meta_ops->get_data_offset();
+	vol->data_blkno = truncated_blkno - vol->meta_ops->get_size();
 	vol->strip_size = 0;
 
 	return EOK;
@@ -226,8 +227,8 @@ static void hr_raid1_update_vol_status(hr_volume_t *vol)
 
 	fibril_mutex_lock(&vol->md_lock);
 
-	/* XXX: will be wrapped in md specific fcn ptrs */
-	vol->in_mem_md->counter++;
+	vol->meta_ops->inc_counter(vol->in_mem_md);
+	/* XXX: save right away */
 
 	fibril_mutex_unlock(&vol->md_lock);
 
@@ -549,7 +550,7 @@ static errno_t hr_raid1_rebuild(void *arg)
 
 	fibril_rwlock_write_unlock(&vol->states_lock);
 
-	rc = hr_metadata_save(vol, WITH_STATE_CALLBACK);
+	rc = vol->meta_ops->save(vol, WITH_STATE_CALLBACK);
 
 end:
 	if (rc != EOK) {

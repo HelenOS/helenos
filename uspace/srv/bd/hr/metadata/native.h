@@ -33,81 +33,49 @@
  * @file
  */
 
-#include <block.h>
-#include <byteorder.h>
-#include <errno.h>
-#include <inttypes.h>
-#include <io/log.h>
-#include <loc.h>
-#include <mem.h>
-#include <uuid.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <str.h>
+#ifndef _HR_METADATA_NATIVE_H
+#define _HR_METADATA_NATIVE_H
 
-#include "metadata/native.h"
-#include "superblock.h"
-#include "util.h"
-#include "var.h"
+#include "../var.h"
 
-extern hr_superblock_ops_t metadata_native_ops;
+/*
+ * Metadata is stored on the last block of an extent.
+ */
+#define HR_NATIVE_META_SIZE		1	/* in blocks */
+#define HR_NATIVE_DATA_OFF		0
 
-static hr_superblock_ops_t *hr_superblock_ops_all[] = {
-	[HR_METADATA_NATIVE] = &metadata_native_ops
-};
+#define HR_NATIVE_MAGIC_STR		"HelenRAID"
+#define HR_NATIVE_MAGIC_SIZE		16
+#define HR_NATIVE_UUID_LEN		16
+#define HR_NATIVE_METADATA_VERSION	1
 
-hr_superblock_ops_t *get_type_ops(metadata_type_t type)
-{
-	assert(type >= HR_METADATA_NATIVE && type < HR_METADATA_LAST_DUMMY);
+struct hr_metadata {
+	char		magic[HR_NATIVE_MAGIC_SIZE];
 
-	return hr_superblock_ops_all[type];
-}
+	uint8_t		uuid[HR_NATIVE_UUID_LEN];
 
-errno_t find_metadata(service_id_t svc_id, void **rmetadata,
-    metadata_type_t *rtype)
-{
-	HR_DEBUG("%s()", __func__);
+	/* TODO: change to blkno */
+	uint64_t	nblocks;		/* all blocks */
+	uint64_t	data_blkno;		/* usable blocks */
 
-	errno_t rc;
-	hr_superblock_ops_t *meta_ops;
-	void *meta_block;
-	void *metadata_struct;
+	uint64_t	truncated_blkno;	/* usable blocks */
+	uint64_t	data_offset;
 
-	if (rmetadata == NULL)
-		return EINVAL;
-	if (rtype == NULL)
-		return EINVAL;
+	uint64_t	counter;		/* XXX: yet unused */
+	uint32_t	version;		/* XXX: yet unused */
+	uint32_t	extent_no;
 
-	volatile metadata_type_t type = HR_METADATA_NATIVE;
-	for (; type < HR_METADATA_LAST_DUMMY; type++) {
-		meta_ops = hr_superblock_ops_all[type];
+	uint32_t	index;			/* index of extent in volume */
+	uint32_t	level;
+	uint32_t	layout;
+	uint32_t	strip_size;
 
-		metadata_struct = meta_ops->alloc_struct();
-		if (metadata_struct == NULL)
-			return ENOMEM;
+	uint32_t	bsize;
 
-		rc = meta_ops->get_block(svc_id, &meta_block);
-		if (rc == ENOMEM)
-			return ENOMEM;
-		if (rc != EOK)
-			continue;
+	char		devname[HR_DEVNAME_LEN];
+} __attribute__((packed));
 
-		meta_ops->decode(meta_block, metadata_struct);
-
-		free(meta_block);
-
-		if (!meta_ops->has_valid_magic(metadata_struct)) {
-			free(metadata_struct);
-			continue;
-		}
-
-		*rmetadata = metadata_struct;
-		*rtype = type;
-		return EOK;
-	}
-
-	return ENOFS;
-}
+#endif
 
 /** @}
  */

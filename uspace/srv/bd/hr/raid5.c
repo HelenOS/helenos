@@ -138,10 +138,11 @@ errno_t hr_raid5_init(hr_volume_t *vol)
 
 	vol->truncated_blkno = truncated_blkno;
 	vol->nblocks = total_blkno;
-	vol->data_offset = HR_DATA_OFF;
+	vol->data_offset = vol->meta_ops->get_data_offset();
 
 	vol->data_blkno = total_blkno;
-	vol->data_blkno -= HR_META_SIZE * vol->extent_no; /* count md blocks */
+	/* count md blocks */
+	vol->data_blkno -= vol->meta_ops->get_size() * vol->extent_no;
 	vol->data_blkno -= truncated_blkno; /* count parity */
 
 	vol->strip_size = HR_STRIP_SIZE;
@@ -844,7 +845,7 @@ static errno_t hr_raid5_rebuild(void *arg)
 
 	hr_update_ext_status(vol, bad, HR_EXT_ONLINE);
 
-	rc = hr_metadata_save(vol, WITH_STATE_CALLBACK);
+	rc = vol->meta_ops->save(vol, WITH_STATE_CALLBACK);
 
 end:
 	(void)hr_raid5_update_vol_status(vol);

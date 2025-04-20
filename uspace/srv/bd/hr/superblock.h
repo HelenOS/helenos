@@ -38,54 +38,38 @@
 
 #include "var.h"
 
-/*
- * Metadata is stored on the last block of an extent.
- */
-#define HR_META_SIZE		1	/* in blocks */
-#define HR_DATA_OFF		0
-
-#define HR_MAGIC_STR		"HelenRAID"
-#define HR_MAGIC_SIZE		16
-#define HR_UUID_LEN		16
-#define HR_METADATA_VERSION	1
-
-typedef struct hr_metadata hr_metadata_t;
 typedef struct hr_volume hr_volume_t;
 
-struct hr_metadata {
-	char		magic[HR_MAGIC_SIZE];
+typedef enum {
+	HR_METADATA_NATIVE	= 0,
+	HR_METADATA_LAST_DUMMY	= 1
+} metadata_type_t;
 
-	uint8_t		uuid[HR_UUID_LEN];
+#define HR_METADATA_HOTSPARE_SUPPORT 0x01
 
-	/* TODO: change to blkno */
-	uint64_t	nblocks;		/* all blocks */
-	uint64_t	data_blkno;		/* usable blocks */
+typedef struct hr_superblock_ops {
+	void		*(*alloc_struct)(void);
+	errno_t		 (*init_vol2meta)(const hr_volume_t *, void *);
+	errno_t		 (*init_meta2vol)(const list_t *, hr_volume_t *);
+	void		 (*encode)(const void *, void *);
+	void		 (*decode)(const void *, void *);
+	errno_t		 (*get_block)(service_id_t, void **);
+	errno_t		 (*write_block)(service_id_t, const void *);
+	bool		 (*has_valid_magic)(const void *);
+	bool		 (*compare_uuids)(const void *, const void *);
+	void		 (*inc_counter)(void *);
+	errno_t		 (*save)(hr_volume_t *, bool);
+	const char	*(*get_devname)(const void *);
+	hr_level_t	 (*get_level)(const void *);
+	uint64_t	 (*get_data_offset)(void);
+	size_t		 (*get_size)(void);
+	uint8_t		 (*get_flags)(void);
+	metadata_type_t	 (*get_type)(void);
+	void		 (*dump)(const void *);
+} hr_superblock_ops_t;
 
-	uint64_t	truncated_blkno;	/* usable blocks */
-	uint64_t	data_offset;
-
-	uint64_t	counter;		/* XXX: yet unused */
-	uint32_t	version;		/* XXX: yet unused */
-	uint32_t	extent_no;
-
-	uint32_t	index;			/* index of extent in volume */
-	uint32_t	level;
-	uint32_t	layout;
-	uint32_t	strip_size;
-
-	uint32_t	bsize;
-
-	char		devname[HR_DEVNAME_LEN];
-} __attribute__((packed));
-
-extern errno_t	hr_metadata_init(hr_volume_t *, hr_metadata_t *);
-extern errno_t	hr_metadata_save(hr_volume_t *, bool);
-extern errno_t	hr_write_metadata_block(service_id_t, const void *);
-extern errno_t	hr_get_metadata_block(service_id_t, void **);
-extern void	hr_encode_metadata_to_block(const hr_metadata_t *, void *);
-extern void	hr_decode_metadata_from_block(const void *, hr_metadata_t *);
-extern void	hr_metadata_dump(const hr_metadata_t *);
-extern bool	hr_valid_md_magic(const hr_metadata_t *);
+hr_superblock_ops_t *get_type_ops(metadata_type_t);
+extern errno_t	find_metadata(service_id_t, void **, metadata_type_t *);
 
 #endif
 
