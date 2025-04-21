@@ -32,6 +32,7 @@ src = files(
             'hr.c',
             'io.c',
             'metadata/foreign/geom/mirror.c',
+            'metadata/foreign/geom/stripe.c',
             'metadata/native.c',
             'raid0.c',
             'raid1.c',
