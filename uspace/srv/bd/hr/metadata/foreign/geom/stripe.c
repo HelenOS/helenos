@@ -155,6 +155,8 @@ static errno_t meta_stripe_init_meta2vol(const list_t *list, hr_volume_t *vol)
 
 	vol->strip_size = main_meta->md_stripesize;
 
+	vol->layout = HR_RLQ_NONE;
+
 	memcpy(vol->in_mem_md, main_meta, sizeof(struct g_stripe_metadata));
 
 	list_foreach(*list, link, struct dev_list_member, iter) {

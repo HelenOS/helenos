@@ -85,7 +85,7 @@ typedef struct hr_volume {
 	uint64_t	 data_offset;		/* user data offset in blocks */
 	uint32_t	 strip_size;		/* strip size */
 	hr_level_t	 level;			/* volume level */
-	uint8_t		 layout;		/* RAID Level Qualifier */
+	hr_layout_t	 layout;		/* RAID Level Qualifier */
 	char		 devname[HR_DEVNAME_LEN];
 
 	hr_extent_t	 extents[HR_MAX_EXTENTS];

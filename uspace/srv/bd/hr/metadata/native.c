@@ -155,10 +155,11 @@ static errno_t meta_native_init_meta2vol(const list_t *list, hr_volume_t *vol)
 	vol->truncated_blkno = main_meta->truncated_blkno;
 	vol->data_offset = main_meta->data_offset;
 	vol->extent_no = main_meta->extent_no;
-	/* vol->level = main_meta->level; */
+	/* vol->level = main_meta->level; */ /* already set */
 	vol->layout = main_meta->layout;
 	vol->strip_size = main_meta->strip_size;
 	vol->bsize = main_meta->bsize;
+	/* already set */
 	/* memcpy(vol->devname, main_meta->devname, HR_DEVNAME_LEN); */
 	memcpy(vol->in_mem_md, main_meta, sizeof(hr_metadata_t));
 

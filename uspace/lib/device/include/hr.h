@@ -54,17 +54,14 @@ typedef enum hr_level {
 	HR_LVL_UNKNOWN	= 0xFF
 } hr_level_t;
 
-/*
- * SNIA
- * Common RAID Disk Data Format
- * Specification
- * Version 2.0 Revision 19
- */
-#define HR_RLQ_RAID4_0	0x00 /* RAID-4 Non-Rotating Parity 0 */
-#define HR_RLQ_RAID4_N	0x01 /* RAID-4 Non-Rotating Parity N */
-#define HR_RLQ_RAID5_0R	0x00 /* RAID-5 Rotating Parity 0 with Data Restart */
-#define HR_RLQ_RAID5_NR	0x02 /* RAID-5 Rotating Parity N with Data Restart */
-#define HR_RLQ_RAID5_NC	0x03 /* RAID-5 Rotating Parity N with Data Continuation */
+typedef enum hr_layout {
+	HR_RLQ_NONE	= 0,
+	HR_RLQ_RAID4_0,		/* RAID-4 Non-Rotating Parity 0 */
+	HR_RLQ_RAID4_N,		/* RAID-4 Non-Rotating Parity N */
+	HR_RLQ_RAID5_0R,	/* RAID-5 Rotating Parity 0 with Data Restart */
+	HR_RLQ_RAID5_NR,	/* RAID-5 Rotating Parity N with Data Restart */
+	HR_RLQ_RAID5_NC 	/* RAID-5 Rotating Parity N with Data Continuation */
+} hr_layout_t;
 
 typedef enum hr_vol_status {
 	HR_VOL_NONE = 0,	/* Unknown/None */
@@ -118,7 +115,7 @@ typedef enum {
 	HR_METADATA_NATIVE	= 0,
 	HR_METADATA_GEOM_MIRROR	= 1,
 	HR_METADATA_GEOM_STRIPE = 2,
-	HR_METADATA_LAST_DUMMY	= 3
+	HR_METADATA_LAST_DUMMY
 } hr_metadata_type_t;
 
 extern errno_t		 hr_sess_init(hr_t **);
@@ -131,7 +128,7 @@ extern errno_t		 hr_add_hotspare(service_id_t, service_id_t);
 extern errno_t		 hr_print_status(void);
 extern const char	*hr_get_vol_status_msg(hr_vol_status_t);
 extern const char	*hr_get_ext_status_msg(hr_ext_status_t);
-extern const char	*hr_get_layout_str(hr_level_t, uint8_t);
+extern const char	*hr_get_layout_str(hr_layout_t);
 extern const char	*hr_get_metadata_type_str(hr_metadata_type_t);
 
 #endif
