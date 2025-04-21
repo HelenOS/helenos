@@ -46,42 +46,8 @@ typedef unsigned char u_char;
 typedef unsigned int u_int;
 #define bcopy(src, dst, len) memcpy(dst, src, len)
 
-/* copied here from <sys/endian.h> */
-static __inline void
-le32enc(void *pp, uint32_t u)
-{
-	uint8_t *p = (uint8_t *)pp;
-
-	p[0] = u & 0xff;
-	p[1] = (u >> 8) & 0xff;
-	p[2] = (u >> 16) & 0xff;
-	p[3] = (u >> 24) & 0xff;
-}
-
-static __inline void
-le64enc(void *pp, uint64_t u)
-{
-	uint8_t *p = (uint8_t *)pp;
-
-	le32enc(p, (uint32_t)(u & 0xffffffffU));
-	le32enc(p + 4, (uint32_t)(u >> 32));
-}
-
-static __inline uint32_t
-le32dec(const void *pp)
-{
-	uint8_t const *p = (uint8_t const *)pp;
-
-	return (((unsigned)p[3] << 24) | (p[2] << 16) | (p[1] << 8) | p[0]);
-}
-
-static __inline uint64_t
-le64dec(const void *pp)
-{
-	uint8_t const *p = (uint8_t const *)pp;
-
-	return (((uint64_t)le32dec(p + 4) << 32) | le32dec(p));
-}
+/* needed FreeBSD <sys/endian.h> header */
+#include "sys_endian.h"
 
 /* here continues the stripped down original header */
 
