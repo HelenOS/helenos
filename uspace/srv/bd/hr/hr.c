@@ -497,7 +497,7 @@ int main(int argc, char **argv)
 		return EEXIST;
 	}
 
-	printf("%s: accepting connections\n", NAME);
+	printf("%s: Accepting connections.\n", NAME);
 	task_retval(0);
 	async_manager();
 
