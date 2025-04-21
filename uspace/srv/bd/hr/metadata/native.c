@@ -138,8 +138,6 @@ static errno_t meta_native_init_meta2vol(const list_t *list, hr_volume_t *vol)
 {
 	HR_DEBUG("%s()", __func__);
 
-	errno_t rc = EOK;
-
 	hr_metadata_t *main_meta = NULL;
 	size_t max_counter_val = 0;
 
@@ -168,13 +166,7 @@ static errno_t meta_native_init_meta2vol(const list_t *list, hr_volume_t *vol)
 		hr_metadata_t *iter_meta = (hr_metadata_t *)iter->md;
 
 		vol->extents[iter_meta->index].svc_id = iter->svc_id;
-
-		uint64_t blkno;
-		rc = block_get_nblocks(iter->svc_id, &blkno);
-		if (rc != EOK)
-			goto error;
-
-		vol->extents[iter_meta->index].blkno = blkno;
+		iter->fini = false;
 
 		if (iter_meta->counter == max_counter_val)
 			vol->extents[iter_meta->index].status = HR_EXT_ONLINE;
@@ -187,8 +179,7 @@ static errno_t meta_native_init_meta2vol(const list_t *list, hr_volume_t *vol)
 			vol->extents[i].status = HR_EXT_MISSING;
 	}
 
-error:
-	return rc;
+	return EOK;
 }
 
 static void meta_native_encode(void *md_v, void *block)

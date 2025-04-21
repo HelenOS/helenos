@@ -116,15 +116,8 @@ errno_t hr_raid0_init(hr_volume_t *vol)
 
 	assert(vol->level == HR_LVL_0);
 
-	uint64_t truncated_blkno = vol->extents[0].blkno;
-	for (size_t i = 1; i < vol->extent_no; i++) {
-		if (vol->extents[i].blkno < truncated_blkno)
-			truncated_blkno = vol->extents[i].blkno;
-	}
+	uint64_t total_blkno = vol->truncated_blkno * vol->extent_no;
 
-	uint64_t total_blkno = truncated_blkno * vol->extent_no;
-
-	vol->truncated_blkno = truncated_blkno;
 	vol->data_offset = vol->meta_ops->get_data_offset();
 
 	vol->data_blkno = total_blkno;

@@ -50,6 +50,7 @@ struct dev_list_member {
 	void		*md;
 	bool		 inited;
 	bool		 md_present;
+	bool		 fini;
 };
 
 #define HR_DEBUG(format, ...) \

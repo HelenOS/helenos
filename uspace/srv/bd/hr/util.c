@@ -233,7 +233,7 @@ errno_t hr_init_extents_from_cfg(hr_volume_t *vol, hr_config_t *cfg)
 	HR_DEBUG("%s()", __func__);
 
 	errno_t rc;
-	uint64_t blkno;
+	uint64_t blkno, smallest_blkno = ~0ULL;
 	size_t i, bsize;
 	size_t last_bsize = 0;
 
@@ -268,14 +268,16 @@ errno_t hr_init_extents_from_cfg(hr_volume_t *vol, hr_config_t *cfg)
 		}
 
 		vol->extents[i].svc_id = svc_id;
-		vol->extents[i].blkno = blkno;
 		vol->extents[i].status = HR_EXT_ONLINE;
 
+		if (blkno < smallest_blkno)
+			smallest_blkno = blkno;
 		last_bsize = bsize;
 	}
 
 	vol->bsize = last_bsize;
 	vol->extent_no = cfg->dev_no;
+	vol->truncated_blkno = smallest_blkno;
 
 	for (i = 0; i < HR_MAX_HOTSPARES; i++)
 		vol->hotspares[i].status = HR_EXT_MISSING;
@@ -727,6 +729,7 @@ static errno_t block_init_dev_list(list_t *list)
 			return rc;
 
 		iter->inited = true;
+		iter->fini = true;
 	}
 
 	return EOK;
@@ -737,9 +740,10 @@ static void block_fini_dev_list(list_t *list)
 	HR_DEBUG("%s()", __func__);
 
 	list_foreach(*list, link, struct dev_list_member, iter) {
-		if (iter->inited) {
+		if (iter->inited && iter->fini) {
 			block_fini(iter->svc_id);
 			iter->inited = false;
+			iter->fini = false;
 		}
 	}
 }
@@ -982,20 +986,12 @@ errno_t hr_util_try_assemble(hr_config_t *cfg, size_t *rassembled_cnt)
 		case EOK:
 			asm_cnt++;
 			break;
-		case EEXIST:
-			/*
-			 * A race is detected this way, because we don't want
-			 * to hold the hr_volumes list lock for a long time,
-			 * for all assembly attempts. XXX: discuss...
-			 */
-			rc = EOK;
-			break;
-		default:
-			block_fini_dev_list(&matching_svcs_list);
-			free_svc_id_list(&matching_svcs_list);
+		case ENOMEM:
 			goto error;
+		default:
+			rc = EOK;
 		}
-
+		block_fini_dev_list(&matching_svcs_list);
 		free_svc_id_list(&matching_svcs_list);
 	}
 

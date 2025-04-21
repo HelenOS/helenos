@@ -154,13 +154,7 @@ static errno_t meta_gmirror_init_meta2vol(const list_t *list, hr_volume_t *vol)
 		struct g_mirror_metadata *iter_meta = iter->md;
 
 		vol->extents[index].svc_id = iter->svc_id;
-
-		uint64_t blkno;
-		rc = block_get_nblocks(iter->svc_id, &blkno);
-		if (rc != EOK)
-			goto error;
-
-		vol->extents[index].blkno = blkno;
+		iter->fini = false;
 
 		if (iter_meta->md_genid == max_counter_val)
 			vol->extents[index].status = HR_EXT_ONLINE;

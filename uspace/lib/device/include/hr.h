@@ -98,7 +98,6 @@ typedef struct hr_config {
 typedef struct hr_extent {
 	service_id_t	svc_id;
 	hr_ext_status_t	status;
-	uint64_t	blkno;
 } hr_extent_t;
 
 typedef struct hr_vol_info {
