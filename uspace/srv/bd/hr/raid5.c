@@ -106,6 +106,8 @@ errno_t hr_raid5_create(hr_volume_t *new_volume)
 
 	errno_t rc = hr_raid5_update_vol_status(new_volume);
 	if (rc != EOK) {
+		HR_NOTE("\"%s\": unusable state, not creating\n",
+		    new_volume->devname);
 		fibril_rwlock_write_unlock(&new_volume->states_lock);
 		return rc;
 	}

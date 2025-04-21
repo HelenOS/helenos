@@ -114,8 +114,11 @@ errno_t hr_raid1_create(hr_volume_t *new_volume)
 	fibril_rwlock_read_lock(&new_volume->states_lock);
 	hr_vol_status_t state = new_volume->status;
 	fibril_rwlock_read_unlock(&new_volume->states_lock);
-	if (state == HR_VOL_FAULTY || state == HR_VOL_NONE)
+	if (state == HR_VOL_FAULTY || state == HR_VOL_NONE) {
+		HR_NOTE("\"%s\": unusable state, not creating\n",
+		    new_volume->devname);
 		return EINVAL;
+	}
 
 	return EOK;
 }

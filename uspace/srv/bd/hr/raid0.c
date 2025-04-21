@@ -92,8 +92,11 @@ errno_t hr_raid0_create(hr_volume_t *new_volume)
 	}
 
 	hr_raid0_update_vol_status(new_volume);
-	if (new_volume->status != HR_VOL_ONLINE)
+	if (new_volume->status != HR_VOL_ONLINE) {
+		HR_NOTE("\"%s\": unusable state, not creating\n",
+		    new_volume->devname);
 		return EINVAL;
+	}
 
 	bd_srvs_init(&new_volume->hr_bds);
 	new_volume->hr_bds.ops = &hr_raid0_bd_ops;
