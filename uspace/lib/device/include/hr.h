@@ -114,6 +114,13 @@ typedef struct hr_vol_info {
 	uint8_t		 layout;
 } hr_vol_info_t;
 
+typedef enum {
+	HR_METADATA_NATIVE	= 0,
+	HR_METADATA_GEOM_MIRROR	= 1,
+	HR_METADATA_GEOM_STRIPE = 2,
+	HR_METADATA_LAST_DUMMY	= 3
+} hr_metadata_type_t;
+
 extern errno_t		 hr_sess_init(hr_t **);
 extern void		 hr_sess_destroy(hr_t *);
 extern errno_t		 hr_create(hr_t *, hr_config_t *);
@@ -125,6 +132,7 @@ extern errno_t		 hr_print_status(void);
 extern const char	*hr_get_vol_status_msg(hr_vol_status_t);
 extern const char	*hr_get_ext_status_msg(hr_ext_status_t);
 extern const char	*hr_get_layout_str(hr_level_t, uint8_t);
+extern const char	*hr_get_metadata_type_str(hr_metadata_type_t);
 
 #endif
 

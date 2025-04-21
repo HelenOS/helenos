@@ -60,7 +60,7 @@ static hr_superblock_ops_t *hr_superblock_ops_all[] = {
 	[HR_METADATA_GEOM_MIRROR] = &metadata_gmirror_ops
 };
 
-hr_superblock_ops_t *get_type_ops(metadata_type_t type)
+hr_superblock_ops_t *get_type_ops(hr_metadata_type_t type)
 {
 	assert(type >= HR_METADATA_NATIVE && type < HR_METADATA_LAST_DUMMY);
 
@@ -68,7 +68,7 @@ hr_superblock_ops_t *get_type_ops(metadata_type_t type)
 }
 
 errno_t find_metadata(service_id_t svc_id, void **rmetadata,
-    metadata_type_t *rtype)
+    hr_metadata_type_t *rtype)
 {
 	HR_DEBUG("%s()", __func__);
 
@@ -82,7 +82,7 @@ errno_t find_metadata(service_id_t svc_id, void **rmetadata,
 	if (rtype == NULL)
 		return EINVAL;
 
-	volatile metadata_type_t type = HR_METADATA_NATIVE;
+	volatile hr_metadata_type_t type = HR_METADATA_NATIVE;
 	for (; type < HR_METADATA_LAST_DUMMY; type++) {
 		meta_ops = hr_superblock_ops_all[type];
 

@@ -455,5 +455,19 @@ const char *hr_get_layout_str(hr_level_t level, uint8_t layout)
 	}
 }
 
+const char *hr_get_metadata_type_str(hr_metadata_type_t type)
+{
+	switch (type) {
+	case HR_METADATA_NATIVE:
+		return "Native HelenRAID metadata";
+	case HR_METADATA_GEOM_MIRROR:
+		return "GEOM::MIRROR";
+	case HR_METADATA_GEOM_STRIPE:
+		return "GEOM::STRIPE";
+	default:
+		return "Invalid metadata type value";
+	}
+}
+
 /** @}
  */

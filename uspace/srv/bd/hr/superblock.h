@@ -40,12 +40,6 @@
 
 typedef struct hr_volume hr_volume_t;
 
-typedef enum {
-	HR_METADATA_NATIVE	= 0,
-	HR_METADATA_GEOM_MIRROR	= 1,
-	HR_METADATA_LAST_DUMMY	= 2
-} metadata_type_t;
-
 #define HR_METADATA_HOTSPARE_SUPPORT 0x01
 
 typedef struct hr_superblock_ops {
@@ -65,12 +59,12 @@ typedef struct hr_superblock_ops {
 	uint64_t	 (*get_data_offset)(void);
 	size_t		 (*get_size)(void);
 	uint8_t		 (*get_flags)(void);
-	metadata_type_t	 (*get_type)(void);
 	void		 (*dump)(const void *);
+	hr_metadata_type_t (*get_type)(void);
 } hr_superblock_ops_t;
 
-hr_superblock_ops_t *get_type_ops(metadata_type_t);
-extern errno_t	find_metadata(service_id_t, void **, metadata_type_t *);
+extern hr_superblock_ops_t *get_type_ops(hr_metadata_type_t);
+extern errno_t	find_metadata(service_id_t, void **, hr_metadata_type_t *);
 
 #endif
 

@@ -63,8 +63,8 @@ static errno_t	hr_fill_disk_part_svcs_list(list_t *);
 static errno_t	block_init_dev_list(list_t *);
 static void	block_fini_dev_list(list_t *);
 static errno_t	hr_util_get_matching_md_svcs_list(list_t *, list_t *,
-    service_id_t, metadata_type_t, void *);
-static errno_t	hr_util_assemble_from_matching_list(list_t *, metadata_type_t);
+    service_id_t, hr_metadata_type_t, void *);
+static errno_t	hr_util_assemble_from_matching_list(list_t *, hr_metadata_type_t);
 static errno_t	hr_fill_svcs_list_from_cfg(hr_config_t *, list_t *);
 
 #define HR_RL_LIST_LOCK(vol) (fibril_mutex_lock(&(vol)->range_lock_list_lock))
@@ -76,7 +76,7 @@ extern list_t hr_volumes;
 extern fibril_rwlock_t hr_volumes_lock;
 
 errno_t hr_create_vol_struct(hr_volume_t **rvol, hr_level_t level,
-    const char *devname, metadata_type_t metadata_type)
+    const char *devname, hr_metadata_type_t metadata_type)
 {
 	errno_t rc;
 
@@ -751,7 +751,8 @@ static void block_fini_dev_list(list_t *list)
 }
 
 static errno_t hr_util_get_matching_md_svcs_list(list_t *rlist, list_t *list,
-    service_id_t svc_id, metadata_type_t type_main, void *metadata_struct_main)
+    service_id_t svc_id, hr_metadata_type_t type_main,
+    void *metadata_struct_main)
 {
 	HR_DEBUG("%s()", __func__);
 
@@ -764,7 +765,7 @@ static errno_t hr_util_get_matching_md_svcs_list(list_t *rlist, list_t *list,
 			continue;
 
 		void *metadata_struct;
-		metadata_type_t type;
+		hr_metadata_type_t type;
 
 		rc = find_metadata(iter->svc_id, &metadata_struct, &type);
 		if (rc == ENOFS)
@@ -796,7 +797,7 @@ error:
 }
 
 static errno_t hr_util_assemble_from_matching_list(list_t *list,
-    metadata_type_t type)
+    hr_metadata_type_t type)
 {
 	HR_DEBUG("%s()", __func__);
 
@@ -929,7 +930,7 @@ errno_t hr_util_try_assemble(hr_config_t *cfg, size_t *rassembled_cnt)
 		iter = list_pop(&dev_id_list, struct dev_list_member, link);
 
 		void *metadata_struct_main;
-		metadata_type_t type;
+		hr_metadata_type_t type;
 
 		rc = find_metadata(iter->svc_id, &metadata_struct_main, &type);
 		if (rc == ENOFS) {
@@ -946,10 +947,9 @@ errno_t hr_util_try_assemble(hr_config_t *cfg, size_t *rassembled_cnt)
 		rc = loc_service_get_name(iter->svc_id, &svc_name);
 		if (rc != EOK)
 			goto error;
-
-		HR_DEBUG("found valid metadata on %s, "
-		    "will try to match other extents\n", svc_name);
-
+		HR_DEBUG("found valid metadata on %s (type = %s), matching "
+		    "other extents\n",
+		    svc_name, hr_get_metadata_type_str(type));
 		free(svc_name);
 
 		list_t matching_svcs_list;

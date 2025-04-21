@@ -69,7 +69,7 @@ static hr_level_t	 meta_native_get_level(const void *);
 static uint64_t		 meta_native_get_data_offset(void);
 static size_t		 meta_native_get_size(void);
 static uint8_t		 meta_native_get_flags(void);
-static metadata_type_t	 meta_native_get_type(void);
+static hr_metadata_type_t meta_native_get_type(void);
 static void		 meta_native_dump(const void *);
 
 hr_superblock_ops_t metadata_native_ops = {
@@ -433,7 +433,7 @@ static uint8_t meta_native_get_flags(void)
 	return flags;
 }
 
-static metadata_type_t meta_native_get_type(void)
+static hr_metadata_type_t meta_native_get_type(void)
 {
 	return HR_METADATA_NATIVE;
 }
