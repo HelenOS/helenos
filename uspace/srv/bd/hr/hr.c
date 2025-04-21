@@ -327,8 +327,9 @@ static void hr_add_hotspare_srv(ipc_call_t *icall)
 	}
 
 	if (vol->hr_ops.add_hotspare == NULL) {
-		HR_DEBUG("hr_add_hotspare(): not supported on RAID level %d\n",
-		    vol->level);
+		HR_NOTE("hotspare not supported on RAID level = %d, "
+		    "metadata type = %s\n", vol->level,
+		    hr_get_metadata_type_str(vol->meta_ops->get_type()));
 		async_answer_0(icall, ENOTSUP);
 		return;
 	}
