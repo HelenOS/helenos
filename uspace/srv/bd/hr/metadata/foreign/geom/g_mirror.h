@@ -132,7 +132,7 @@ mirror_metadata_encode(struct g_mirror_metadata *md, u_char *data)
 
 	errno_t rc = create_hash(data, 119, md5_hash, HASH_MD5);
 	assert(rc == EOK);
-	bcopy(md->md_hash, data + 119, 16);
+	bcopy(md5_hash, data + 119, 16);
 }
 
 static __inline int
@@ -160,8 +160,7 @@ mirror_metadata_decode_v3v4(const u_char *data, struct g_mirror_metadata *md)
 
 	errno_t rc = create_hash(data, 119, md5_hash, HASH_MD5);
 	assert(rc == EOK);
-	memcpy(md->md_hash, data + 119, 16);
-	if (memcmp(md->md_hash, data + 119, 16) != 0)
+	if (memcmp(md->md_hash, md5_hash, 16) != 0)
 		return (EINVAL);
 
 	return (0);
