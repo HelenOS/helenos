@@ -51,16 +51,18 @@
 
 #include "metadata/foreign/geom/g_mirror.h"
 #include "metadata/foreign/geom/g_stripe.h"
+#include "metadata/foreign/softraid/softraidvar.h"
+
 #include "metadata/native.h"
 
 extern hr_superblock_ops_t metadata_native_ops;
 extern hr_superblock_ops_t metadata_gmirror_ops;
-extern hr_superblock_ops_t metadata_stripe_ops;
+extern hr_superblock_ops_t metadata_gstripe_ops;
 
 static hr_superblock_ops_t *hr_superblock_ops_all[] = {
 	[HR_METADATA_NATIVE] = &metadata_native_ops,
 	[HR_METADATA_GEOM_MIRROR] = &metadata_gmirror_ops,
-	[HR_METADATA_GEOM_STRIPE] = &metadata_stripe_ops
+	[HR_METADATA_GEOM_STRIPE] = &metadata_gstripe_ops
 };
 
 hr_superblock_ops_t *get_type_ops(hr_metadata_type_t type)

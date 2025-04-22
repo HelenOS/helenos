@@ -52,60 +52,60 @@
 
 #include "g_stripe.h"
 
-static void		*meta_stripe_alloc_struct(void);
-static errno_t		 meta_stripe_init_vol2meta(const hr_volume_t *, void *);
-static errno_t		 meta_stripe_init_meta2vol(const list_t *,
+static void		*meta_gstripe_alloc_struct(void);
+static errno_t		 meta_gstripe_init_vol2meta(const hr_volume_t *, void *);
+static errno_t		 meta_gstripe_init_meta2vol(const list_t *,
     hr_volume_t *);
-static void		 meta_stripe_encode(void *, void *);
-static errno_t		 meta_stripe_decode(const void *, void *);
-static errno_t		 meta_stripe_get_block(service_id_t, void **);
-static errno_t		 meta_stripe_write_block(service_id_t, const void *);
-static bool		 meta_stripe_has_valid_magic(const void *);
-static bool		 meta_stripe_compare_uuids(const void *, const void *);
-static void		 meta_stripe_inc_counter(void *);
-static errno_t		 meta_stripe_save(hr_volume_t *, bool);
-static const char	*meta_stripe_get_devname(const void *);
-static hr_level_t	 meta_stripe_get_level(const void *);
-static uint64_t		 meta_stripe_get_data_offset(void);
-static size_t		 meta_stripe_get_size(void);
-static uint8_t		 meta_stripe_get_flags(void);
-static hr_metadata_type_t	 meta_stripe_get_type(void);
-static void		 meta_stripe_dump(const void *);
+static void		 meta_gstripe_encode(void *, void *);
+static errno_t		 meta_gstripe_decode(const void *, void *);
+static errno_t		 meta_gstripe_get_block(service_id_t, void **);
+static errno_t		 meta_gstripe_write_block(service_id_t, const void *);
+static bool		 meta_gstripe_has_valid_magic(const void *);
+static bool		 meta_gstripe_compare_uuids(const void *, const void *);
+static void		 meta_gstripe_inc_counter(void *);
+static errno_t		 meta_gstripe_save(hr_volume_t *, bool);
+static const char	*meta_gstripe_get_devname(const void *);
+static hr_level_t	 meta_gstripe_get_level(const void *);
+static uint64_t		 meta_gstripe_get_data_offset(void);
+static size_t		 meta_gstripe_get_size(void);
+static uint8_t		 meta_gstripe_get_flags(void);
+static hr_metadata_type_t	 meta_gstripe_get_type(void);
+static void		 meta_gstripe_dump(const void *);
 
-hr_superblock_ops_t metadata_stripe_ops = {
-	.alloc_struct		= meta_stripe_alloc_struct,
-	.init_vol2meta		= meta_stripe_init_vol2meta,
-	.init_meta2vol		= meta_stripe_init_meta2vol,
-	.encode			= meta_stripe_encode,
-	.decode			= meta_stripe_decode,
-	.get_block		= meta_stripe_get_block,
-	.write_block		= meta_stripe_write_block,
-	.has_valid_magic	= meta_stripe_has_valid_magic,
-	.compare_uuids		= meta_stripe_compare_uuids,
-	.inc_counter		= meta_stripe_inc_counter,
-	.save			= meta_stripe_save,
-	.get_devname		= meta_stripe_get_devname,
-	.get_level		= meta_stripe_get_level,
-	.get_data_offset	= meta_stripe_get_data_offset,
-	.get_size		= meta_stripe_get_size,
-	.get_flags		= meta_stripe_get_flags,
-	.get_type		= meta_stripe_get_type,
-	.dump			= meta_stripe_dump
+hr_superblock_ops_t metadata_gstripe_ops = {
+	.alloc_struct		= meta_gstripe_alloc_struct,
+	.init_vol2meta		= meta_gstripe_init_vol2meta,
+	.init_meta2vol		= meta_gstripe_init_meta2vol,
+	.encode			= meta_gstripe_encode,
+	.decode			= meta_gstripe_decode,
+	.get_block		= meta_gstripe_get_block,
+	.write_block		= meta_gstripe_write_block,
+	.has_valid_magic	= meta_gstripe_has_valid_magic,
+	.compare_uuids		= meta_gstripe_compare_uuids,
+	.inc_counter		= meta_gstripe_inc_counter,
+	.save			= meta_gstripe_save,
+	.get_devname		= meta_gstripe_get_devname,
+	.get_level		= meta_gstripe_get_level,
+	.get_data_offset	= meta_gstripe_get_data_offset,
+	.get_size		= meta_gstripe_get_size,
+	.get_flags		= meta_gstripe_get_flags,
+	.get_type		= meta_gstripe_get_type,
+	.dump			= meta_gstripe_dump
 };
 
-static void *meta_stripe_alloc_struct(void)
+static void *meta_gstripe_alloc_struct(void)
 {
 	return calloc(1, sizeof(struct g_stripe_metadata));
 }
 
-static errno_t meta_stripe_init_vol2meta(const hr_volume_t *vol, void *md_v)
+static errno_t meta_gstripe_init_vol2meta(const hr_volume_t *vol, void *md_v)
 {
 	(void)vol;
 	(void)md_v;
 	return ENOTSUP;
 }
 
-static errno_t meta_stripe_init_meta2vol(const list_t *list, hr_volume_t *vol)
+static errno_t meta_gstripe_init_meta2vol(const list_t *list, hr_volume_t *vol)
 {
 	HR_DEBUG("%s()", __func__);
 
@@ -127,7 +127,7 @@ static errno_t meta_stripe_init_meta2vol(const list_t *list, hr_volume_t *vol)
 	list_foreach(*list, link, struct dev_list_member, iter) {
 		struct g_stripe_metadata *iter_meta = iter->md;
 
-		meta_stripe_dump(iter_meta);
+		meta_gstripe_dump(iter_meta);
 
 		if (iter_meta->md_provsize < smallest_provider_size) {
 			smallest_provider_size = iter_meta->md_provsize;
@@ -178,14 +178,14 @@ error:
 	return rc;
 }
 
-static void meta_stripe_encode(void *md_v, void *block)
+static void meta_gstripe_encode(void *md_v, void *block)
 {
 	HR_DEBUG("%s()", __func__);
 
 	stripe_metadata_encode(md_v, block);
 }
 
-static errno_t meta_stripe_decode(const void *block, void *md_v)
+static errno_t meta_gstripe_decode(const void *block, void *md_v)
 {
 	HR_DEBUG("%s()", __func__);
 
@@ -194,7 +194,7 @@ static errno_t meta_stripe_decode(const void *block, void *md_v)
 	return EOK;
 }
 
-static errno_t meta_stripe_get_block(service_id_t dev, void **rblock)
+static errno_t meta_gstripe_get_block(service_id_t dev, void **rblock)
 {
 	HR_DEBUG("%s()", __func__);
 
@@ -239,7 +239,7 @@ static errno_t meta_stripe_get_block(service_id_t dev, void **rblock)
 	return EOK;
 }
 
-static errno_t meta_stripe_write_block(service_id_t dev, const void *block)
+static errno_t meta_gstripe_write_block(service_id_t dev, const void *block)
 {
 	HR_DEBUG("%s()", __func__);
 
@@ -266,7 +266,7 @@ static errno_t meta_stripe_write_block(service_id_t dev, const void *block)
 	return rc;
 }
 
-static bool meta_stripe_has_valid_magic(const void *md_v)
+static bool meta_gstripe_has_valid_magic(const void *md_v)
 {
 	HR_DEBUG("%s()", __func__);
 
@@ -278,7 +278,7 @@ static bool meta_stripe_has_valid_magic(const void *md_v)
 	return true;
 }
 
-static bool meta_stripe_compare_uuids(const void *md1_v, const void *md2_v)
+static bool meta_gstripe_compare_uuids(const void *md1_v, const void *md2_v)
 {
 	const struct g_stripe_metadata *md1 = md1_v;
 	const struct g_stripe_metadata *md2 = md2_v;
@@ -288,55 +288,55 @@ static bool meta_stripe_compare_uuids(const void *md1_v, const void *md2_v)
 	return false;
 }
 
-static void meta_stripe_inc_counter(void *md_v)
+static void meta_gstripe_inc_counter(void *md_v)
 {
 	(void)md_v;
 }
 
-static errno_t meta_stripe_save(hr_volume_t *vol, bool with_state_callback)
+static errno_t meta_gstripe_save(hr_volume_t *vol, bool with_state_callback)
 {
 	HR_DEBUG("%s()", __func__);
 
 	return EOK;
 }
 
-static const char *meta_stripe_get_devname(const void *md_v)
+static const char *meta_gstripe_get_devname(const void *md_v)
 {
 	const struct g_stripe_metadata *md = md_v;
 
 	return md->md_name;
 }
 
-static hr_level_t meta_stripe_get_level(const void *md_v)
+static hr_level_t meta_gstripe_get_level(const void *md_v)
 {
 	(void)md_v;
 
 	return HR_LVL_0;
 }
 
-static uint64_t meta_stripe_get_data_offset(void)
+static uint64_t meta_gstripe_get_data_offset(void)
 {
 	return 0;
 }
 
-static size_t meta_stripe_get_size(void)
+static size_t meta_gstripe_get_size(void)
 {
 	return 1;
 }
 
-static uint8_t meta_stripe_get_flags(void)
+static uint8_t meta_gstripe_get_flags(void)
 {
 	uint8_t flags = 0;
 
 	return flags;
 }
 
-static hr_metadata_type_t meta_stripe_get_type(void)
+static hr_metadata_type_t meta_gstripe_get_type(void)
 {
 	return 	HR_METADATA_GEOM_STRIPE;
 }
 
-static void meta_stripe_dump(const void *md_v)
+static void meta_gstripe_dump(const void *md_v)
 {
 	HR_DEBUG("%s()", __func__);
 

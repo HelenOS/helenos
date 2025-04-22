@@ -102,6 +102,7 @@ static errno_t meta_gmirror_init_vol2meta(const hr_volume_t *vol, void *md_v)
 {
 	(void)vol;
 	(void)md_v;
+
 	return ENOTSUP;
 }
 
@@ -112,7 +113,7 @@ static errno_t meta_gmirror_init_meta2vol(const list_t *list, hr_volume_t *vol)
 	errno_t rc = EOK;
 
 	struct g_mirror_metadata *main_meta = NULL;
-	size_t max_counter_val = 0;
+	uint64_t max_counter_val = 0;
 
 	list_foreach(*list, link, struct dev_list_member, iter) {
 		struct g_mirror_metadata *iter_meta = iter->md;
@@ -156,6 +157,7 @@ static errno_t meta_gmirror_init_meta2vol(const list_t *list, hr_volume_t *vol)
 		vol->extents[index].svc_id = iter->svc_id;
 		iter->fini = false;
 
+		/* for now no md_sync_offset handling for saved REBUILD */
 		if (iter_meta->md_genid == max_counter_val)
 			vol->extents[index].status = HR_EXT_ONLINE;
 		else
@@ -290,54 +292,22 @@ static void meta_gmirror_inc_counter(void *md_v)
 	md->md_genid++;
 }
 
-/*
- * XXX: finish this fcn documentation
- *
- * Returns ENOMEM else EOK
- */
 static errno_t meta_gmirror_save(hr_volume_t *vol, bool with_state_callback)
 {
 	HR_DEBUG("%s()", __func__);
 
-	errno_t rc = EOK;
+	(void)vol;
+	(void)with_state_callback;
 
-	void *md_block = calloc(1, vol->bsize);
-	if (md_block == NULL)
-		return ENOMEM;
+	/*
+	 * cannot support right now, because would need to store the
+	 * metadata for all disks, because of hardcoded provider names and
+	 * most importantly, disk unique ids
+	 */
 
-	struct g_mirror_metadata *md = vol->in_mem_md;
-
-	fibril_rwlock_read_lock(&vol->extents_lock);
-
-	fibril_mutex_lock(&vol->md_lock);
-
-	for (size_t i = 0; i < vol->extent_no; i++) {
-		hr_extent_t *ext = &vol->extents[i];
-
-		fibril_rwlock_read_lock(&vol->states_lock);
-
-		/* TODO: special case for REBUILD */
-		if (ext->status != HR_EXT_ONLINE)
-			continue;
-
-		fibril_rwlock_read_unlock(&vol->states_lock);
-
-		md->md_priority = i;
-		meta_gmirror_encode(md, md_block);
-		rc = meta_gmirror_write_block(ext->svc_id, md_block);
-		if (with_state_callback && rc != EOK)
-			vol->state_callback(vol, i, rc);
-	}
-
-	fibril_mutex_unlock(&vol->md_lock);
-
-	fibril_rwlock_read_unlock(&vol->extents_lock);
-
-	if (with_state_callback)
-		vol->hr_ops.status_event(vol);
-
-	free(md_block);
+	/* silent */
 	return EOK;
+	/* return ENOTSUP; */
 }
 
 static const char *meta_gmirror_get_devname(const void *md_v)
