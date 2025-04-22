@@ -139,7 +139,7 @@ static errno_t meta_native_init_meta2vol(const list_t *list, hr_volume_t *vol)
 	HR_DEBUG("%s()", __func__);
 
 	hr_metadata_t *main_meta = NULL;
-	size_t max_counter_val = 0;
+	uint64_t max_counter_val = 0;
 
 	list_foreach(*list, link, struct dev_list_member, iter) {
 		hr_metadata_t *iter_meta = (hr_metadata_t *)iter->md;
