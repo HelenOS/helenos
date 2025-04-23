@@ -78,6 +78,8 @@ extern fibril_rwlock_t hr_volumes_lock;
 errno_t hr_create_vol_struct(hr_volume_t **rvol, hr_level_t level,
     const char *devname, hr_metadata_type_t metadata_type)
 {
+	HR_DEBUG("%s()", __func__);
+
 	errno_t rc;
 
 	hr_volume_t *vol = calloc(1, sizeof(hr_volume_t));
@@ -809,7 +811,7 @@ static errno_t hr_util_assemble_from_matching_list(list_t *list,
 	hr_volume_t *vol;
 	rc = hr_create_vol_struct(&vol, level, devname, type);
 	if (rc != EOK)
-		goto error;
+		return rc;
 
 	meta_ops->init_meta2vol(list, vol);
 
