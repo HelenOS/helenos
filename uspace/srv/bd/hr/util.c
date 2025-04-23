@@ -105,12 +105,6 @@ errno_t hr_create_vol_struct(hr_volume_t **rvol, hr_level_t level,
 			vol->hr_ops.add_hotspare = hr_raid1_add_hotspare;
 		break;
 	case HR_LVL_4:
-		vol->hr_ops.create = hr_raid5_create;
-		vol->hr_ops.init = hr_raid5_init;
-		vol->hr_ops.status_event = hr_raid5_status_event;
-		if (meta_flags & HR_METADATA_HOTSPARE_SUPPORT)
-			vol->hr_ops.add_hotspare = hr_raid5_add_hotspare;
-		break;
 	case HR_LVL_5:
 		vol->hr_ops.create = hr_raid5_create;
 		vol->hr_ops.init = hr_raid5_init;
