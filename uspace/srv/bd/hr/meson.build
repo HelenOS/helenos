@@ -33,6 +33,8 @@ src = files(
             'io.c',
             'metadata/foreign/geom/hr_g_mirror.c',
             'metadata/foreign/geom/hr_g_stripe.c',
+            'metadata/foreign/softraid/hr_softraid.c',
+            'metadata/foreign/softraid/softraid.c',
             'metadata/native.c',
             'raid0.c',
             'raid1.c',
