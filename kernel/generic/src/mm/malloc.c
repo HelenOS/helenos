@@ -189,7 +189,11 @@ void *malloc(size_t size)
 	if (size + _offset < size)
 		return NULL;
 
-	void *obj = mem_alloc(alignof(max_align_t), size + _offset) + _offset;
+	void *obj = mem_alloc(alignof(max_align_t), size + _offset);
+	if (!obj)
+	   return NULL;
+
+	obj += _offset;
 
 	/* Remember the allocation size just before the object. */
 	((size_t *) obj)[-1] = size;
