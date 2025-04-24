@@ -169,8 +169,6 @@ static errno_t meta_softraid_init_meta2vol(const list_t *list, hr_volume_t *vol)
 			vol->extents[index].status = HR_EXT_ONLINE;
 		else
 			vol->extents[index].status = HR_EXT_INVALID;
-
-		index++;
 	}
 
 	for (size_t i = 0; i < vol->extent_no; i++) {
