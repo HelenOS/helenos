@@ -191,7 +191,7 @@ void *malloc(size_t size)
 
 	void *obj = mem_alloc(alignof(max_align_t), size + _offset);
 	if (!obj)
-	   return NULL;
+		return NULL;
 
 	obj += _offset;
 
@@ -208,8 +208,10 @@ void free(void *obj)
 	 * select the correct slab cache. If the selected cache is not correct,
 	 * slab_free() will detect it and panic.
 	 */
-	size_t size = ((size_t *) obj)[-1];
-	mem_free(obj - _offset, alignof(max_align_t), size + _offset);
+	if (obj) {
+		size_t size = ((size_t *) obj)[-1];
+		mem_free(obj - _offset, alignof(max_align_t), size + _offset);
+	}
 }
 
 void *realloc(void *old_obj, size_t new_size)
