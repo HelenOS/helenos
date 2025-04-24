@@ -165,7 +165,7 @@ foreach l : libs
 	c_args = []
 
 	# Shared object version of the library.
-	version = '0.0'
+	version = '0'
 
 	# Sources of unit tests.
 	# Automatically get compiled into a test binary,
@@ -243,7 +243,7 @@ foreach l : libs
 	if src.length() > 0
 		if not always_static
 			_libname_unversioned = 'lib' + l + '.so'
-			_libname = _libname_unversioned + '.' + version.split('.')[0]
+			_libname = _libname_unversioned + '.' + version
 
 			_shared_lib = shared_library(l, src,
 				# TODO: Include private headers using #include "quoted",
