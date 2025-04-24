@@ -49,3 +49,4 @@ test_src = files(
 	'test/eth_addr.c',
 	'test/main.c',
 )
+allow_shared = true

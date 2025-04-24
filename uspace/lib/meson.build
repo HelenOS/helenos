@@ -242,7 +242,8 @@ foreach l : libs
 
 	if src.length() > 0
 		if not always_static
-			_libname = 'lib' + l + '.so.' + version.split('.')[0]
+			_libname_unversioned = 'lib' + l + '.so'
+			_libname = _libname_unversioned + '.' + version.split('.')[0]
 
 			_shared_lib = shared_library(l, src,
 				# TODO: Include private headers using #include "quoted",
@@ -287,6 +288,7 @@ foreach l : libs
 				include_directories: includes,
 				dependencies: _shared_deps,
 			)
+			exported_devel_files += ['sharedlib', _shared_lib, _libname_unversioned]
 		endif
 
 		_static_lib = static_library(l, src,
