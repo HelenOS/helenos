@@ -47,7 +47,7 @@ while [ "$#" -gt 0 ]; do
         sharedlib)
             filename="$(basename "$2")"
             major_versioned_name="$3"
-            # strip the last `.123` part
+            # libfoo.so.5 -> libfoo.so (remove the last part delimited by dot)
             unversioned_name="$(echo "$major_versioned_name" | rev | cut -d. -f2- | rev)"
             cp -L "$2" "${target_dir}/lib/$filename"
             ln -s "$filename" "${target_dir}/lib/$major_versioned_name"
