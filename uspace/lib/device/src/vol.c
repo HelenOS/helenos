@@ -607,5 +607,59 @@ errno_t vol_info(vol_t *vol, volume_id_t vid, vol_info_t *vinfo)
 	return EOK;
 }
 
+/** Find volume by current mount point.
+ *
+ * @param vol Volume service
+ * @param mp Mount point
+ * @param rid Place to store partition service ID
+ * @return EOK on success or an error code
+ */
+errno_t vol_part_by_mp(vol_t *vol, const char *mp, service_id_t *rid)
+{
+	vol_part_info_t vinfo;
+	service_id_t *part_ids = NULL;
+	char *canon_mp_buf = NULL;
+	char *canon_mp;
+	size_t nparts;
+	size_t i;
+	errno_t rc;
+
+	canon_mp_buf = str_dup(mp);
+	if (canon_mp_buf == NULL) {
+		rc = ENOMEM;
+		goto out;
+	}
+
+	canon_mp = vfs_absolutize(canon_mp_buf, NULL);
+	if (canon_mp == NULL) {
+		rc = EINVAL;
+		goto out;
+	}
+
+	rc = vol_get_parts(vol, &part_ids, &nparts);
+	if (rc != EOK)
+		goto out;
+
+	for (i = 0; i < nparts; i++) {
+		rc = vol_part_info(vol, part_ids[i], &vinfo);
+		if (rc != EOK) {
+			rc = EIO;
+			goto out;
+		}
+
+		if (str_cmp(vinfo.cur_mp, canon_mp) == 0) {
+			*rid = part_ids[i];
+			rc = EOK;
+			goto out;
+		}
+	}
+
+	rc = ENOENT;
+out:
+	free(part_ids);
+	free(canon_mp_buf);
+	return rc;
+}
+
 /** @}
  */

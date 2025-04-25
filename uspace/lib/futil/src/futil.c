@@ -98,9 +98,12 @@ errno_t futil_copy_file(futil_t *futil, const char *srcp, const char *destp)
 	if (rc != EOK)
 		return EIO;
 
-	rc = vfs_lookup_open(destp, WALK_REGULAR | WALK_MAY_CREATE, MODE_WRITE, &df);
-	if (rc != EOK)
+	rc = vfs_lookup_open(destp, WALK_REGULAR | WALK_MAY_CREATE, MODE_WRITE,
+	    &df);
+	if (rc != EOK) {
+		vfs_put(sf);
 		return EIO;
+	}
 
 	do {
 		rc = vfs_read(sf, &posr, buf, BUF_SIZE, &nr);
@@ -151,36 +154,48 @@ errno_t futil_rcopy_contents(futil_t *futil, const char *srcdir,
 
 	de = readdir(dir);
 	while (de != NULL) {
-		if (asprintf(&srcp, "%s/%s", srcdir, de->d_name) < 0)
-			return ENOMEM;
-		if (asprintf(&destp, "%s/%s", destdir, de->d_name) < 0)
-			return ENOMEM;
+		if (asprintf(&srcp, "%s/%s", srcdir, de->d_name) < 0) {
+			rc = ENOMEM;
+			goto error;
+		}
+
+		if (asprintf(&destp, "%s/%s", destdir, de->d_name) < 0) {
+			rc = ENOMEM;
+			goto error;
+		}
 
 		rc = vfs_stat_path(srcp, &s);
 		if (rc != EOK)
-			return EIO;
+			goto error;
 
 		if (s.is_file) {
 			rc = futil_copy_file(futil, srcp, destp);
-			if (rc != EOK)
-				return EIO;
+			if (rc != EOK) {
+				rc = EIO;
+				goto error;
+			}
 		} else if (s.is_directory) {
 			if (futil->cb != NULL && futil->cb->create_dir != NULL)
 				futil->cb->create_dir(futil->cb_arg, destp);
 			rc = vfs_link_path(destp, KIND_DIRECTORY, NULL);
 			if (rc != EOK)
-				return EIO;
+				goto error;
 			rc = futil_rcopy_contents(futil, srcp, destp);
 			if (rc != EOK)
-				return EIO;
+				goto error;
 		} else {
-			return EIO;
+			rc = EIO;
+			goto error;
 		}
 
 		de = readdir(dir);
 	}
 
+	closedir(dir);
 	return EOK;
+error:
+	closedir(dir);
+	return rc;
 }
 
 /** Return file contents as a heap-allocated block of bytes.
