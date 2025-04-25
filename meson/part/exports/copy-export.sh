@@ -48,7 +48,7 @@ while [ "$#" -gt 0 ]; do
             filename="$(basename "$2")"
             major_versioned_name="$3"
             # libfoo.so.5 -> libfoo.so (remove the last part delimited by dot)
-            unversioned_name="$(echo "$major_versioned_name" | rev | cut -d. -f2- | rev)"
+            unversioned_name="${major_versioned_name%.[0-9]*}"
             cp -L "$2" "${target_dir}/lib/$filename"
             ln -s "$filename" "${target_dir}/lib/$major_versioned_name"
             ln -s "$filename" "${target_dir}/lib/$unversioned_name"

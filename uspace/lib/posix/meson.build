@@ -30,6 +30,8 @@
 includes += include_directories('include/posix', 'include')
 c_args += [ '-fno-builtin', '-D_XOPEN_SOURCE' ]
 
+allow_shared = true
+
 # TODO
 
 src = files(
@@ -70,4 +72,3 @@ uspace_lib_devel_install_script_text += 'ln -s -r "${DESTDIR}include/libc" "${DE
 
 exported_devel_files += [ 'include', meson.current_source_dir() / 'include' / 'posix', 'libposix' ]
 exported_devel_files += [ 'includesymlink', 'libc', 'libposix' ]
-allow_shared = true

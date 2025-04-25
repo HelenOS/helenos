@@ -26,6 +26,8 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+allow_shared = true
+
 src = files(
 	'src/addr.c',
 	'src/dhcp.c',
@@ -49,4 +51,3 @@ test_src = files(
 	'test/eth_addr.c',
 	'test/main.c',
 )
-allow_shared = true
