@@ -27,6 +27,7 @@
 #
 
 allow_shared = true
+
 src = files(
 	'dltest.c',
 )
