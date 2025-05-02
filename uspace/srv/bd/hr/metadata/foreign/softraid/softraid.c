@@ -76,47 +76,47 @@ sr_meta_print(const struct sr_metadata *m)
 	struct sr_meta_opt_hdr	*omh;
 
 	/* TODO XXX: use PRI for portability */
-	printf("\tssd_magic 0x%lx\n", m->ssdi.ssd_magic);
-	printf("\tssd_version %d\n", m->ssdi.ssd_version);
-	printf("\tssd_vol_flags 0x%x\n", m->ssdi.ssd_vol_flags);
+	printf("\tssd_magic 0x%" PRIx64 "\n", m->ssdi.ssd_magic);
+	printf("\tssd_version %" PRId32 "\n", m->ssdi.ssd_version);
+	printf("\tssd_vol_flags 0x%" PRIx32 "\n", m->ssdi.ssd_vol_flags);
 	printf("\tssd_uuid ");
 	sr_uuid_print(&m->ssdi.ssd_uuid, 1);
-	printf("\tssd_chunk_no %d\n", m->ssdi.ssd_chunk_no);
-	printf("\tssd_chunk_id %d\n", m->ssdi.ssd_chunk_id);
-	printf("\tssd_opt_no %d\n", m->ssdi.ssd_opt_no);
-	printf("\tssd_volid %d\n", m->ssdi.ssd_volid);
-	printf("\tssd_level %d\n", m->ssdi.ssd_level);
-	printf("\tssd_size %ld\n", m->ssdi.ssd_size);
+	printf("\tssd_chunk_no %" PRId32 "\n", m->ssdi.ssd_chunk_no);
+	printf("\tssd_chunk_id %" PRId32 "\n", m->ssdi.ssd_chunk_id);
+	printf("\tssd_opt_no %" PRId32 "\n", m->ssdi.ssd_opt_no);
+	printf("\tssd_volid %" PRId32 "\n", m->ssdi.ssd_volid);
+	printf("\tssd_level %" PRId32 "\n", m->ssdi.ssd_level);
+	printf("\tssd_size %" PRId64 "\n", m->ssdi.ssd_size);
 	printf("\tssd_devname %s\n", m->ssd_devname);
 	printf("\tssd_vendor %s\n", m->ssdi.ssd_vendor);
 	printf("\tssd_product %s\n", m->ssdi.ssd_product);
 	printf("\tssd_revision %s\n", m->ssdi.ssd_revision);
-	printf("\tssd_strip_size %d\n", m->ssdi.ssd_strip_size);
+	printf("\tssd_strip_size %" PRId32 "\n", m->ssdi.ssd_strip_size);
 	printf("\tssd_checksum ");
 	sr_checksum_print(m->ssd_checksum);
 	printf("\n");
-	printf("\tssd_meta_flags 0x%x\n", m->ssd_meta_flags);
-	printf("\tssd_ondisk %lu\n", m->ssd_ondisk);
+	printf("\tssd_meta_flags 0x%" PRIx32 "\n", m->ssd_meta_flags);
+	printf("\tssd_ondisk %" PRId64 "\n", m->ssd_ondisk);
 
 	mc = (struct sr_meta_chunk *)(m + 1);
 	for (i = 0; i < m->ssdi.ssd_chunk_no; i++, mc++) {
-		printf("\t\tscm_volid %d\n", mc->scmi.scm_volid);
-		printf("\t\tscm_chunk_id %d\n", mc->scmi.scm_chunk_id);
+		printf("\t\tscm_volid %" PRId32 "\n", mc->scmi.scm_volid);
+		printf("\t\tscm_chunk_id %" PRId32 "\n", mc->scmi.scm_chunk_id);
 		printf("\t\tscm_devname %s\n", mc->scmi.scm_devname);
-		printf("\t\tscm_size %ld\n", mc->scmi.scm_size);
-		printf("\t\tscm_coerced_size %ld\n", mc->scmi.scm_coerced_size);
+		printf("\t\tscm_size %" PRId64 "\n", mc->scmi.scm_size);
+		printf("\t\tscm_coerced_size %" PRId64 "\n", mc->scmi.scm_coerced_size);
 		printf("\t\tscm_uuid ");
 		sr_uuid_print(&mc->scmi.scm_uuid, 1);
 		printf("\t\tscm_checksum ");
 		sr_checksum_print(mc->scm_checksum);
 		printf("\n");
-		printf("\t\tscm_status %d\n", mc->scm_status);
+		printf("\t\tscm_status %" PRId32 "\n", mc->scm_status);
 	}
 
 	omh = (struct sr_meta_opt_hdr *)((u_int8_t *)(m + 1) +
 	    sizeof(struct sr_meta_chunk) * m->ssdi.ssd_chunk_no);
 	for (i = 0; i < m->ssdi.ssd_opt_no; i++) {
-		printf("\t\t\tsom_type %d\n", omh->som_type);
+		printf("\t\t\tsom_type %" PRId32 "\n", omh->som_type);
 		printf("\t\t\tsom_checksum ");
 		sr_checksum_print(omh->som_checksum);
 		printf("\n");
