@@ -48,12 +48,14 @@ typedef enum {
 	/** Double arrow pointing up-right nad down-left */
 	dcurs_size_urdl,
 	/** I-beam (suggests editable text) */
-	dcurs_ibeam
+	dcurs_ibeam,
+	/** Pointer (suggests clickable object) */
+	dcurs_pointer,
 } display_stock_cursor_t;
 
 enum {
 	/** Number of stock cursor types */
-	dcurs_limit = dcurs_ibeam + 1
+	dcurs_limit = dcurs_pointer + 1
 };
 
 #endif

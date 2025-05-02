@@ -48,7 +48,9 @@ typedef enum {
 	/** Double arrow pointing up-right nad down-left */
 	ui_curs_size_urdl,
 	/** I-beam (suggests editable text) */
-	ui_curs_ibeam
+	ui_curs_ibeam,
+	/** Pointer (suggests clickable object) */
+	ui_curs_pointer,
 } ui_stock_cursor_t;
 
 enum {
