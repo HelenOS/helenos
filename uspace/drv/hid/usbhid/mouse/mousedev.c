@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2011 Lubos Slovak, Vojtech Horky
  * Copyright (c) 2018 Ondrej Hlavaty
  * All rights reserved.
@@ -165,10 +166,8 @@ static void usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 {
 	assert(mouse_dev != NULL);
 
-	if (mouse_dev->mouse_sess == NULL) {
-		usb_log_warning(NAME " No console session.");
+	if (mouse_dev->mouse_sess == NULL)
 		return;
-	}
 
 	const usb_hid_report_field_t *move_x = get_mouse_axis_move_field(
 	    hid_dev->report_id, &hid_dev->report,
