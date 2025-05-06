@@ -157,6 +157,7 @@ static void sysinst_debug(sysinst_t *, const char *);
 static void sysinst_futil_copy_file(void *, const char *, const char *);
 static void sysinst_futil_create_dir(void *, const char *);
 static errno_t sysinst_eject_dev(sysinst_t *, service_id_t);
+static errno_t sysinst_eject_phys_by_mp(sysinst_t *, const char *);
 
 static futil_cb_t sysinst_futil_cb = {
 	.copy_file = sysinst_futil_copy_file,
@@ -271,6 +272,8 @@ static void sysinst_restart_dlg_button(ui_msg_dialog_t *dialog, void *arg,
 	switch (btn) {
 	case 0:
 		/* OK */
+		sysinst_action(sysinst, "Ejecting installation media.");
+		(void)sysinst_eject_phys_by_mp(sysinst, CD_MOUNT_POINT);
 		(void)sysinst_restart(sysinst);
 		break;
 	default:
@@ -896,6 +899,9 @@ static errno_t sysinst_eject_phys_by_mp(sysinst_t *sysinst, const char *path)
 	sysarg_t part_id;
 	errno_t rc;
 
+	log_msg(LOG_DEFAULT, LVL_NOTE,
+	    "sysinst_eject_phys_by_mp(%s)", path);
+
 	rc = vol_create(&vol);
 	if (rc != EOK) {
 		sysinst_error(sysinst, "Error contacting volume service.");
@@ -938,6 +944,8 @@ static errno_t sysinst_restart(sysinst_t *sysinst)
 	fibril_condvar_initialize(&shutdown_cv);
 	shutdown_stopped = false;
 	shutdown_failed = false;
+
+	sysinst_action(sysinst, "Restarting the system.");
 
 	rc = system_open(SYSTEM_DEFAULT, &sysinst_system_cb, NULL, &system);
 	if (rc != EOK) {
@@ -1025,11 +1033,6 @@ static errno_t sysinst_install(sysinst_t *sysinst, const char *dev)
 	if (rc != EOK)
 		return rc;
 
-	sysinst_action(sysinst, "Ejecting installation media.");
-	rc = sysinst_eject_phys_by_mp(sysinst, CD_MOUNT_POINT);
-	if (rc != EOK)
-		return rc;
-
 	return EOK;
 error:
 	if (clean_dev)
@@ -1069,6 +1072,8 @@ static errno_t sysinst_install_fibril(void *arg)
 		goto error;
 
 	sysinst_progress_destroy(sysinst->progress);
+	sysinst->progress = NULL;
+
 	rc = sysinst_restart_dlg_create(sysinst);
 	if (rc != EOK)
 		goto error;
@@ -1247,12 +1252,13 @@ static void sysinst_progress_destroy(sysinst_progress_t *progress)
  */
 static void sysinst_action(sysinst_t *sysinst, const char *action)
 {
+	log_msg(LOG_DEFAULT, LVL_NOTE, "%s", action);
+
 	if (sysinst->progress == NULL)
 		return;
 
 	ui_label_set_text(sysinst->progress->action, action);
 	ui_label_paint(sysinst->progress->action);
-	log_msg(LOG_DEFAULT, LVL_NOTE, "%s", action);
 }
 
 /** Set current error message.
