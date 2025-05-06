@@ -591,8 +591,11 @@ static errno_t sysinst_setup_sysvol(sysinst_t *sysinst)
 	/* Copy initial configuration files */
 	rc = futil_rcopy_contents(sysinst->futil, CFG_FILES_SRC,
 	    CFG_FILES_DEST);
-	if (rc != EOK)
+	if (rc != EOK) {
+		sysinst_error(sysinst, "Error copying initial configuration "
+		    "files.");
 		return rc;
+	}
 
 	return EOK;
 error:
@@ -612,8 +615,11 @@ static errno_t sysinst_copy_boot_files(sysinst_t *sysinst)
 	log_msg(LOG_DEFAULT, LVL_NOTE,
 	    "sysinst_copy_boot_files(): copy bootloader files");
 	rc = futil_rcopy_contents(sysinst->futil, BOOT_FILES_SRC, MOUNT_POINT);
-	if (rc != EOK)
+	if (rc != EOK) {
+		sysinst_error(sysinst, "Error copying bootloader "
+		    "files.");
 		return rc;
+	}
 
 	sysinst_debug(sysinst, "sysinst_copy_boot_files(): OK");
 	return EOK;
@@ -982,32 +988,37 @@ static errno_t sysinst_restart(sysinst_t *sysinst)
 static errno_t sysinst_install(sysinst_t *sysinst, const char *dev)
 {
 	errno_t rc;
+	bool clean_dev = false;
 
 	sysinst_action(sysinst, "Creating device label and file system.");
 
 	rc = sysinst_label_dev(sysinst, dev);
 	if (rc != EOK)
-		return rc;
+		goto error;
+
+	clean_dev = true;
 
 	sysinst_action(sysinst, "Creating system directory structure.");
 	rc = sysinst_setup_sysvol(sysinst);
 	if (rc != EOK)
-		return rc;
+		goto error;
 
 	sysinst_action(sysinst, "Copying boot files.");
 	rc = sysinst_copy_boot_files(sysinst);
 	if (rc != EOK)
-		return rc;
+		goto error;
 
 	sysinst_action(sysinst, "Configuring the system.");
 	rc = sysinst_customize_initrd(sysinst);
 	if (rc != EOK)
-		return rc;
+		goto error;
 
 	sysinst_action(sysinst, "Finishing system volume.");
 	rc = sysinst_finish_dev(sysinst);
 	if (rc != EOK)
-		return rc;
+		goto error;
+
+	clean_dev = false;
 
 	sysinst_action(sysinst, "Installing boot blocks.");
 	rc = sysinst_copy_boot_blocks(sysinst, dev);
@@ -1020,6 +1031,10 @@ static errno_t sysinst_install(sysinst_t *sysinst, const char *dev)
 		return rc;
 
 	return EOK;
+error:
+	if (clean_dev)
+		(void)sysinst_finish_dev(sysinst);
+	return rc;
 }
 
 /** Installation fibril.
