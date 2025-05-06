@@ -245,15 +245,16 @@ static errno_t meta_softraid_decode(const void *block, void *md_v)
 	md->ssdi.ssd_strip_size =
 	    uint32_t_le2host(scratch_md->ssdi.ssd_strip_size);
 
-	memcpy(md->ssd_checksum, scratch_md->ssd_checksum, MD5_DIGEST_LENGTH);
-	rc = create_hash((const uint8_t *)&md->ssdi,
+	rc = create_hash((const uint8_t *)&scratch_md->ssdi,
 	    sizeof(struct sr_meta_invariant), md5_hash, HASH_MD5);
 	assert(rc == EOK);
-	if (memcmp(md5_hash, md->ssd_checksum, 16) != 0) {
+	if (memcmp(md5_hash, scratch_md->ssd_checksum, 16) != 0) {
 		HR_DEBUG("ssd_checksum invalid\n");
 		rc = EINVAL;
 		goto error;
 	}
+
+	memcpy(md->ssd_checksum, scratch_md->ssd_checksum, MD5_DIGEST_LENGTH);
 
 	memcpy(md->ssd_devname, scratch_md->ssd_devname, 32);
 	md->ssd_meta_flags = uint32_t_le2host(scratch_md->ssd_meta_flags);
@@ -290,7 +291,7 @@ static errno_t meta_softraid_decode(const void *block, void *md_v)
 		 * [1]: https://marc.info/?l=openbsd-tech&m=174535579711235&w=2
 		 */
 		/*
-		 * rc = create_hash((const uint8_t *)&mc->scmi,
+		 * rc = create_hash((const uint8_t *)&scratch_mc->scmi,
 		 *     sizeof(struct sr_meta_chunk_invariant), md5_hash, HASH_MD5);
 		 * assert(rc == EOK);
 		 * if (memcmp(md5_hash, mc->scm_checksum, 16) != 0) {
