@@ -42,6 +42,8 @@ typedef enum {
 	HR_ASSEMBLE,
 	HR_AUTO_ASSEMBLE,
 	HR_STOP,
+	HR_STOP_ALL,
+	HR_FAIL_EXTENT,
 	HR_ADD_HOTSPARE,
 	HR_STATUS
 } hr_request_t;

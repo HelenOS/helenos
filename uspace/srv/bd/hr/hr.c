@@ -60,6 +60,7 @@
 static void hr_assemble_srv(ipc_call_t *);
 static void hr_auto_assemble_srv(ipc_call_t *);
 static void hr_stop_srv(ipc_call_t *);
+static void hr_stop_all_srv(ipc_call_t *);
 static void hr_add_hotspare_srv(ipc_call_t *);
 static void hr_print_status_srv(ipc_call_t *);
 static void hr_ctl_conn(ipc_call_t *, void *);
@@ -162,8 +163,7 @@ static void hr_create_srv(ipc_call_t *icall)
 	list_append(&vol->lvolumes, &hr_volumes);
 	fibril_rwlock_write_unlock(&hr_volumes_lock);
 
-	HR_DEBUG("created volume \"%s\" (%" PRIun ")\n", vol->devname,
-	    vol->svc_id);
+	HR_NOTE("created volume \"%s\"\n", vol->devname);
 
 	free(cfg);
 	async_answer_0(icall, rc);
@@ -274,11 +274,9 @@ static void hr_stop_srv(ipc_call_t *icall)
 
 	errno_t rc = EOK;
 	service_id_t svc_id;
-	long fail_extent;
 	hr_volume_t *vol;
 
 	svc_id = ipc_get_arg1(icall);
-	fail_extent = (long)ipc_get_arg2(icall);
 
 	vol = hr_get_volume(svc_id);
 	if (vol == NULL) {
@@ -286,26 +284,66 @@ static void hr_stop_srv(ipc_call_t *icall)
 		return;
 	}
 
-	if (fail_extent == -1) {
-		rc = hr_remove_volume(svc_id);
-		if (rc != EOK) {
-			async_answer_0(icall, rc);
-			return;
-		}
-	} else {
-		fibril_rwlock_write_lock(&vol->states_lock);
-		fibril_rwlock_read_lock(&vol->extents_lock);
+	rc = hr_remove_volume(vol);
 
-		/* TODO: maybe expose extent state callbacks */
-		hr_update_ext_status(vol, fail_extent, HR_EXT_FAILED);
-		hr_mark_vol_state_dirty(vol);
-
-		fibril_rwlock_read_unlock(&vol->extents_lock);
-		fibril_rwlock_write_unlock(&vol->states_lock);
-
-		vol->hr_ops.status_event(vol);
-	}
 	async_answer_0(icall, rc);
+}
+
+static void hr_stop_all_srv(ipc_call_t *icall)
+{
+	HR_DEBUG("%s()", __func__);
+
+	hr_volume_t *vol;
+	errno_t rc = EOK;
+
+	while (true) {
+		fibril_rwlock_write_lock(&hr_volumes_lock);
+		if (list_empty(&hr_volumes)) {
+			fibril_rwlock_write_unlock(&hr_volumes_lock);
+			break;
+		}
+
+		vol = list_pop(&hr_volumes, hr_volume_t, lvolumes);
+
+		fibril_rwlock_write_unlock(&hr_volumes_lock);
+
+		rc = hr_remove_volume(vol);
+		if (rc != EOK)
+			break;
+	}
+
+	async_answer_0(icall, rc);
+}
+
+static void hr_fail_extent_srv(ipc_call_t *icall)
+{
+	HR_DEBUG("%s()", __func__);
+
+	service_id_t svc_id;
+	size_t fail_extent;
+	hr_volume_t *vol;
+
+	svc_id = (service_id_t)ipc_get_arg1(icall);
+	fail_extent = (size_t)ipc_get_arg2(icall);
+
+	vol = hr_get_volume(svc_id);
+	if (vol == NULL) {
+		async_answer_0(icall, ENOENT);
+		return;
+	}
+
+	fibril_rwlock_write_lock(&vol->states_lock);
+	fibril_rwlock_read_lock(&vol->extents_lock);
+
+	hr_update_ext_status(vol, fail_extent, HR_EXT_FAILED);
+	hr_mark_vol_state_dirty(vol);
+
+	fibril_rwlock_read_unlock(&vol->extents_lock);
+	fibril_rwlock_write_unlock(&vol->states_lock);
+
+	vol->hr_ops.status_event(vol);
+
+	async_answer_0(icall, EOK);
 }
 
 static void hr_add_hotspare_srv(ipc_call_t *icall)
@@ -436,6 +474,12 @@ static void hr_ctl_conn(ipc_call_t *icall, void *arg)
 			break;
 		case HR_STOP:
 			hr_stop_srv(&call);
+			break;
+		case HR_STOP_ALL:
+			hr_stop_all_srv(&call);
+			break;
+		case HR_FAIL_EXTENT:
+			hr_fail_extent_srv(&call);
 			break;
 		case HR_ADD_HOTSPARE:
 			hr_add_hotspare_srv(&call);

@@ -70,7 +70,7 @@ extern errno_t		 hr_create_vol_struct(hr_volume_t **, hr_level_t,
     const char *, hr_metadata_type_t);
 extern void		 hr_destroy_vol_struct(hr_volume_t *);
 extern hr_volume_t	*hr_get_volume(service_id_t);
-extern errno_t		 hr_remove_volume(service_id_t);
+extern errno_t		 hr_remove_volume(hr_volume_t *);
 extern errno_t		 hr_init_extents_from_cfg(hr_volume_t *, hr_config_t *);
 extern void		 hr_fini_devs(hr_volume_t *);
 extern errno_t		 hr_register_volume(hr_volume_t *);

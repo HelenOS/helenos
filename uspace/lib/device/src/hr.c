@@ -108,10 +108,7 @@ errno_t hr_create(hr_t *hr, hr_config_t *hr_config)
 
 	async_exchange_end(exch);
 	async_wait_for(req, &retval);
-	if (retval != EOK)
-		return retval;
-
-	return EOK;
+	return retval;
 }
 
 errno_t hr_assemble(hr_t *hr, hr_config_t *hr_config, size_t *rassembled_cnt)
@@ -268,7 +265,7 @@ static errno_t print_vol_info(size_t index, hr_vol_info_t *vol_info)
 	return EOK;
 }
 
-errno_t hr_stop(const char *devname, long extent)
+errno_t hr_stop(const char *devname)
 {
 	hr_t *hr;
 	errno_t rc;
@@ -288,18 +285,79 @@ errno_t hr_stop(const char *devname, long extent)
 		rc = EINVAL;
 		goto error;
 	}
-	rc = async_req_2_0(exch, HR_STOP, svc_id, extent);
+
+	rc = async_req_1_0(exch, HR_STOP, svc_id);
 	async_exchange_end(exch);
 error:
 	hr_sess_destroy(hr);
 	return rc;
 }
 
-errno_t hr_add_hotspare(service_id_t vol_svc_id, service_id_t hs_svc_id)
+errno_t hr_stop_all(void)
+{
+	hr_t *hr;
+	async_exch_t *exch;
+	errno_t rc;
+
+	rc = hr_sess_init(&hr);
+	if (rc != EOK)
+		return rc;
+
+	exch = async_exchange_begin(hr->sess);
+	if (exch == NULL) {
+		rc = EINVAL;
+		goto error;
+	}
+
+	rc = async_req_0_0(exch, HR_STOP_ALL);
+	async_exchange_end(exch);
+error:
+	hr_sess_destroy(hr);
+	return rc;
+}
+
+errno_t hr_fail_extent(const char *volume_name, unsigned long extent)
 {
 	hr_t *hr;
 	errno_t rc;
 	async_exch_t *exch;
+	service_id_t vol_svc_id;
+
+	rc = loc_service_get_id(volume_name, &vol_svc_id, 0);
+	if (rc != EOK)
+		return rc;
+
+	rc = hr_sess_init(&hr);
+	if (rc != EOK)
+		return rc;
+
+	exch = async_exchange_begin(hr->sess);
+	if (exch == NULL) {
+		rc = EINVAL;
+		goto error;
+	}
+
+	rc = async_req_2_0(exch, HR_FAIL_EXTENT, vol_svc_id, extent);
+	async_exchange_end(exch);
+error:
+	hr_sess_destroy(hr);
+	return rc;
+}
+
+errno_t hr_add_hotspare(const char *volume_name, const char *hotspare)
+{
+	hr_t *hr;
+	errno_t rc;
+	async_exch_t *exch;
+	service_id_t vol_svc_id, hs_svc_id;
+
+	rc = loc_service_get_id(volume_name, &vol_svc_id, 0);
+	if (rc != EOK)
+		return rc;
+
+	rc = loc_service_get_id(hotspare, &hs_svc_id, 0);
+	if (rc != EOK)
+		return rc;
 
 	rc = hr_sess_init(&hr);
 	if (rc != EOK)

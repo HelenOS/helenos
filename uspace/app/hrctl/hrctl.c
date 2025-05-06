@@ -42,90 +42,89 @@
 #include <str.h>
 #include <str_error.h>
 
-#define HRCTL_SAMPLE_CONFIG_PATH "/cfg/sample_hr_config.sif"
+/* #define HRCTL_SAMPLE_CONFIG_PATH "/cfg/sample_hr_config.sif" */
+
+#define NAME "hrctl"
 
 static void	usage(void);
-static errno_t	fill_config_devs(int, char **, int, hr_config_t *);
+static errno_t	fill_config_devs(int, char **, hr_config_t *);
 static errno_t	load_config(const char *, hr_config_t *);
 
 static const char usage_str[] =
-    "Usage: hrctl [OPTION]... -n <dev_no> <devices>...\n"
+    "Usage: hrctl [OPTION]...\n"
     "\n"
     "Options:\n"
-    "  -h, --help                display this message and exit\n"
-    "  -C, --create-file=PATH    create an array from file,\n"
-    "                            sample file at: " HRCTL_SAMPLE_CONFIG_PATH "\n"
-    "  -A, --auto-assemble       try to auto assemble all valid arrays\n"
-    "  -s, --status              display status of active arrays\n"
-    "  -H, --hotspare=DEV        add hotspare extent\n"
-    "  -D, --destroy             destroy/disassemble an active array\n"
-    "  -F, --fail-extent         fail an extent, use with -D and set it before\n"
-    "  -c, --create=NAME         create new array\n"
-    "  -a, --assemble            try to assemble from specified extents\n"
-    "  -n                        non-zero number of devices\n"
-    "  -l, --level=LEVEL         set the RAID level,\n"
-    "                            valid values: 0, 1, 4, 5\n"
-    "  -0                        striping\n"
-    "  -1                        mirroring\n"
-    "  -4                        parity on one extent\n"
-    "  -5                        distributed parity\n"
+    "  -h, --help                                Display this message and exit.\n"
     "\n"
-    "When specifying name for creation or assembly, the device name\n"
-    "is automatically prepended with \"devices/\" prefix.\n"
+    "  -c, --create                              Create a volume, options:\n"
+    "      name {-l , --level level} device...   manual device specification, or\n"
+    "      -f configuration.sif                  create from configuration file.\n"
+    "\n"
+    "  -a, --assemble                            Assemble volume(s), options:\n"
+    "      [device...]                           manual device specification, or\n"
+    "      [-f configuration.sif]                assemble from configuration file, or\n"
+    "                                            no option is automatic assembly.\n"
+    "\n"
+    "  -d, --disassemble                         Deactivate/disassemble, options:\n"
+    "      [volume]                              specific volume, or\n"
+    "                                            all volumes with no specified option.\n"
+    "\n"
+    "  -m, --modify volume                       Modify a volume, options:\n"
+    "          -f, --fail index                  fail an extent, or\n"
+    "          -h, --hotspare device             add hotspare.\n"
+    "\n"
+    "  -s, --status                              Display status of active volumes.\n"
     "\n"
     "Example usage:\n"
-    "  hrctl --create hr0 -0 -n 2 devices/\\hw\\0 devices/\\hw\\1\n"
-    "    - creates new mirroring RAID device named /hr0 consisting\n"
-    "      of 2 drives\n"
-    "  hrctl --assemble -n 2 devices/\\hw\\0 devices/\\hw\\1\n"
-    "    - assembles RAID devices from specified extents,\n"
-    "      that were previously in an (active) array\n"
-    "  hrctl devices/hr0 --hotspare=devices/disk10\n"
-    "    - adds \"devices/disk10\" as hotspare extent\n"
-    "  hrctl -F 0 -D devices/hr0\n"
-    "    - marks first extent as FAILED\n"
+    "\t\thrctl --create hr0 --level 5 disk1 disk2 disk3\n"
+    "\t\thrctl -c hr0 -l 5 disk1 disk2 disk3\n"
+    "\t\thrctl -c -f cfg.sif\n"
+    "\t\thrctl --assemble disk1 disk2 disk3\n"
+    "\t\thrctl -a\n"
+    "\t\thrctl -d devices/hr0\n"
+    "\t\thrctl -d\n"
+    "\t\thrctl --modify devices/hr0 --fail 0\n"
+    "\t\thrctl --modify devices/hr0 --hotspare disk4\n"
+    "\t\thrctl -s\n"
+    "\n"
+    "Volume service names are automatically prepended with \"devices/\" prefix.\n"
+    "\n"
     "Limitations:\n"
-    "  - device name must be less than 32 characters in size\n";
-
-static struct option const long_options[] = {
-	{ "help", no_argument, 0, 'h' },
-	{ "status", no_argument, 0, 's' },
-	{ "assemble", no_argument, 0, 'a' },
-	{ "create", required_argument, 0, 'c' },
-	{ "level", required_argument, 0, 'l' },
-	{ "create-file", required_argument, 0, 'C' },
-	{ "auto-assemble", no_argument, 0, 'A' },
-	{ "destroy", required_argument, 0, 'D' },
-	{ "fail-extent", required_argument, 0, 'F' },
-	{ "hotspare", required_argument, 0, 'H' },
-	{ 0, 0, 0, 0 }
-};
+    "\t- volume name must be shorter than 32 characters\n";
 
 static void usage(void)
 {
 	printf("%s", usage_str);
 }
 
-static errno_t fill_config_devs(int argc, char **argv, int optind,
-    hr_config_t *cfg)
+static errno_t fill_config_devs(int argc, char **argv, hr_config_t *cfg)
 {
 	errno_t rc;
 	size_t i;
 
-	for (i = 0; i < cfg->dev_no; i++) {
+	for (i = 0; i < HR_MAX_EXTENTS; i++) {
 		rc = loc_service_get_id(argv[optind], &cfg->devs[i], 0);
 		if (rc == ENOENT) {
-			printf("hrctl: no device \"%s\", marking as missing\n",
+			printf(NAME ": device \"%s\" not found, aborting\n",
 			    argv[optind]);
-			cfg->devs[i] = 0;
+			return ENOENT;
 		} else if (rc != EOK) {
-			printf("hrctl: error resolving device \"%s\", aborting\n",
+			printf(NAME ": error resolving device \"%s\", aborting\n",
 			    argv[optind]);
 			return EINVAL;
 		}
 
-		optind++;
+		if (++optind >= argc)
+			break;
 	}
+
+	if (optind < argc) {
+		printf(NAME ": too many devices specified, max = %u\n",
+		    HR_MAX_EXTENTS);
+		return ELIMIT;
+	}
+
+	cfg->dev_no = i;
 
 	return EOK;
 }
@@ -225,225 +224,300 @@ error:
 	return rc;
 }
 
+static int handle_create(int argc, char **argv)
+{
+	if (optind >= argc) {
+		printf(NAME ": no arguments to --create\n");
+		return EXIT_FAILURE;
+	}
+
+	hr_config_t *vol_config = calloc(1, sizeof(hr_config_t));
+	if (vol_config == NULL) {
+		printf(NAME ": not enough memory");
+		return ENOMEM;
+	}
+
+	if (str_cmp(argv[optind], "-f") == 0) {
+		if (++optind >= argc) {
+			printf(NAME ": not enough arguments\n");
+			goto error;
+		}
+		const char *config_path = argv[optind++];
+		errno_t rc = load_config(config_path, vol_config);
+		if (rc != EOK) {
+			printf(NAME ": config parsing failed\n");
+			goto error;
+		}
+	} else {
+		/* we need name + --level + arg + at least one extent */
+		if (optind + 3 >= argc) {
+			printf(NAME ": not enough arguments\n");
+			goto error;
+		}
+
+		const char *name = argv[optind++];
+		if (str_size(name) >= HR_DEVNAME_LEN) {
+			printf(NAME ": devname must be less then 32 bytes.\n");
+			goto error;
+		}
+
+		str_cpy(vol_config->devname, HR_DEVNAME_LEN, name);
+
+		const char *level_opt = argv[optind++];
+		if (str_cmp(level_opt, "--level") != 0 &&
+		    str_cmp(level_opt, "-l") != 0) {
+			printf(NAME ": unknown option \"%s\"\n", level_opt);
+			goto error;
+		}
+
+		vol_config->level = strtol(argv[optind++], NULL, 10);
+
+		errno_t rc = fill_config_devs(argc, argv, vol_config);
+		if (rc != EOK)
+			goto error;
+	}
+
+	if (optind < argc) {
+		printf(NAME ": unexpected arguments\n");
+		goto error;
+	}
+
+	hr_t *hr;
+	errno_t rc = hr_sess_init(&hr);
+	if (rc != EOK) {
+		printf(NAME ": server session init failed: %s\n",
+		    str_error(rc));
+		goto error;
+	}
+
+	rc = hr_create(hr, vol_config);
+	if (rc != EOK) {
+		printf(NAME ": creation failed: %s\n",
+		    str_error(rc));
+		goto error;
+	}
+
+	hr_sess_destroy(hr);
+
+	free(vol_config);
+	return EXIT_SUCCESS;
+error:
+	free(vol_config);
+	return EXIT_FAILURE;
+}
+
+static int handle_assemble(int argc, char **argv)
+{
+	if (optind >= argc) {
+		size_t cnt;
+		errno_t rc = hr_auto_assemble(&cnt);
+		if (rc != EOK) {
+			/* XXX: here have own error codes */
+			printf("hrctl: auto assemble rc: %s\n", str_error(rc));
+			return EXIT_FAILURE;
+		}
+
+		printf(NAME ": auto assembled %zu volumes\n", cnt);
+		return EXIT_SUCCESS;
+	}
+
+	hr_config_t *vol_config = calloc(1, sizeof(hr_config_t));
+	if (vol_config == NULL) {
+		printf(NAME ": not enough memory");
+		return ENOMEM;
+	}
+
+	if (str_cmp(argv[optind], "-f") == 0) {
+		if (++optind >= argc) {
+			printf(NAME ": not enough arguments\n");
+			goto error;
+		}
+		const char *config_path = argv[optind++];
+		errno_t rc = load_config(config_path, vol_config);
+		if (rc != EOK) {
+			printf(NAME ": config parsing failed\n");
+			goto error;
+		}
+		if (optind < argc) {
+			printf(NAME ": unexpected arguments\n");
+			goto error;
+		}
+	} else {
+		errno_t rc = fill_config_devs(argc, argv, vol_config);
+		if (rc != EOK)
+			goto error;
+	}
+
+	hr_t *hr;
+	errno_t rc = hr_sess_init(&hr);
+	if (rc != EOK) {
+		printf(NAME ": server session init failed: %s\n",
+		    str_error(rc));
+		goto error;
+	}
+
+	size_t cnt;
+	rc = hr_assemble(hr, vol_config, &cnt);
+	if (rc != EOK) {
+		printf(NAME ": assmeble failed: %s\n", str_error(rc));
+		goto error;
+	}
+
+	printf("hrctl: auto assembled %zu volumes\n", cnt);
+
+	hr_sess_destroy(hr);
+
+	free(vol_config);
+	return EXIT_SUCCESS;
+error:
+	free(vol_config);
+	return EXIT_FAILURE;
+}
+
+static int handle_disassemble(int argc, char **argv)
+{
+	if (optind >= argc) {
+		errno_t rc = hr_stop_all();
+		if (rc != EOK) {
+			printf(NAME ": stopping some volumes failed: %s\n",
+			    str_error(rc));
+			return EXIT_FAILURE;
+		}
+		return EXIT_SUCCESS;
+	}
+
+	if (optind + 1 < argc) {
+		printf(NAME ": only 1 device can be manually specified\n");
+		return EXIT_FAILURE;
+	}
+
+	const char *devname = argv[optind++];
+
+	errno_t rc = hr_stop(devname);
+	if (rc != EOK) {
+		printf(NAME ": disassembly of device \"%s\" failed: %s\n",
+		    devname, str_error(rc));
+		return EXIT_FAILURE;
+	}
+
+	return EXIT_SUCCESS;
+}
+
+static int handle_modify(int argc, char **argv)
+{
+	if (optind >= argc) {
+		printf(NAME ": no arguments to --modify\n");
+		return EXIT_FAILURE;
+	}
+
+	const char *volname = argv[optind++];
+
+	/* at least 1 option and its agument */
+	if (optind + 1 >= argc) {
+		printf(NAME ": not enough arguments\n");
+		return EXIT_FAILURE;
+	}
+
+	if (optind + 2 < argc) {
+		printf(NAME ": unexpected arguments\n");
+		return EXIT_FAILURE;
+	}
+
+	if (str_cmp(argv[optind], "--fail") == 0 ||
+	    str_cmp(argv[optind], "-f") == 0) {
+		optind++;
+		unsigned long extent = strtol(argv[optind++], NULL, 10);
+		errno_t rc = hr_fail_extent(volname, extent);
+		if (rc != EOK) {
+			printf(NAME ": failing extent failed: %s\n",
+			    str_error(rc));
+			return EXIT_FAILURE;
+		}
+	} else if (str_cmp(argv[optind], "--hotspare") == 0 ||
+	    str_cmp(argv[optind], "-h") == 0) {
+		optind++;
+		errno_t rc = hr_add_hotspare(volname, argv[optind++]);
+		if (rc != EOK) {
+			printf(NAME ": adding hotspare failed: %s\n",
+			    str_error(rc));
+			return EXIT_FAILURE;
+		}
+	} else {
+		printf(NAME ": unknown argument\n");
+		return EXIT_FAILURE;
+	}
+
+	return EXIT_SUCCESS;
+}
+
+static int handle_status(int argc, char **argv)
+{
+	(void)argc;
+	(void)argv;
+
+	errno_t rc = hr_print_status();
+	if (rc != EOK) {
+		printf(NAME ": status printing failed: %s\n", str_error(rc));
+		return EXIT_FAILURE;
+	}
+
+	return EXIT_SUCCESS;
+}
+
 int main(int argc, char **argv)
 {
-	errno_t rc;
-	int retval, c;
-	bool create, assemble;
-	long fail_extent = -1;
-	hr_t *hr = NULL;
-	hr_config_t *cfg;
-
-	cfg = calloc(1, sizeof(hr_config_t));
-	if (cfg == NULL)
-		return 1;
-
-	retval = 0;
-	cfg->level = HR_LVL_UNKNOWN;
-	cfg->dev_no = 0;
-	create = assemble = false;
+	int rc = EXIT_SUCCESS;
+	int c;
 
 	if (argc < 2) {
-		goto bad;
+		rc = EXIT_FAILURE;
+		goto end;
 	}
 
 	c = 0;
 	optreset = 1;
 	optind = 0;
 
+	struct option const top_level_opts[] = {
+		{ "help",		no_argument, 0, 'h' },
+		{ "create",		no_argument, 0, 'c' },
+		{ "assemble",		no_argument, 0, 'a' },
+		{ "disassemble",	no_argument, 0, 'd' },
+		{ "modify",		no_argument, 0, 'm' },
+		{ "status",		no_argument, 0, 's' },
+		{ 0, 0, 0, 0 }
+	};
+
 	while (c != -1) {
-		c = getopt_long(argc, argv, "hsC:c:Aal:0145Ln:D:F:H:",
-		    long_options, NULL);
+		c = getopt_long(argc, argv, "hcadms", top_level_opts, NULL);
 		switch (c) {
-		case 's':
-			free(cfg);
-			rc = hr_print_status();
-			if (rc != EOK)
-				return 1;
-			return 0;
-		case 'C':
-			/* only support 1 array inside config for now XXX */
-			rc = load_config(optarg, cfg);
-			if (rc != EOK) {
-				printf("hrctl: failed to load config\n");
-				free(cfg);
-				return 1;
-			}
-			create = true;
-			goto skip;
-		case 'c':
-			if (str_size(optarg) > sizeof(cfg->devname) - 1) {
-				printf("hrctl: device name too long\n");
-				free(cfg);
-				return 1;
-			}
-			str_cpy(cfg->devname, sizeof(cfg->devname), optarg);
-			create = true;
-			break;
-		case 'A':
-			size_t cnt;
-			rc = hr_auto_assemble(&cnt);
-			if (rc != EOK) {
-				/* XXX: here have own error codes */
-				printf("hrctl: auto assemble rc: %s\n",
-				    str_error(rc));
-			} else {
-				printf("hrctl: auto assembled %zu volumes\n",
-				    cnt);
-			}
-			return rc;
-		case 'a':
-			/*
-			 * XXX: redo this, no devname, only svc ids...
-			 *
-			 * find some other way to rename the arrays...,
-			 *
-			 * some metadata editation tool... something like
-			 * fdisk but can only change devnames on inactive
-			 * extents...
-			 */
-
-			/*
-			 * XXX: remake whole parsing, don't allow -a
-			 * to have any levels set or anything
-			 */
-			assemble = true;
-			break;
-		case 'D':
-			rc = hr_stop(optarg, fail_extent);
-			free(cfg);
-			if (rc != EOK) {
-				printf("hrctl: got %s\n", str_error(rc));
-				return rc;
-			}
-			return 0;
-		case 'F':
-			fail_extent = strtol(optarg, NULL, 10);
-			break;
-		case 'l':
-			if (cfg->level != HR_LVL_UNKNOWN)
-				goto bad;
-			cfg->level = strtol(optarg, NULL, 10);
-			break;
-		case '0':
-			if (cfg->level != HR_LVL_UNKNOWN)
-				goto bad;
-			cfg->level = HR_LVL_0;
-			break;
-		case '1':
-			if (cfg->level != HR_LVL_UNKNOWN)
-				goto bad;
-			cfg->level = HR_LVL_1;
-			break;
-		case '4':
-			if (cfg->level != HR_LVL_UNKNOWN)
-				goto bad;
-			cfg->level = HR_LVL_4;
-			break;
-		case '5':
-			if (cfg->level != HR_LVL_UNKNOWN)
-				goto bad;
-			cfg->level = HR_LVL_5;
-			break;
-		case 'n':
-			cfg->dev_no = strtol(optarg, NULL, 10);
-			if ((int)cfg->dev_no + optind != argc)
-				goto bad;
-			rc = fill_config_devs(argc, argv, optind, cfg);
-			if (rc != EOK) {
-				free(cfg);
-				return 1;
-			}
-			goto skip;
-		case 'H':
-			if (optind != 3 && argc != 4)
-				goto bad;
-
-			service_id_t hotspare;
-			service_id_t vol_svc_id;
-
-			rc = loc_service_get_id(argv[1], &vol_svc_id, 0);
-			if (rc != EOK) {
-				printf("hrctl: error resolving volume \"%s\", "
-				    "aborting extent addition\n", argv[1]);
-				goto bad;
-			}
-
-			rc = loc_service_get_id(optarg, &hotspare, 0);
-			if (rc != EOK) {
-				printf("hrctl: error resolving device \"%s\", "
-				    "aborting extent addition\n", optarg);
-				goto bad;
-			}
-
-			rc = hr_add_hotspare(vol_svc_id, hotspare);
-			if (rc != EOK)
-				printf("hrctl: hr_add_hotspare() rc: %s\n",
-				    str_error(rc));
-
-			free(cfg);
-			if (rc != EOK)
-				return 1;
-			else
-				return 0;
 		case 'h':
-		default:
 			usage();
-			free(cfg);
-			return 0;
+			return EXIT_SUCCESS;
+		case 'c':
+			rc = handle_create(argc, argv);
+			goto end;
+		case 'a':
+			rc = handle_assemble(argc, argv);
+			goto end;
+		case 'd':
+			rc = handle_disassemble(argc, argv);
+			goto end;
+		case 'm':
+			rc = handle_modify(argc, argv);
+			goto end;
+		case 's':
+			rc = handle_status(argc, argv);
+			goto end;
+		default:
+			goto end;
 		}
-	}
-
-skip:
-	if ((create && assemble) || (!create && !assemble))
-		goto bad;
-
-	if (create && cfg->level == HR_LVL_UNKNOWN) {
-		printf("hrctl: invalid level, exiting\n");
-		goto bad;
-	}
-
-	if (cfg->dev_no > HR_MAX_EXTENTS) {
-		printf("hrctl: too many devices, exiting\n");
-		goto bad;
-	}
-
-	if (cfg->dev_no == 0) {
-		printf("hrctl: invalid number of devices, exiting\n");
-		goto bad;
-	}
-
-	rc = hr_sess_init(&hr);
-	if (rc != EOK) {
-		printf("hrctl: hr_sess_init() rc: %s\n", str_error(rc));
-		retval = 1;
-		goto end;
-	}
-
-	if (create) {
-		rc = hr_create(hr, cfg);
-		printf("hrctl: hr_create() rc: %s\n", str_error(rc));
-	} else if (assemble) {
-		size_t assembled_cnt = 0;
-		rc = hr_assemble(hr, cfg, &assembled_cnt);
-		if (rc != EOK) {
-			/* XXX: here have own error codes */
-			printf("hrctl: auto assemble rc: %s\n", str_error(rc));
-		} else {
-			printf("hrctl: auto assembled %zu volumes\n",
-			    assembled_cnt);
-		}
-
 	}
 
 end:
-	free(cfg);
-	hr_sess_destroy(hr);
-	return retval;
-bad:
-	free(cfg);
-	printf("hrctl: bad usage, try hrctl --help\n");
-	return 1;
+	if (rc != EXIT_SUCCESS)
+		printf(NAME ": use --help to see usage\n");
+	return rc;
 }
 
 /** @}

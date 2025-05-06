@@ -161,6 +161,8 @@ error:
 
 void hr_destroy_vol_struct(hr_volume_t *vol)
 {
+	HR_DEBUG("%s()", __func__);
+
 	if (vol == NULL)
 		return;
 
@@ -172,7 +174,7 @@ void hr_destroy_vol_struct(hr_volume_t *vol)
 
 hr_volume_t *hr_get_volume(service_id_t svc_id)
 {
-	HR_DEBUG("hr_get_volume(): (%" PRIun ")\n", svc_id);
+	HR_DEBUG("%s()", __func__);
 
 	hr_volume_t *rvol = NULL;
 
@@ -188,42 +190,41 @@ hr_volume_t *hr_get_volume(service_id_t svc_id)
 	return rvol;
 }
 
-errno_t hr_remove_volume(service_id_t svc_id)
+errno_t hr_remove_volume(hr_volume_t *vol)
 {
-	HR_DEBUG("hr_remove_volume(): (%" PRIun ")\n", svc_id);
-
-	errno_t rc;
+	HR_DEBUG("%s()", __func__);
 
 	fibril_rwlock_write_lock(&hr_volumes_lock);
-	list_foreach(hr_volumes, lvolumes, hr_volume_t, vol) {
-		if (vol->svc_id == svc_id) {
-			int open_cnt = atomic_load_explicit(&vol->open_cnt,
-			    memory_order_relaxed);
-			/*
-			 * The "atomicity" of this if condition is provided
-			 * by the write lock - no new bd connection can
-			 * come, because we need to get the bd_srvs_t from
-			 * volume, which we get from the list.
-			 * (see hr_client_conn() in hr.c)
-			 */
-			if (open_cnt > 0) {
-				fibril_rwlock_write_unlock(&hr_volumes_lock);
-				return EBUSY;
-			}
-			list_remove(&vol->lvolumes);
-			fibril_rwlock_write_unlock(&hr_volumes_lock);
 
-			vol->meta_ops->save(vol, NO_STATE_CALLBACK);
-
-			hr_destroy_vol_struct(vol);
-
-			rc = loc_service_unregister(hr_srv, svc_id);
-			return rc;
-		}
+	int open_cnt = atomic_load_explicit(&vol->open_cnt,
+	    memory_order_relaxed);
+	/*
+	 * The atomicity of this if condition (and this whole
+	 * operation) is provided by the write lock - no new
+	 * bd connection can come, because we need to get the
+	 * bd_srvs_t from the volume, which we get from the list.
+	 * (see hr_client_conn() in hr.c)
+	 */
+	if (open_cnt > 0) {
+		fibril_rwlock_write_unlock(&hr_volumes_lock);
+		return EBUSY;
 	}
 
+	list_remove(&vol->lvolumes);
+
 	fibril_rwlock_write_unlock(&hr_volumes_lock);
-	return ENOENT;
+
+	/* save metadata, but we don't care about states anymore */
+	(void)vol->meta_ops->save(vol, NO_STATE_CALLBACK);
+
+	service_id_t svc_id = vol->svc_id;
+
+	HR_NOTE("deactivating volume \"%s\"\n", vol->devname);
+
+	hr_destroy_vol_struct(vol);
+
+	errno_t rc = loc_service_unregister(hr_srv, svc_id);
+	return rc;
 }
 
 errno_t hr_init_extents_from_cfg(hr_volume_t *vol, hr_config_t *cfg)
@@ -835,8 +836,6 @@ static errno_t hr_util_assemble_from_matching_list(list_t *list,
 	if (rc != EOK)
 		goto error;
 
-	fibril_rwlock_write_lock(&hr_volumes_lock);
-
 	/*
 	 * XXX: register it here
 	 * ... if it fails on EEXIST try different name... like + 1 on the end
@@ -851,16 +850,16 @@ static errno_t hr_util_assemble_from_matching_list(list_t *list,
 	 * TODO: discuss
 	 */
 	rc = hr_register_volume(vol);
-	if (rc != EOK) {
-		fibril_rwlock_write_unlock(&hr_volumes_lock);
+	if (rc != EOK)
 		goto error;
-	}
 
 	(void)vol->meta_ops->save(vol, WITH_STATE_CALLBACK);
 
+	fibril_rwlock_write_lock(&hr_volumes_lock);
 	list_append(&vol->lvolumes, &hr_volumes);
-
 	fibril_rwlock_write_unlock(&hr_volumes_lock);
+
+	HR_NOTE("assembled volume \"%s\"\n", vol->devname);
 
 	return EOK;
 error:
