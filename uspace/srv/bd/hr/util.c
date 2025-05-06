@@ -1017,6 +1017,15 @@ errno_t hr_util_add_hotspare(hr_volume_t *vol, service_id_t hotspare)
 		goto error;
 	}
 
+	for (size_t i = 0; i < vol->hotspare_no; i++) {
+		if (vol->hotspares[i].svc_id == hotspare) {
+			HR_ERROR("%s(): hotspare (%" PRIun ") already used in "
+			    "%s\n", __func__, hotspare, vol->devname);
+			rc = EEXIST;
+			goto error;
+		}
+	}
+
 	rc = block_init(hotspare);
 	if (rc != EOK)
 		goto error;
@@ -1028,7 +1037,10 @@ errno_t hr_util_add_hotspare(hr_volume_t *vol, service_id_t hotspare)
 		goto error;
 	}
 
-	if (hs_blkno < vol->truncated_blkno - vol->meta_ops->get_size()) {
+	if (hs_blkno - vol->meta_ops->get_size() < vol->truncated_blkno) {
+		HR_ERROR("%s(): hotspare (%" PRIun ") doesn't have enough "
+		    "blocks\n", __func__, hotspare);
+
 		rc = EINVAL;
 		block_fini(hotspare);
 		goto error;
