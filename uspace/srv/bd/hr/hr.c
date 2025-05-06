@@ -30,7 +30,8 @@
  * @{
  */
 /**
- * @file
+ * @file hr.c
+ * @brief HelenRAID server methods.
  */
 
 #include <adt/list.h>
@@ -39,21 +40,16 @@
 #include <errno.h>
 #include <hr.h>
 #include <io/log.h>
-#include <inttypes.h>
 #include <ipc/hr.h>
 #include <ipc/services.h>
 #include <loc.h>
 #include <task.h>
-#include <stdatomic.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
 #include <str_error.h>
 #include <block.h>
 
-#include "fge.h"
-#include "io.h"
-#include "superblock.h"
 #include "util.h"
 #include "var.h"
 
@@ -63,7 +59,7 @@ static void hr_stop_srv(ipc_call_t *);
 static void hr_stop_all_srv(ipc_call_t *);
 static void hr_add_hotspare_srv(ipc_call_t *);
 static void hr_print_status_srv(ipc_call_t *);
-static void hr_ctl_conn(ipc_call_t *, void *);
+static void hr_ctl_conn(ipc_call_t *);
 static void hr_client_conn(ipc_call_t *, void *);
 
 loc_srv_t *hr_srv;
@@ -72,6 +68,13 @@ fibril_rwlock_t hr_volumes_lock;
 
 static service_id_t ctl_sid;
 
+/** Volume creation (server).
+ *
+ * Creates HelenRAID volume from parameters and
+ * devices specified in hr_config_t.
+ *
+ * @param icall hr_config_t
+ */
 static void hr_create_srv(ipc_call_t *icall)
 {
 	HR_DEBUG("%s()", __func__);
@@ -174,6 +177,14 @@ error:
 	async_answer_0(icall, rc);
 }
 
+/** Manual volume assembly (server).
+ *
+ * Tries to assemble a volume from devices in hr_config_t and
+ * sends the number of successful volumes assembled back to the
+ * client.
+ *
+ * @param icall hr_config_t
+ */
 static void hr_assemble_srv(ipc_call_t *icall)
 {
 	HR_DEBUG("%s()", __func__);
@@ -233,6 +244,12 @@ error:
 	async_answer_0(icall, rc);
 }
 
+/** Automatic volume assembly (server).
+ *
+ * Tries to assemble a volume from devices in disk location
+ * category and sends the number of successful volumes assembled
+ * back to client.
+ */
 static void hr_auto_assemble_srv(ipc_call_t *icall)
 {
 	HR_DEBUG("%s()", __func__);
@@ -268,6 +285,10 @@ error:
 	async_answer_0(icall, rc);
 }
 
+/** Volume deactivation (server).
+ *
+ * Deactivates/detaches specified volume.
+ */
 static void hr_stop_srv(ipc_call_t *icall)
 {
 	HR_DEBUG("%s()", __func__);
@@ -289,6 +310,10 @@ static void hr_stop_srv(ipc_call_t *icall)
 	async_answer_0(icall, rc);
 }
 
+/** Automatic volume deactivation (server).
+ *
+ * Tries to deactivate/detach all volumes.
+ */
 static void hr_stop_all_srv(ipc_call_t *icall)
 {
 	HR_DEBUG("%s()", __func__);
@@ -315,6 +340,13 @@ static void hr_stop_all_srv(ipc_call_t *icall)
 	async_answer_0(icall, rc);
 }
 
+/** Simulate volume extent failure (server).
+ *
+ * Changes the specified extent's state to FAULTY.
+ * Other extents' metadata are marked as dirty, therefore
+ * it effectively invalides the specified extent as well
+ * for further uses.
+ */
 static void hr_fail_extent_srv(ipc_call_t *icall)
 {
 	HR_DEBUG("%s()", __func__);
@@ -346,6 +378,10 @@ static void hr_fail_extent_srv(ipc_call_t *icall)
 	async_answer_0(icall, EOK);
 }
 
+/** Add hotspare to volume (server).
+ *
+ * Adds hotspare to a volume.
+ */
 static void hr_add_hotspare_srv(ipc_call_t *icall)
 {
 	HR_DEBUG("%s()", __func__);
@@ -377,6 +413,10 @@ static void hr_add_hotspare_srv(ipc_call_t *icall)
 	async_answer_0(icall, rc);
 }
 
+/** Volume state printing (server).
+ *
+ * Prints info about all active volumes.
+ */
 static void hr_print_status_srv(ipc_call_t *icall)
 {
 	HR_DEBUG("%s()", __func__);
@@ -446,7 +486,9 @@ error:
 	async_answer_0(icall, rc);
 }
 
-static void hr_ctl_conn(ipc_call_t *icall, void *arg)
+/**  HelenRAID server control IPC methods crossroad.
+ */
+static void hr_ctl_conn(ipc_call_t *icall)
 {
 	HR_DEBUG("%s()", __func__);
 
@@ -493,6 +535,11 @@ static void hr_ctl_conn(ipc_call_t *icall, void *arg)
 	}
 }
 
+/**  HelenRAID server IPC method crossroad.
+ *
+ * Distinguishes between control IPC and block device
+ * IPC calls.
+ */
 static void hr_client_conn(ipc_call_t *icall, void *arg)
 {
 	HR_DEBUG("%s()", __func__);
@@ -502,9 +549,8 @@ static void hr_client_conn(ipc_call_t *icall, void *arg)
 	service_id_t svc_id = ipc_get_arg2(icall);
 
 	if (svc_id == ctl_sid) {
-		hr_ctl_conn(icall, arg);
+		hr_ctl_conn(icall);
 	} else {
-		HR_DEBUG("bd_conn()\n");
 		vol = hr_get_volume(svc_id);
 		if (vol == NULL)
 			async_answer_0(icall, ENOENT);
