@@ -170,14 +170,14 @@ static errno_t meta_native_init_meta2vol(const list_t *list, hr_volume_t *vol)
 		iter->fini = false;
 
 		if (iter_meta->counter == max_counter_val)
-			vol->extents[iter_meta->index].status = HR_EXT_ONLINE;
+			vol->extents[iter_meta->index].state = HR_EXT_ONLINE;
 		else
-			vol->extents[iter_meta->index].status = HR_EXT_INVALID;
+			vol->extents[iter_meta->index].state = HR_EXT_INVALID;
 	}
 
 	for (size_t i = 0; i < vol->extent_no; i++) {
-		if (vol->extents[i].status == HR_EXT_NONE)
-			vol->extents[i].status = HR_EXT_MISSING;
+		if (vol->extents[i].state == HR_EXT_NONE)
+			vol->extents[i].state = HR_EXT_MISSING;
 	}
 
 	return EOK;
@@ -282,7 +282,7 @@ static errno_t meta_native_get_block(service_id_t dev, void **rblock)
 
 	rc = block_read_direct(dev, blkno - 1, HR_NATIVE_META_SIZE, block);
 	/*
-	 * XXX: here maybe call vol status event or the state callback...
+	 * XXX: here maybe call vol state event or the state callback...
 	 *
 	 * but need to pass vol pointer
 	 */
@@ -378,7 +378,7 @@ static errno_t meta_native_save(hr_volume_t *vol, bool with_state_callback)
 		fibril_rwlock_read_lock(&vol->states_lock);
 
 		/* TODO: special case for REBUILD */
-		if (ext->status != HR_EXT_ONLINE)
+		if (ext->state != HR_EXT_ONLINE)
 			continue;
 
 		fibril_rwlock_read_unlock(&vol->states_lock);
@@ -395,7 +395,7 @@ static errno_t meta_native_save(hr_volume_t *vol, bool with_state_callback)
 	fibril_rwlock_read_unlock(&vol->extents_lock);
 
 	if (with_state_callback)
-		vol->hr_ops.status_event(vol);
+		vol->hr_ops.state_event(vol);
 
 	free(md_block);
 	return EOK;

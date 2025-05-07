@@ -58,7 +58,7 @@ static void hr_auto_assemble_srv(ipc_call_t *);
 static void hr_stop_srv(ipc_call_t *);
 static void hr_stop_all_srv(ipc_call_t *);
 static void hr_add_hotspare_srv(ipc_call_t *);
-static void hr_print_status_srv(ipc_call_t *);
+static void hr_print_state_srv(ipc_call_t *);
 static void hr_ctl_conn(ipc_call_t *);
 static void hr_client_conn(ipc_call_t *, void *);
 
@@ -367,7 +367,7 @@ static void hr_fail_extent_srv(ipc_call_t *icall)
 	fibril_rwlock_read_lock(&vol->extents_lock);
 	fibril_rwlock_write_lock(&vol->states_lock);
 
-	switch (vol->extents[fail_extent].status) {
+	switch (vol->extents[fail_extent].state) {
 	case HR_EXT_NONE:
 	case HR_EXT_MISSING:
 	case HR_EXT_FAILED:
@@ -376,14 +376,14 @@ static void hr_fail_extent_srv(ipc_call_t *icall)
 		async_answer_0(icall, EINVAL);
 		return;
 	default:
-		hr_update_ext_status(vol, fail_extent, HR_EXT_FAILED);
+		hr_update_ext_state(vol, fail_extent, HR_EXT_FAILED);
 		hr_mark_vol_state_dirty(vol);
 	}
 
 	fibril_rwlock_write_unlock(&vol->states_lock);
 	fibril_rwlock_read_unlock(&vol->extents_lock);
 
-	vol->hr_ops.status_event(vol);
+	vol->hr_ops.state_event(vol);
 
 	async_answer_0(icall, EOK);
 }
@@ -427,7 +427,7 @@ static void hr_add_hotspare_srv(ipc_call_t *icall)
  *
  * Prints info about all active volumes.
  */
-static void hr_print_status_srv(ipc_call_t *icall)
+static void hr_print_state_srv(ipc_call_t *icall)
 {
 	HR_DEBUG("%s()", __func__);
 
@@ -469,7 +469,7 @@ static void hr_print_status_srv(ipc_call_t *icall)
 		info.nblocks = vol->data_blkno;
 		info.strip_size = vol->strip_size;
 		info.bsize = vol->bsize;
-		info.status = vol->status;
+		info.state = vol->state;
 		info.layout = vol->layout;
 
 		if (!async_data_read_receive(&call, &size)) {
@@ -537,7 +537,7 @@ static void hr_ctl_conn(ipc_call_t *icall)
 			hr_add_hotspare_srv(&call);
 			break;
 		case HR_STATUS:
-			hr_print_status_srv(&call);
+			hr_print_state_srv(&call);
 			break;
 		default:
 			async_answer_0(&call, EINVAL);

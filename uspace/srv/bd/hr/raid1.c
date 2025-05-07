@@ -55,7 +55,7 @@
 #include "util.h"
 #include "var.h"
 
-static void	hr_raid1_update_vol_status(hr_volume_t *);
+static void	hr_raid1_update_vol_state(hr_volume_t *);
 static void	hr_raid1_ext_state_callback(hr_volume_t *, size_t, errno_t);
 static size_t	hr_raid1_count_good_extents(hr_volume_t *, uint64_t, size_t,
     uint64_t);
@@ -109,10 +109,10 @@ errno_t hr_raid1_create(hr_volume_t *new_volume)
 
 	/* force volume state update */
 	hr_mark_vol_state_dirty(new_volume);
-	hr_raid1_update_vol_status(new_volume);
+	hr_raid1_update_vol_state(new_volume);
 
 	fibril_rwlock_read_lock(&new_volume->states_lock);
-	hr_vol_status_t state = new_volume->status;
+	hr_vol_state_t state = new_volume->state;
 	fibril_rwlock_read_unlock(&new_volume->states_lock);
 	if (state == HR_VOL_FAULTY || state == HR_VOL_NONE) {
 		HR_NOTE("\"%s\": unusable state, not creating\n",
@@ -139,11 +139,11 @@ errno_t hr_raid1_init(hr_volume_t *vol)
 	return EOK;
 }
 
-void hr_raid1_status_event(hr_volume_t *vol)
+void hr_raid1_state_event(hr_volume_t *vol)
 {
 	HR_DEBUG("%s()", __func__);
 
-	hr_raid1_update_vol_status(vol);
+	hr_raid1_update_vol_state(vol);
 }
 
 errno_t hr_raid1_add_hotspare(hr_volume_t *vol, service_id_t hotspare)
@@ -152,7 +152,7 @@ errno_t hr_raid1_add_hotspare(hr_volume_t *vol, service_id_t hotspare)
 
 	errno_t rc = hr_util_add_hotspare(vol, hotspare);
 
-	hr_raid1_update_vol_status(vol);
+	hr_raid1_update_vol_state(vol);
 
 	return rc;
 }
@@ -212,7 +212,7 @@ static errno_t hr_raid1_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
 	return EOK;
 }
 
-static void hr_raid1_update_vol_status(hr_volume_t *vol)
+static void hr_raid1_update_vol_state(hr_volume_t *vol)
 {
 	bool exp = true;
 
@@ -230,7 +230,7 @@ static void hr_raid1_update_vol_status(hr_volume_t *vol)
 	fibril_rwlock_read_lock(&vol->extents_lock);
 	fibril_rwlock_read_lock(&vol->states_lock);
 
-	hr_vol_status_t old_state = vol->status;
+	hr_vol_state_t old_state = vol->state;
 	size_t healthy = hr_count_extents(vol, HR_EXT_ONLINE);
 
 	fibril_rwlock_read_unlock(&vol->states_lock);
@@ -239,14 +239,14 @@ static void hr_raid1_update_vol_status(hr_volume_t *vol)
 	if (healthy == 0) {
 		if (old_state != HR_VOL_FAULTY) {
 			fibril_rwlock_write_lock(&vol->states_lock);
-			hr_update_vol_status(vol, HR_VOL_FAULTY);
+			hr_update_vol_state(vol, HR_VOL_FAULTY);
 			fibril_rwlock_write_unlock(&vol->states_lock);
 		}
 	} else if (healthy < vol->extent_no) {
 		if (old_state != HR_VOL_REBUILD &&
 		    old_state != HR_VOL_DEGRADED) {
 			fibril_rwlock_write_lock(&vol->states_lock);
-			hr_update_vol_status(vol, HR_VOL_DEGRADED);
+			hr_update_vol_state(vol, HR_VOL_DEGRADED);
 			fibril_rwlock_write_unlock(&vol->states_lock);
 		}
 
@@ -264,7 +264,7 @@ static void hr_raid1_update_vol_status(hr_volume_t *vol)
 	} else {
 		if (old_state != HR_VOL_ONLINE) {
 			fibril_rwlock_write_lock(&vol->states_lock);
-			hr_update_vol_status(vol, HR_VOL_ONLINE);
+			hr_update_vol_state(vol, HR_VOL_ONLINE);
 			fibril_rwlock_write_unlock(&vol->states_lock);
 		}
 	}
@@ -282,13 +282,13 @@ static void hr_raid1_ext_state_callback(hr_volume_t *vol, size_t extent,
 
 	switch (rc) {
 	case ENOMEM:
-		hr_update_ext_status(vol, extent, HR_EXT_INVALID);
+		hr_update_ext_state(vol, extent, HR_EXT_INVALID);
 		break;
 	case ENOENT:
-		hr_update_ext_status(vol, extent, HR_EXT_MISSING);
+		hr_update_ext_state(vol, extent, HR_EXT_MISSING);
 		break;
 	default:
-		hr_update_ext_status(vol, extent, HR_EXT_FAILED);
+		hr_update_ext_state(vol, extent, HR_EXT_FAILED);
 	}
 
 	hr_mark_vol_state_dirty(vol);
@@ -304,8 +304,8 @@ static size_t hr_raid1_count_good_extents(hr_volume_t *vol, uint64_t ba,
 
 	size_t count = 0;
 	for (size_t i = 0; i < vol->extent_no; i++) {
-		if (vol->extents[i].status == HR_EXT_ONLINE ||
-		    (vol->extents[i].status == HR_EXT_REBUILD &&
+		if (vol->extents[i].state == HR_EXT_ONLINE ||
+		    (vol->extents[i].state == HR_EXT_REBUILD &&
 		    ba < rebuild_blk)) {
 			count++;
 		}
@@ -325,7 +325,7 @@ static errno_t hr_raid1_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 	uint64_t rebuild_blk;
 
 	fibril_rwlock_read_lock(&vol->states_lock);
-	hr_vol_status_t vol_state = vol->status;
+	hr_vol_state_t vol_state = vol->state;
 	fibril_rwlock_read_unlock(&vol->states_lock);
 
 	if (vol_state == HR_VOL_FAULTY || vol_state == HR_VOL_NONE)
@@ -357,7 +357,7 @@ static errno_t hr_raid1_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 
 		for (i = 0; i < vol->extent_no; i++) {
 			fibril_rwlock_read_lock(&vol->states_lock);
-			hr_ext_status_t state = vol->extents[i].status;
+			hr_ext_state_t state = vol->extents[i].state;
 			fibril_rwlock_read_unlock(&vol->states_lock);
 
 			if (state != HR_EXT_ONLINE &&
@@ -411,8 +411,8 @@ static errno_t hr_raid1_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 		}
 
 		for (i = 0; i < vol->extent_no; i++) {
-			if (vol->extents[i].status != HR_EXT_ONLINE &&
-			    (vol->extents[i].status != HR_EXT_REBUILD ||
+			if (vol->extents[i].state != HR_EXT_ONLINE &&
+			    (vol->extents[i].state != HR_EXT_REBUILD ||
 			    ba >= rebuild_blk)) {
 				/*
 				 * When the extent is being rebuilt,
@@ -457,7 +457,7 @@ static errno_t hr_raid1_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 end:
 	fibril_rwlock_read_unlock(&vol->extents_lock);
 
-	hr_raid1_update_vol_status(vol);
+	hr_raid1_update_vol_state(vol);
 
 	return rc;
 }
@@ -532,7 +532,7 @@ static errno_t hr_raid1_rebuild(void *arg)
 
 	fibril_rwlock_write_lock(&vol->states_lock);
 
-	hr_update_ext_status(vol, rebuild_idx, HR_EXT_ONLINE);
+	hr_update_ext_state(vol, rebuild_idx, HR_EXT_ONLINE);
 
 	/*
 	 * We can be optimistic here, if some extents are
@@ -540,7 +540,7 @@ static errno_t hr_raid1_rebuild(void *arg)
 	 * function will pick them up, and set the volume
 	 * state accordingly.
 	 */
-	hr_update_vol_status(vol, HR_VOL_ONLINE);
+	hr_update_vol_state(vol, HR_VOL_ONLINE);
 	hr_mark_vol_state_dirty(vol);
 
 	fibril_rwlock_write_unlock(&vol->states_lock);
@@ -557,14 +557,14 @@ end:
 		 *   rebuild extent here, for now)
 		 */
 		fibril_rwlock_write_lock(&vol->states_lock);
-		hr_update_vol_status(vol, HR_VOL_DEGRADED);
+		hr_update_vol_state(vol, HR_VOL_DEGRADED);
 		hr_mark_vol_state_dirty(vol);
 		fibril_rwlock_write_unlock(&vol->states_lock);
 	}
 
 	fibril_rwlock_read_unlock(&vol->extents_lock);
 
-	hr_raid1_update_vol_status(vol);
+	hr_raid1_update_vol_state(vol);
 
 	if (buf != NULL)
 		free(buf);
@@ -590,7 +590,7 @@ static errno_t init_rebuild(hr_volume_t *vol, size_t *rebuild_idx)
 
 	size_t bad = vol->extent_no;
 	for (size_t i = 0; i < vol->extent_no; i++) {
-		if (vol->extents[i].status != HR_EXT_ONLINE) {
+		if (vol->extents[i].state != HR_EXT_ONLINE) {
 			bad = i;
 			break;
 		}
@@ -605,7 +605,7 @@ static errno_t init_rebuild(hr_volume_t *vol, size_t *rebuild_idx)
 
 	size_t hotspare_idx = vol->hotspare_no - 1;
 
-	hr_ext_status_t hs_state = vol->hotspares[hotspare_idx].status;
+	hr_ext_state_t hs_state = vol->hotspares[hotspare_idx].state;
 	if (hs_state != HR_EXT_HOTSPARE) {
 		HR_ERROR("hr_raid1_rebuild(): invalid hotspare state \"%s\", "
 		    "aborting rebuild\n", hr_get_ext_state_str(hs_state));
@@ -627,8 +627,8 @@ static errno_t init_rebuild(hr_volume_t *vol, size_t *rebuild_idx)
 
 	atomic_store_explicit(&vol->rebuild_blk, 0, memory_order_relaxed);
 
-	hr_update_ext_status(vol, bad, HR_EXT_REBUILD);
-	hr_update_vol_status(vol, HR_VOL_REBUILD);
+	hr_update_ext_state(vol, bad, HR_EXT_REBUILD);
+	hr_update_vol_state(vol, HR_VOL_REBUILD);
 
 	*rebuild_idx = bad;
 error:
@@ -647,10 +647,10 @@ static errno_t swap_hs(hr_volume_t *vol, size_t bad, size_t hs)
 	service_id_t hs_svc_id = vol->hotspares[hs].svc_id;
 
 	hr_update_ext_svc_id(vol, bad, hs_svc_id);
-	hr_update_ext_status(vol, bad, HR_EXT_HOTSPARE);
+	hr_update_ext_state(vol, bad, HR_EXT_HOTSPARE);
 
 	hr_update_hotspare_svc_id(vol, hs, 0);
-	hr_update_hotspare_status(vol, hs, HR_EXT_MISSING);
+	hr_update_hotspare_state(vol, hs, HR_EXT_MISSING);
 
 	vol->hotspare_no--;
 
@@ -669,16 +669,16 @@ static errno_t hr_raid1_restore_blocks(hr_volume_t *vol, size_t rebuild_idx,
 	hr_extent_t *ext, *rebuild_ext = &vol->extents[rebuild_idx];
 
 	fibril_rwlock_read_lock(&vol->states_lock);
-	hr_ext_status_t rebuild_ext_status = rebuild_ext->status;
+	hr_ext_state_t rebuild_ext_state = rebuild_ext->state;
 	fibril_rwlock_read_unlock(&vol->states_lock);
 
-	if (rebuild_ext_status != HR_EXT_REBUILD)
+	if (rebuild_ext_state != HR_EXT_REBUILD)
 		return EINVAL;
 
 	for (size_t i = 0; i < vol->extent_no; i++) {
 		fibril_rwlock_read_lock(&vol->states_lock);
 		ext = &vol->extents[i];
-		if (ext->status != HR_EXT_ONLINE) {
+		if (ext->state != HR_EXT_ONLINE) {
 			fibril_rwlock_read_unlock(&vol->states_lock);
 			continue;
 		}

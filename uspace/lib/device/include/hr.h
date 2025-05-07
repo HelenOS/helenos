@@ -63,23 +63,23 @@ typedef enum hr_layout {
 	HR_RLQ_RAID5_NC 	/* RAID-5 Rotating Parity N with Data Continuation */
 } hr_layout_t;
 
-typedef enum hr_vol_status {
+typedef enum hr_vol_state {
 	HR_VOL_NONE = 0,	/* Unknown/None */
 	HR_VOL_ONLINE,		/* optimal */
 	HR_VOL_FAULTY,		/* unusable */
 	HR_VOL_DEGRADED,	/* not optimal */
 	HR_VOL_REBUILD		/* rebuild in progress */
-} hr_vol_status_t;
+} hr_vol_state_t;
 
-typedef enum hr_ext_status {
-	HR_EXT_NONE = 0,	/* unknown/none status */
+typedef enum hr_ext_state {
+	HR_EXT_NONE = 0,	/* unknown/none state */
 	HR_EXT_INVALID,		/* working but not consistent */
 	HR_EXT_ONLINE,		/* ok */
 	HR_EXT_MISSING,		/* offline */
 	HR_EXT_FAILED,
 	HR_EXT_REBUILD,
 	HR_EXT_HOTSPARE
-} hr_ext_status_t;
+} hr_ext_state_t;
 
 typedef struct hr {
 	async_sess_t *sess;
@@ -94,7 +94,7 @@ typedef struct hr_config {
 
 typedef struct hr_extent {
 	service_id_t	svc_id;
-	hr_ext_status_t	status;
+	hr_ext_state_t	state;
 } hr_extent_t;
 
 typedef struct hr_vol_info {
@@ -107,7 +107,7 @@ typedef struct hr_vol_info {
 	uint64_t	 nblocks;
 	uint32_t	 strip_size;
 	size_t		 bsize;
-	hr_vol_status_t	 status;
+	hr_vol_state_t	 state;
 	uint8_t		 layout;
 } hr_vol_info_t;
 
@@ -128,9 +128,9 @@ extern errno_t		 hr_stop(hr_t *, const char *);
 extern errno_t		 hr_stop_all(hr_t *);
 extern errno_t		 hr_fail_extent(hr_t *, const char *, unsigned long);
 extern errno_t		 hr_add_hotspare(hr_t *, const char *, const char *);
-extern errno_t		 hr_print_status(hr_t *);
-extern const char	*hr_get_vol_state_str(hr_vol_status_t);
-extern const char	*hr_get_ext_state_str(hr_ext_status_t);
+extern errno_t		 hr_print_state(hr_t *);
+extern const char	*hr_get_vol_state_str(hr_vol_state_t);
+extern const char	*hr_get_ext_state_str(hr_ext_state_t);
 extern const char	*hr_get_layout_str(hr_layout_t);
 extern const char	*hr_get_metadata_type_str(hr_metadata_type_t);
 

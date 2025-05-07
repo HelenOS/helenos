@@ -166,14 +166,14 @@ static errno_t meta_softraid_init_meta2vol(const list_t *list, hr_volume_t *vol)
 
 		/* for now no ssd_rebuild handling for saved REBUILD */
 		if (iter_meta->ssd_ondisk == max_counter_val)
-			vol->extents[index].status = HR_EXT_ONLINE;
+			vol->extents[index].state = HR_EXT_ONLINE;
 		else
-			vol->extents[index].status = HR_EXT_INVALID;
+			vol->extents[index].state = HR_EXT_INVALID;
 	}
 
 	for (size_t i = 0; i < vol->extent_no; i++) {
-		if (vol->extents[i].status == HR_EXT_NONE)
-			vol->extents[i].status = HR_EXT_MISSING;
+		if (vol->extents[i].state == HR_EXT_NONE)
+			vol->extents[i].state = HR_EXT_MISSING;
 	}
 
 error:

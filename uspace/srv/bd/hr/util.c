@@ -97,12 +97,12 @@ errno_t hr_create_vol_struct(hr_volume_t **rvol, hr_level_t level,
 	case HR_LVL_0:
 		vol->hr_ops.create = hr_raid0_create;
 		vol->hr_ops.init = hr_raid0_init;
-		vol->hr_ops.status_event = hr_raid0_status_event;
+		vol->hr_ops.state_event = hr_raid0_state_event;
 		break;
 	case HR_LVL_1:
 		vol->hr_ops.create = hr_raid1_create;
 		vol->hr_ops.init = hr_raid1_init;
-		vol->hr_ops.status_event = hr_raid1_status_event;
+		vol->hr_ops.state_event = hr_raid1_state_event;
 		if (meta_flags & HR_METADATA_HOTSPARE_SUPPORT)
 			vol->hr_ops.add_hotspare = hr_raid1_add_hotspare;
 		break;
@@ -110,7 +110,7 @@ errno_t hr_create_vol_struct(hr_volume_t **rvol, hr_level_t level,
 	case HR_LVL_5:
 		vol->hr_ops.create = hr_raid5_create;
 		vol->hr_ops.init = hr_raid5_init;
-		vol->hr_ops.status_event = hr_raid5_status_event;
+		vol->hr_ops.state_event = hr_raid5_state_event;
 		if (meta_flags & HR_METADATA_HOTSPARE_SUPPORT)
 			vol->hr_ops.add_hotspare = hr_raid5_add_hotspare;
 		break;
@@ -133,7 +133,7 @@ errno_t hr_create_vol_struct(hr_volume_t **rvol, hr_level_t level,
 		goto error;
 	}
 
-	vol->status = HR_VOL_NONE;
+	vol->state = HR_VOL_NONE;
 
 	fibril_mutex_initialize(&vol->lock); /* XXX: will remove this */
 
@@ -267,7 +267,7 @@ errno_t hr_init_extents_from_cfg(hr_volume_t *vol, hr_config_t *cfg)
 		}
 
 		vol->extents[i].svc_id = svc_id;
-		vol->extents[i].status = HR_EXT_ONLINE;
+		vol->extents[i].state = HR_EXT_ONLINE;
 
 		if (blkno < smallest_blkno)
 			smallest_blkno = blkno;
@@ -279,7 +279,7 @@ errno_t hr_init_extents_from_cfg(hr_volume_t *vol, hr_config_t *cfg)
 	vol->truncated_blkno = smallest_blkno;
 
 	for (i = 0; i < HR_MAX_HOTSPARES; i++)
-		vol->hotspares[i].status = HR_EXT_MISSING;
+		vol->hotspares[i].state = HR_EXT_MISSING;
 
 	return EOK;
 
@@ -373,7 +373,7 @@ void hr_add_ba_offset(hr_volume_t *vol, uint64_t *ba)
 	*ba = *ba + vol->data_offset;
 }
 
-void hr_update_ext_status(hr_volume_t *vol, size_t ext_idx, hr_ext_status_t s)
+void hr_update_ext_state(hr_volume_t *vol, size_t ext_idx, hr_ext_state_t s)
 {
 	if (vol->level != HR_LVL_0)
 		assert(fibril_rwlock_is_locked(&vol->extents_lock));
@@ -382,34 +382,34 @@ void hr_update_ext_status(hr_volume_t *vol, size_t ext_idx, hr_ext_status_t s)
 
 	assert(ext_idx < vol->extent_no);
 
-	hr_ext_status_t old = vol->extents[ext_idx].status;
+	hr_ext_state_t old = vol->extents[ext_idx].state;
 	HR_NOTE("\"%s\": changing extent %zu state: %s -> %s\n",
 	    vol->devname, ext_idx, hr_get_ext_state_str(old),
 	    hr_get_ext_state_str(s));
-	vol->extents[ext_idx].status = s;
+	vol->extents[ext_idx].state = s;
 }
 
-void hr_update_hotspare_status(hr_volume_t *vol, size_t hs_idx,
-    hr_ext_status_t s)
+void hr_update_hotspare_state(hr_volume_t *vol, size_t hs_idx,
+    hr_ext_state_t s)
 {
 	assert(fibril_mutex_is_locked(&vol->hotspare_lock));
 
 	assert(hs_idx < vol->hotspare_no);
 
-	hr_ext_status_t old = vol->hotspares[hs_idx].status;
+	hr_ext_state_t old = vol->hotspares[hs_idx].state;
 	HR_NOTE("\"%s\": changing hotspare %zu state: %s -> %s\n",
 	    vol->devname, hs_idx, hr_get_ext_state_str(old),
 	    hr_get_ext_state_str(s));
-	vol->hotspares[hs_idx].status = s;
+	vol->hotspares[hs_idx].state = s;
 }
 
-void hr_update_vol_status(hr_volume_t *vol, hr_vol_status_t new)
+void hr_update_vol_state(hr_volume_t *vol, hr_vol_state_t new)
 {
 	assert(fibril_rwlock_is_write_locked(&vol->states_lock));
 
 	HR_NOTE("\"%s\": changing volume state: %s -> %s\n", vol->devname,
-	    hr_get_vol_state_str(vol->status), hr_get_vol_state_str(new));
-	vol->status = new;
+	    hr_get_vol_state_str(vol->state), hr_get_vol_state_str(new));
+	vol->state = new;
 }
 
 void hr_update_ext_svc_id(hr_volume_t *vol, size_t ext_idx, service_id_t new)
@@ -440,10 +440,10 @@ void hr_update_hotspare_svc_id(hr_volume_t *vol, size_t hs_idx,
 
 /*
  * Do a whole sync (ba = 0, cnt = 0) across all extents,
- * and update extent status. *For now*, the caller has to
- * update volume status after the syncs.
+ * and update extent state. *For now*, the caller has to
+ * update volume state after the syncs.
  *
- * TODO: add update_vol_status fcn ptr for each raid
+ * TODO: add update_vol_state fcn ptr for each raid
  */
 void hr_sync_all_extents(hr_volume_t *vol)
 {
@@ -451,22 +451,22 @@ void hr_sync_all_extents(hr_volume_t *vol)
 
 	fibril_mutex_lock(&vol->lock);
 	for (size_t i = 0; i < vol->extent_no; i++) {
-		if (vol->extents[i].status != HR_EXT_ONLINE)
+		if (vol->extents[i].state != HR_EXT_ONLINE)
 			continue;
 		rc = block_sync_cache(vol->extents[i].svc_id, 0, 0);
 		if (rc == ENOMEM || rc == ENOTSUP)
 			continue;
 		if (rc != EOK) {
 			if (rc == ENOENT)
-				hr_update_ext_status(vol, i, HR_EXT_MISSING);
+				hr_update_ext_state(vol, i, HR_EXT_MISSING);
 			else if (rc != EOK)
-				hr_update_ext_status(vol, i, HR_EXT_FAILED);
+				hr_update_ext_state(vol, i, HR_EXT_FAILED);
 		}
 	}
 	fibril_mutex_unlock(&vol->lock);
 }
 
-size_t hr_count_extents(hr_volume_t *vol, hr_ext_status_t status)
+size_t hr_count_extents(hr_volume_t *vol, hr_ext_state_t state)
 {
 	if (vol->level != HR_LVL_0)
 		assert(fibril_rwlock_is_locked(&vol->extents_lock));
@@ -474,7 +474,7 @@ size_t hr_count_extents(hr_volume_t *vol, hr_ext_status_t status)
 
 	size_t count = 0;
 	for (size_t i = 0; i < vol->extent_no; i++)
-		if (vol->extents[i].status == status)
+		if (vol->extents[i].state == state)
 			count++;
 
 	return count;
@@ -1051,7 +1051,7 @@ errno_t hr_util_add_hotspare(hr_volume_t *vol, service_id_t hotspare)
 	vol->hotspare_no++;
 
 	hr_update_hotspare_svc_id(vol, hs_idx, hotspare);
-	hr_update_hotspare_status(vol, hs_idx, HR_EXT_HOTSPARE);
+	hr_update_hotspare_state(vol, hs_idx, HR_EXT_HOTSPARE);
 
 	hr_mark_vol_state_dirty(vol);
 error:

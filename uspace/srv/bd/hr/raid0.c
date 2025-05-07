@@ -52,7 +52,7 @@
 #include "util.h"
 #include "var.h"
 
-static void	hr_raid0_update_vol_status(hr_volume_t *);
+static void	hr_raid0_update_vol_state(hr_volume_t *);
 static void	hr_raid0_state_callback(hr_volume_t *, size_t, errno_t);
 static errno_t	hr_raid0_bd_op(hr_bd_op_type_t, bd_srv_t *, aoff64_t, size_t,
     void *, const void *, size_t);
@@ -91,8 +91,8 @@ errno_t hr_raid0_create(hr_volume_t *new_volume)
 		return EINVAL;
 	}
 
-	hr_raid0_update_vol_status(new_volume);
-	if (new_volume->status != HR_VOL_ONLINE) {
+	hr_raid0_update_vol_state(new_volume);
+	if (new_volume->state != HR_VOL_ONLINE) {
 		HR_NOTE("\"%s\": unusable state, not creating\n",
 		    new_volume->devname);
 		return EINVAL;
@@ -129,11 +129,11 @@ errno_t hr_raid0_init(hr_volume_t *vol)
 	return EOK;
 }
 
-void hr_raid0_status_event(hr_volume_t *vol)
+void hr_raid0_state_event(hr_volume_t *vol)
 {
 	HR_DEBUG("%s()", __func__);
 
-	hr_raid0_update_vol_status(vol);
+	hr_raid0_update_vol_state(vol);
 }
 
 static errno_t hr_raid0_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
@@ -191,7 +191,7 @@ static errno_t hr_raid0_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
 	return EOK;
 }
 
-static void hr_raid0_update_vol_status(hr_volume_t *vol)
+static void hr_raid0_update_vol_state(hr_volume_t *vol)
 {
 	fibril_mutex_lock(&vol->md_lock);
 
@@ -202,15 +202,15 @@ static void hr_raid0_update_vol_status(hr_volume_t *vol)
 
 	fibril_rwlock_read_lock(&vol->states_lock);
 
-	hr_vol_status_t old_state = vol->status;
+	hr_vol_state_t old_state = vol->state;
 
 	for (size_t i = 0; i < vol->extent_no; i++) {
-		if (vol->extents[i].status != HR_EXT_ONLINE) {
+		if (vol->extents[i].state != HR_EXT_ONLINE) {
 			fibril_rwlock_read_unlock(&vol->states_lock);
 
 			if (old_state != HR_VOL_FAULTY) {
 				fibril_rwlock_write_lock(&vol->states_lock);
-				hr_update_vol_status(vol, HR_VOL_FAULTY);
+				hr_update_vol_state(vol, HR_VOL_FAULTY);
 				fibril_rwlock_write_unlock(&vol->states_lock);
 			}
 			return;
@@ -220,7 +220,7 @@ static void hr_raid0_update_vol_status(hr_volume_t *vol)
 
 	if (old_state != HR_VOL_ONLINE) {
 		fibril_rwlock_write_lock(&vol->states_lock);
-		hr_update_vol_status(vol, HR_VOL_ONLINE);
+		hr_update_vol_state(vol, HR_VOL_ONLINE);
 		fibril_rwlock_write_unlock(&vol->states_lock);
 	}
 }
@@ -234,13 +234,13 @@ static void hr_raid0_state_callback(hr_volume_t *vol, size_t extent, errno_t rc)
 
 	switch (rc) {
 	case ENOENT:
-		hr_update_ext_status(vol, extent, HR_EXT_MISSING);
+		hr_update_ext_state(vol, extent, HR_EXT_MISSING);
 		break;
 	default:
-		hr_update_ext_status(vol, extent, HR_EXT_FAILED);
+		hr_update_ext_state(vol, extent, HR_EXT_FAILED);
 	}
 
-	hr_update_vol_status(vol, HR_VOL_FAULTY);
+	hr_update_vol_state(vol, HR_VOL_FAULTY);
 
 	fibril_rwlock_write_unlock(&vol->states_lock);
 }
@@ -256,7 +256,7 @@ static errno_t hr_raid0_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 	uint8_t *data_read = dst;
 
 	fibril_rwlock_read_lock(&vol->states_lock);
-	if (vol->status != HR_VOL_ONLINE) {
+	if (vol->state != HR_VOL_ONLINE) {
 		fibril_rwlock_read_unlock(&vol->states_lock);
 		return EIO;
 	}

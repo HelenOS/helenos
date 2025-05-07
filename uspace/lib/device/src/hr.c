@@ -224,7 +224,7 @@ static errno_t print_vol_info(size_t index, hr_vol_info_t *vol_info)
 		return rc;
 	printf("devname: %s\n", devname);
 
-	printf("status: %s\n", hr_get_vol_state_str(vol_info->status));
+	printf("state: %s\n", hr_get_vol_state_str(vol_info->state));
 
 	printf("level: %d\n", vol_info->level);
 	if (vol_info->level == HR_LVL_4 || vol_info->level == HR_LVL_5) {
@@ -245,12 +245,12 @@ static errno_t print_vol_info(size_t index, hr_vol_info_t *vol_info)
 	printf("block size: %zu\n", vol_info->bsize);
 
 	if (vol_info->level == HR_LVL_4)
-		printf("extents: [P] [status] [index] [devname]\n");
+		printf("extents: [P] [state] [index] [devname]\n");
 	else
-		printf("extents: [status] [index] [devname]\n");
+		printf("extents: [state] [index] [devname]\n");
 	for (i = 0; i < vol_info->extent_no; i++) {
 		ext = &vol_info->extents[i];
-		if (ext->status == HR_EXT_MISSING || ext->status == HR_EXT_NONE) {
+		if (ext->state == HR_EXT_MISSING || ext->state == HR_EXT_NONE) {
 			devname = (char *) "MISSING-devname";
 		} else {
 			rc = loc_service_get_name(ext->svc_id, &devname);
@@ -263,21 +263,21 @@ static errno_t print_vol_info(size_t index, hr_vol_info_t *vol_info)
 			if ((i == 0 && vol_info->layout == HR_RLQ_RAID4_0) ||
 			    (i == vol_info->extent_no - 1 &&
 			    vol_info->layout == HR_RLQ_RAID4_N))
-				printf("          P   %s    %zu       %s\n", hr_get_ext_state_str(ext->status), i, devname);
+				printf("          P   %s    %zu       %s\n", hr_get_ext_state_str(ext->state), i, devname);
 			else
-				printf("              %s    %zu       %s\n", hr_get_ext_state_str(ext->status), i, devname);
+				printf("              %s    %zu       %s\n", hr_get_ext_state_str(ext->state), i, devname);
 		} else {
-			printf("          %s    %zu       %s\n", hr_get_ext_state_str(ext->status), i, devname);
+			printf("          %s    %zu       %s\n", hr_get_ext_state_str(ext->state), i, devname);
 		}
 	}
 
 	if (vol_info->hotspare_no == 0)
 		return EOK;
 
-	printf("hotspares: [status] [index] [devname]\n");
+	printf("hotspares: [state] [index] [devname]\n");
 	for (i = 0; i < vol_info->hotspare_no; i++) {
 		ext = &vol_info->hotspares[i];
-		if (ext->status == HR_EXT_MISSING) {
+		if (ext->state == HR_EXT_MISSING) {
 			devname = (char *) "MISSING-devname";
 		} else {
 			rc = loc_service_get_name(ext->svc_id, &devname);
@@ -285,7 +285,7 @@ static errno_t print_vol_info(size_t index, hr_vol_info_t *vol_info)
 				return rc;
 		}
 		printf("            %s   %zu     %s\n",
-		    hr_get_ext_state_str(ext->status), i, devname);
+		    hr_get_ext_state_str(ext->state), i, devname);
 	}
 
 	return EOK;
@@ -413,7 +413,7 @@ error:
  *
  * @return EOK on success or an error code
  */
-errno_t hr_print_status(hr_t *hr)
+errno_t hr_print_state(hr_t *hr)
 {
 	errno_t rc, retval;
 	async_exch_t *exch;
@@ -482,9 +482,9 @@ error:
  *
  * @return State string
  */
-const char *hr_get_vol_state_str(hr_vol_status_t status)
+const char *hr_get_vol_state_str(hr_vol_state_t state)
 {
-	switch (status) {
+	switch (state) {
 	case HR_VOL_NONE:
 		return "NONE/UNKNOWN";
 	case HR_VOL_ONLINE:
@@ -506,9 +506,9 @@ const char *hr_get_vol_state_str(hr_vol_status_t status)
  *
  * @return State string
  */
-const char *hr_get_ext_state_str(hr_ext_status_t status)
+const char *hr_get_ext_state_str(hr_ext_state_t state)
 {
-	switch (status) {
+	switch (state) {
 	case HR_EXT_NONE:
 		return "NONE/UNKNOWN";
 	case HR_EXT_INVALID:

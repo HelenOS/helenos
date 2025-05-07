@@ -73,7 +73,7 @@ static const char usage_str[] =
     "          -f, --fail index                  fail an extent (DANGEROUS), or\n"
     "          -h, --hotspare device             add hotspare.\n"
     "\n"
-    "  -s, --status                              Display status of active volumes.\n"
+    "  -s, --state                               Display state of active volumes.\n"
     "\n"
     "Example usage:\n"
     "\t\thrctl --create hr0 --level 5 disk1 disk2 disk3\n"
@@ -434,14 +434,14 @@ static int handle_modify(hr_t *hr, int argc, char **argv)
 	return EXIT_SUCCESS;
 }
 
-static int handle_status(hr_t *hr, int argc, char **argv)
+static int handle_state(hr_t *hr, int argc, char **argv)
 {
 	(void)argc;
 	(void)argv;
 
-	errno_t rc = hr_print_status(hr);
+	errno_t rc = hr_print_state(hr);
 	if (rc != EOK) {
-		printf(NAME ": status printing failed: %s\n", str_error(rc));
+		printf(NAME ": state printing failed: %s\n", str_error(rc));
 		return EXIT_FAILURE;
 	}
 
@@ -473,7 +473,7 @@ int main(int argc, char **argv)
 		{ "assemble",		no_argument, 0, 'a' },
 		{ "disassemble",	no_argument, 0, 'd' },
 		{ "modify",		no_argument, 0, 'm' },
-		{ "status",		no_argument, 0, 's' },
+		{ "state",		no_argument, 0, 's' },
 		{ 0, 0, 0, 0 }
 	};
 
@@ -495,7 +495,7 @@ int main(int argc, char **argv)
 		rc = handle_modify(hr, argc, argv);
 		goto end;
 	case 's':
-		rc = handle_status(hr, argc, argv);
+		rc = handle_state(hr, argc, argv);
 		goto end;
 	default:
 		goto end;

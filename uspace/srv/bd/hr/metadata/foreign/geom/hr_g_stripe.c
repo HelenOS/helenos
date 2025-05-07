@@ -166,12 +166,12 @@ static errno_t meta_gstripe_init_meta2vol(const list_t *list, hr_volume_t *vol)
 		vol->extents[index].svc_id = iter->svc_id;
 		iter->fini = false;
 
-		vol->extents[index].status = HR_EXT_ONLINE;
+		vol->extents[index].state = HR_EXT_ONLINE;
 	}
 
 	for (size_t i = 0; i < vol->extent_no; i++) {
-		if (vol->extents[i].status == HR_EXT_NONE)
-			vol->extents[i].status = HR_EXT_MISSING;
+		if (vol->extents[i].state == HR_EXT_NONE)
+			vol->extents[i].state = HR_EXT_MISSING;
 	}
 
 error:
@@ -226,7 +226,7 @@ static errno_t meta_gstripe_get_block(service_id_t dev, void **rblock)
 
 	rc = block_read_direct(dev, blkno - 1, 1, block);
 	/*
-	 * XXX: here maybe call vol status event or the state callback...
+	 * XXX: here maybe call vol state event or the state callback...
 	 *
 	 * but need to pass vol pointer
 	 */

@@ -76,17 +76,17 @@ extern void		 hr_fini_devs(hr_volume_t *);
 extern errno_t		 hr_register_volume(hr_volume_t *);
 extern errno_t		 hr_check_ba_range(hr_volume_t *, size_t, uint64_t);
 extern void		 hr_add_ba_offset(hr_volume_t *, uint64_t *);
-extern void		 hr_update_ext_status(hr_volume_t *, size_t,
-    hr_ext_status_t);
-extern void		 hr_update_hotspare_status(hr_volume_t *, size_t,
-    hr_ext_status_t);
-extern void		 hr_update_vol_status(hr_volume_t *, hr_vol_status_t);
+extern void		 hr_update_ext_state(hr_volume_t *, size_t,
+    hr_ext_state_t);
+extern void		 hr_update_hotspare_state(hr_volume_t *, size_t,
+    hr_ext_state_t);
+extern void		 hr_update_vol_state(hr_volume_t *, hr_vol_state_t);
 extern void		 hr_update_ext_svc_id(hr_volume_t *, size_t,
     service_id_t);
 extern void		 hr_update_hotspare_svc_id(hr_volume_t *, size_t,
     service_id_t);
 extern void		 hr_sync_all_extents(hr_volume_t *);
-extern size_t		 hr_count_extents(hr_volume_t *, hr_ext_status_t);
+extern size_t		 hr_count_extents(hr_volume_t *, hr_ext_state_t);
 extern void		 hr_mark_vol_state_dirty(hr_volume_t *);
 extern void		 hr_range_lock_release(hr_range_lock_t *);
 extern hr_range_lock_t	*hr_range_lock_acquire(hr_volume_t *, uint64_t,

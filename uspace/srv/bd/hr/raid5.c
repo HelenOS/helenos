@@ -55,7 +55,7 @@
 
 static errno_t	hr_raid5_vol_usable(hr_volume_t *);
 static ssize_t	hr_raid5_get_bad_ext(hr_volume_t *);
-static errno_t	hr_raid5_update_vol_status(hr_volume_t *);
+static errno_t	hr_raid5_update_vol_state(hr_volume_t *);
 static void	hr_raid5_handle_extent_error(hr_volume_t *, size_t, errno_t);
 static void	xor(void *, const void *, size_t);
 static errno_t	hr_raid5_read_degraded(hr_volume_t *, uint64_t, uint64_t,
@@ -104,7 +104,7 @@ errno_t hr_raid5_create(hr_volume_t *new_volume)
 
 	fibril_rwlock_write_lock(&new_volume->states_lock);
 
-	errno_t rc = hr_raid5_update_vol_status(new_volume);
+	errno_t rc = hr_raid5_update_vol_state(new_volume);
 	if (rc != EOK) {
 		HR_NOTE("\"%s\": unusable state, not creating\n",
 		    new_volume->devname);
@@ -144,11 +144,11 @@ errno_t hr_raid5_init(hr_volume_t *vol)
 	return EOK;
 }
 
-void hr_raid5_status_event(hr_volume_t *vol)
+void hr_raid5_state_event(hr_volume_t *vol)
 {
 	fibril_mutex_lock(&vol->lock);
 	fibril_rwlock_write_lock(&vol->states_lock);
-	(void)hr_raid5_update_vol_status(vol);
+	(void)hr_raid5_update_vol_state(vol);
 	fibril_rwlock_write_unlock(&vol->states_lock);
 	fibril_mutex_unlock(&vol->lock);
 }
@@ -166,7 +166,7 @@ errno_t hr_raid5_add_hotspare(hr_volume_t *vol, service_id_t hotspare)
 	/*
 	 * If the volume is degraded, start rebuild right away.
 	 */
-	if (vol->status == HR_VOL_DEGRADED) {
+	if (vol->state == HR_VOL_DEGRADED) {
 		HR_DEBUG("hr_raid5_add_hotspare(): volume in DEGRADED state, "
 		    "spawning new rebuild fibril\n");
 		fid_t fib = fibril_create(hr_raid5_rebuild, vol);
@@ -242,9 +242,9 @@ static errno_t hr_raid5_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
 
 static errno_t hr_raid5_vol_usable(hr_volume_t *vol)
 {
-	if (vol->status == HR_VOL_ONLINE ||
-	    vol->status == HR_VOL_DEGRADED ||
-	    vol->status == HR_VOL_REBUILD)
+	if (vol->state == HR_VOL_ONLINE ||
+	    vol->state == HR_VOL_DEGRADED ||
+	    vol->state == HR_VOL_REBUILD)
 		return EOK;
 	return EIO;
 }
@@ -256,29 +256,29 @@ static errno_t hr_raid5_vol_usable(hr_volume_t *vol)
 static ssize_t hr_raid5_get_bad_ext(hr_volume_t *vol)
 {
 	for (size_t i = 0; i < vol->extent_no; i++)
-		if (vol->extents[i].status != HR_EXT_ONLINE)
+		if (vol->extents[i].state != HR_EXT_ONLINE)
 			return i;
 	return -1;
 }
 
-static errno_t hr_raid5_update_vol_status(hr_volume_t *vol)
+static errno_t hr_raid5_update_vol_state(hr_volume_t *vol)
 {
-	hr_vol_status_t old_state = vol->status;
+	hr_vol_state_t old_state = vol->state;
 	size_t bad = 0;
 	for (size_t i = 0; i < vol->extent_no; i++)
-		if (vol->extents[i].status != HR_EXT_ONLINE)
+		if (vol->extents[i].state != HR_EXT_ONLINE)
 			bad++;
 
 	switch (bad) {
 	case 0:
 		if (old_state != HR_VOL_ONLINE)
-			hr_update_vol_status(vol, HR_VOL_ONLINE);
+			hr_update_vol_state(vol, HR_VOL_ONLINE);
 		return EOK;
 	case 1:
 		if (old_state != HR_VOL_DEGRADED &&
 		    old_state != HR_VOL_REBUILD) {
 
-			hr_update_vol_status(vol, HR_VOL_DEGRADED);
+			hr_update_vol_state(vol, HR_VOL_DEGRADED);
 
 			if (vol->hotspare_no > 0) {
 				fid_t fib = fibril_create(hr_raid5_rebuild,
@@ -292,7 +292,7 @@ static errno_t hr_raid5_update_vol_status(hr_volume_t *vol)
 		return EOK;
 	default:
 		if (old_state != HR_VOL_FAULTY)
-			hr_update_vol_status(vol, HR_VOL_FAULTY);
+			hr_update_vol_state(vol, HR_VOL_FAULTY);
 		return EIO;
 	}
 }
@@ -301,9 +301,9 @@ static void hr_raid5_handle_extent_error(hr_volume_t *vol, size_t extent,
     errno_t rc)
 {
 	if (rc == ENOENT)
-		hr_update_ext_status(vol, extent, HR_EXT_MISSING);
+		hr_update_ext_state(vol, extent, HR_EXT_MISSING);
 	else if (rc != EOK)
-		hr_update_ext_status(vol, extent, HR_EXT_FAILED);
+		hr_update_ext_state(vol, extent, HR_EXT_FAILED);
 }
 
 static void xor(void *dst, const void *src, size_t size)
@@ -536,7 +536,7 @@ static errno_t hr_raid5_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 	/* propagate sync */
 	if (type == HR_BD_SYNC && ba == 0 && cnt == 0) {
 		hr_sync_all_extents(vol);
-		rc = hr_raid5_update_vol_status(vol);
+		rc = hr_raid5_update_vol_state(vol);
 		return rc;
 	}
 
@@ -610,7 +610,7 @@ static errno_t hr_raid5_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 		hr_add_ba_offset(vol, &phys_block);
 		switch (type) {
 		case HR_BD_SYNC:
-			if (vol->extents[extent].status != HR_EXT_ONLINE)
+			if (vol->extents[extent].state != HR_EXT_ONLINE)
 				break;
 			rc = block_sync_cache(vol->extents[extent].svc_id,
 			    phys_block, cnt);
@@ -647,7 +647,7 @@ static errno_t hr_raid5_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 		hr_raid5_handle_extent_error(vol, extent, rc);
 
 		if (rc != EOK) {
-			rc = hr_raid5_update_vol_status(vol);
+			rc = hr_raid5_update_vol_state(vol);
 			if (rc == EOK) {
 				/*
 				 * State changed from ONLINE -> DEGRADED,
@@ -699,7 +699,7 @@ static errno_t hr_raid5_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 	}
 
 error:
-	(void)hr_raid5_update_vol_status(vol);
+	(void)hr_raid5_update_vol_state(vol);
 	fibril_rwlock_write_unlock(&vol->states_lock);
 	fibril_mutex_unlock(&vol->lock);
 	return rc;
@@ -726,7 +726,7 @@ static errno_t hr_raid5_rebuild(void *arg)
 
 	size_t bad = vol->extent_no;
 	for (size_t i = 0; i < vol->extent_no; i++) {
-		if (vol->extents[i].status == HR_EXT_FAILED) {
+		if (vol->extents[i].state == HR_EXT_FAILED) {
 			bad = i;
 			break;
 		}
@@ -741,7 +741,7 @@ static errno_t hr_raid5_rebuild(void *arg)
 
 	size_t hotspare_idx = vol->hotspare_no - 1;
 
-	hr_ext_status_t hs_state = vol->hotspares[hotspare_idx].status;
+	hr_ext_state_t hs_state = vol->hotspares[hotspare_idx].state;
 	if (hs_state != HR_EXT_HOTSPARE) {
 		HR_ERROR("hr_raid5_rebuild(): invalid hotspare state \"%s\", "
 		    "aborting rebuild\n", hr_get_ext_state_str(hs_state));
@@ -754,11 +754,11 @@ static errno_t hr_raid5_rebuild(void *arg)
 	block_fini(vol->extents[bad].svc_id);
 
 	vol->extents[bad].svc_id = vol->hotspares[hotspare_idx].svc_id;
-	hr_update_ext_status(vol, bad, HR_EXT_HOTSPARE);
+	hr_update_ext_state(vol, bad, HR_EXT_HOTSPARE);
 
 	vol->hotspares[hotspare_idx].svc_id = 0;
 	fibril_mutex_lock(&vol->hotspare_lock);
-	hr_update_hotspare_status(vol, hotspare_idx, HR_EXT_MISSING);
+	hr_update_hotspare_state(vol, hotspare_idx, HR_EXT_MISSING);
 	fibril_mutex_unlock(&vol->hotspare_lock);
 
 	vol->hotspare_no--;
@@ -768,8 +768,8 @@ static errno_t hr_raid5_rebuild(void *arg)
 	HR_DEBUG("hr_raid5_rebuild(): starting rebuild on (%" PRIun ")\n",
 	    rebuild_ext->svc_id);
 
-	hr_update_ext_status(vol, bad, HR_EXT_REBUILD);
-	hr_update_vol_status(vol, HR_VOL_REBUILD);
+	hr_update_ext_state(vol, bad, HR_EXT_REBUILD);
+	hr_update_vol_state(vol, HR_VOL_REBUILD);
 
 	uint64_t max_blks = DATA_XFER_LIMIT / vol->bsize;
 	uint64_t left = vol->data_blkno / (vol->extent_no - 1);
@@ -837,12 +837,12 @@ static errno_t hr_raid5_rebuild(void *arg)
 	HR_DEBUG("hr_raid5_rebuild(): rebuild finished on \"%s\" (%" PRIun "), "
 	    "extent number %zu\n", vol->devname, vol->svc_id, hotspare_idx);
 
-	hr_update_ext_status(vol, bad, HR_EXT_ONLINE);
+	hr_update_ext_state(vol, bad, HR_EXT_ONLINE);
 
 	rc = vol->meta_ops->save(vol, WITH_STATE_CALLBACK);
 
 end:
-	(void)hr_raid5_update_vol_status(vol);
+	(void)hr_raid5_update_vol_state(vol);
 
 	fibril_rwlock_write_unlock(&vol->states_lock);
 	fibril_rwlock_read_unlock(&vol->extents_lock);

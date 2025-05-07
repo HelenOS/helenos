@@ -159,16 +159,16 @@ static errno_t meta_gmirror_init_meta2vol(const list_t *list, hr_volume_t *vol)
 
 		/* for now no md_sync_offset handling for saved REBUILD */
 		if (iter_meta->md_genid == max_counter_val)
-			vol->extents[index].status = HR_EXT_ONLINE;
+			vol->extents[index].state = HR_EXT_ONLINE;
 		else
-			vol->extents[index].status = HR_EXT_INVALID;
+			vol->extents[index].state = HR_EXT_INVALID;
 
 		index++;
 	}
 
 	for (size_t i = 0; i < vol->extent_no; i++) {
-		if (vol->extents[i].status == HR_EXT_NONE)
-			vol->extents[i].status = HR_EXT_MISSING;
+		if (vol->extents[i].state == HR_EXT_NONE)
+			vol->extents[i].state = HR_EXT_MISSING;
 	}
 
 error:
@@ -222,7 +222,7 @@ static errno_t meta_gmirror_get_block(service_id_t dev, void **rblock)
 
 	rc = block_read_direct(dev, blkno - 1, 1, block);
 	/*
-	 * XXX: here maybe call vol status event or the state callback...
+	 * XXX: here maybe call vol state event or the state callback...
 	 *
 	 * but need to pass vol pointer
 	 */
