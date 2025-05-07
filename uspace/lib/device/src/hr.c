@@ -147,15 +147,10 @@ errno_t hr_assemble(hr_t *hr, hr_config_t *hr_config, size_t *rassembled_cnt)
 	return rc;
 }
 
-errno_t hr_auto_assemble(size_t *rassembled_cnt)
+errno_t hr_auto_assemble(hr_t *hr, size_t *rassembled_cnt)
 {
-	hr_t *hr;
 	errno_t rc;
 	size_t assembled_cnt;
-
-	rc = hr_sess_init(&hr);
-	if (rc != EOK)
-		return rc;
 
 	async_exch_t *exch = async_exchange_begin(hr->sess);
 	if (exch == NULL) {
@@ -178,7 +173,6 @@ errno_t hr_auto_assemble(size_t *rassembled_cnt)
 	if (rassembled_cnt != NULL)
 		*rassembled_cnt = assembled_cnt;
 error:
-	hr_sess_destroy(hr);
 	return rc;
 }
 
@@ -265,18 +259,13 @@ static errno_t print_vol_info(size_t index, hr_vol_info_t *vol_info)
 	return EOK;
 }
 
-errno_t hr_stop(const char *devname)
+errno_t hr_stop(hr_t *hr, const char *devname)
 {
-	hr_t *hr;
 	errno_t rc;
 	async_exch_t *exch;
 	service_id_t svc_id;
 
 	rc = loc_service_get_id(devname, &svc_id, 0);
-	if (rc != EOK)
-		return rc;
-
-	rc = hr_sess_init(&hr);
 	if (rc != EOK)
 		return rc;
 
@@ -289,19 +278,13 @@ errno_t hr_stop(const char *devname)
 	rc = async_req_1_0(exch, HR_STOP, svc_id);
 	async_exchange_end(exch);
 error:
-	hr_sess_destroy(hr);
 	return rc;
 }
 
-errno_t hr_stop_all(void)
+errno_t hr_stop_all(hr_t *hr)
 {
-	hr_t *hr;
 	async_exch_t *exch;
 	errno_t rc;
-
-	rc = hr_sess_init(&hr);
-	if (rc != EOK)
-		return rc;
 
 	exch = async_exchange_begin(hr->sess);
 	if (exch == NULL) {
@@ -312,22 +295,16 @@ errno_t hr_stop_all(void)
 	rc = async_req_0_0(exch, HR_STOP_ALL);
 	async_exchange_end(exch);
 error:
-	hr_sess_destroy(hr);
 	return rc;
 }
 
-errno_t hr_fail_extent(const char *volume_name, unsigned long extent)
+errno_t hr_fail_extent(hr_t *hr, const char *volume_name, unsigned long extent)
 {
-	hr_t *hr;
 	errno_t rc;
 	async_exch_t *exch;
 	service_id_t vol_svc_id;
 
 	rc = loc_service_get_id(volume_name, &vol_svc_id, 0);
-	if (rc != EOK)
-		return rc;
-
-	rc = hr_sess_init(&hr);
 	if (rc != EOK)
 		return rc;
 
@@ -340,13 +317,11 @@ errno_t hr_fail_extent(const char *volume_name, unsigned long extent)
 	rc = async_req_2_0(exch, HR_FAIL_EXTENT, vol_svc_id, extent);
 	async_exchange_end(exch);
 error:
-	hr_sess_destroy(hr);
 	return rc;
 }
 
-errno_t hr_add_hotspare(const char *volume_name, const char *hotspare)
+errno_t hr_add_hotspare(hr_t *hr, const char *volume_name, const char *hotspare)
 {
-	hr_t *hr;
 	errno_t rc;
 	async_exch_t *exch;
 	service_id_t vol_svc_id, hs_svc_id;
@@ -359,10 +334,6 @@ errno_t hr_add_hotspare(const char *volume_name, const char *hotspare)
 	if (rc != EOK)
 		return rc;
 
-	rc = hr_sess_init(&hr);
-	if (rc != EOK)
-		return rc;
-
 	exch = async_exchange_begin(hr->sess);
 	if (exch == NULL) {
 		rc = EINVAL;
@@ -372,22 +343,16 @@ errno_t hr_add_hotspare(const char *volume_name, const char *hotspare)
 	rc = async_req_2_0(exch, HR_ADD_HOTSPARE, vol_svc_id, hs_svc_id);
 	async_exchange_end(exch);
 error:
-	hr_sess_destroy(hr);
 	return rc;
 }
 
-errno_t hr_print_status(void)
+errno_t hr_print_status(hr_t *hr)
 {
-	hr_t *hr;
 	errno_t rc, retval;
 	async_exch_t *exch;
 	aid_t req;
 	size_t size, i;
 	hr_vol_info_t *vols = NULL;
-
-	rc = hr_sess_init(&hr);
-	if (rc != EOK)
-		return rc;
 
 	exch = async_exchange_begin(hr->sess);
 	if (exch == NULL) {
@@ -428,7 +393,7 @@ errno_t hr_print_status(void)
 	}
 
 	if (size == 0) {
-		printf("no active arrays\n");
+		printf("no active volumes\n");
 		goto error;
 	}
 
@@ -439,7 +404,6 @@ errno_t hr_print_status(void)
 	}
 
 error:
-	hr_sess_destroy(hr);
 	if (vols != NULL)
 		free(vols);
 	return rc;

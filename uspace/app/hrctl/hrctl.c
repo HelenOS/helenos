@@ -228,7 +228,7 @@ error:
 	return rc;
 }
 
-static int handle_create(int argc, char **argv)
+static int handle_create(hr_t *hr, int argc, char **argv)
 {
 	if (optind >= argc) {
 		printf(NAME ": no arguments to --create\n");
@@ -286,22 +286,12 @@ static int handle_create(int argc, char **argv)
 		goto error;
 	}
 
-	hr_t *hr;
-	errno_t rc = hr_sess_init(&hr);
-	if (rc != EOK) {
-		printf(NAME ": server session init failed: %s\n",
-		    str_error(rc));
-		goto error;
-	}
-
-	rc = hr_create(hr, vol_config);
+	errno_t rc = hr_create(hr, vol_config);
 	if (rc != EOK) {
 		printf(NAME ": creation failed: %s\n",
 		    str_error(rc));
 		goto error;
 	}
-
-	hr_sess_destroy(hr);
 
 	free(vol_config);
 	return EXIT_SUCCESS;
@@ -310,11 +300,11 @@ error:
 	return EXIT_FAILURE;
 }
 
-static int handle_assemble(int argc, char **argv)
+static int handle_assemble(hr_t *hr, int argc, char **argv)
 {
 	if (optind >= argc) {
 		size_t cnt;
-		errno_t rc = hr_auto_assemble(&cnt);
+		errno_t rc = hr_auto_assemble(hr, &cnt);
 		if (rc != EOK) {
 			/* XXX: here have own error codes */
 			printf("hrctl: auto assemble rc: %s\n", str_error(rc));
@@ -352,24 +342,14 @@ static int handle_assemble(int argc, char **argv)
 			goto error;
 	}
 
-	hr_t *hr;
-	errno_t rc = hr_sess_init(&hr);
-	if (rc != EOK) {
-		printf(NAME ": server session init failed: %s\n",
-		    str_error(rc));
-		goto error;
-	}
-
 	size_t cnt;
-	rc = hr_assemble(hr, vol_config, &cnt);
+	errno_t rc = hr_assemble(hr, vol_config, &cnt);
 	if (rc != EOK) {
 		printf(NAME ": assmeble failed: %s\n", str_error(rc));
 		goto error;
 	}
 
 	printf("hrctl: auto assembled %zu volumes\n", cnt);
-
-	hr_sess_destroy(hr);
 
 	free(vol_config);
 	return EXIT_SUCCESS;
@@ -378,10 +358,10 @@ error:
 	return EXIT_FAILURE;
 }
 
-static int handle_disassemble(int argc, char **argv)
+static int handle_disassemble(hr_t *hr, int argc, char **argv)
 {
 	if (optind >= argc) {
-		errno_t rc = hr_stop_all();
+		errno_t rc = hr_stop_all(hr);
 		if (rc != EOK) {
 			printf(NAME ": stopping some volumes failed: %s\n",
 			    str_error(rc));
@@ -397,7 +377,7 @@ static int handle_disassemble(int argc, char **argv)
 
 	const char *devname = argv[optind++];
 
-	errno_t rc = hr_stop(devname);
+	errno_t rc = hr_stop(hr, devname);
 	if (rc != EOK) {
 		printf(NAME ": disassembly of device \"%s\" failed: %s\n",
 		    devname, str_error(rc));
@@ -407,7 +387,7 @@ static int handle_disassemble(int argc, char **argv)
 	return EXIT_SUCCESS;
 }
 
-static int handle_modify(int argc, char **argv)
+static int handle_modify(hr_t *hr, int argc, char **argv)
 {
 	if (optind >= argc) {
 		printf(NAME ": no arguments to --modify\n");
@@ -431,7 +411,7 @@ static int handle_modify(int argc, char **argv)
 	    str_cmp(argv[optind], "-f") == 0) {
 		optind++;
 		unsigned long extent = strtol(argv[optind++], NULL, 10);
-		errno_t rc = hr_fail_extent(volname, extent);
+		errno_t rc = hr_fail_extent(hr, volname, extent);
 		if (rc != EOK) {
 			printf(NAME ": failing extent failed: %s\n",
 			    str_error(rc));
@@ -440,7 +420,7 @@ static int handle_modify(int argc, char **argv)
 	} else if (str_cmp(argv[optind], "--hotspare") == 0 ||
 	    str_cmp(argv[optind], "-h") == 0) {
 		optind++;
-		errno_t rc = hr_add_hotspare(volname, argv[optind++]);
+		errno_t rc = hr_add_hotspare(hr, volname, argv[optind++]);
 		if (rc != EOK) {
 			printf(NAME ": adding hotspare failed: %s\n",
 			    str_error(rc));
@@ -454,12 +434,12 @@ static int handle_modify(int argc, char **argv)
 	return EXIT_SUCCESS;
 }
 
-static int handle_status(int argc, char **argv)
+static int handle_status(hr_t *hr, int argc, char **argv)
 {
 	(void)argc;
 	(void)argv;
 
-	errno_t rc = hr_print_status();
+	errno_t rc = hr_print_status(hr);
 	if (rc != EOK) {
 		printf(NAME ": status printing failed: %s\n", str_error(rc));
 		return EXIT_FAILURE;
@@ -471,14 +451,19 @@ static int handle_status(int argc, char **argv)
 int main(int argc, char **argv)
 {
 	int rc = EXIT_SUCCESS;
-	int c;
+	hr_t *hr = NULL;
 
 	if (argc < 2) {
 		rc = EXIT_FAILURE;
 		goto end;
 	}
 
-	c = 0;
+	if (hr_sess_init(&hr) != EOK) {
+		printf(NAME ": hr server session init failed: %s\n",
+		    str_error(rc));
+		return EXIT_FAILURE;
+	}
+
 	optreset = 1;
 	optind = 0;
 
@@ -492,33 +477,33 @@ int main(int argc, char **argv)
 		{ 0, 0, 0, 0 }
 	};
 
-	while (c != -1) {
-		c = getopt_long(argc, argv, "hcadms", top_level_opts, NULL);
-		switch (c) {
-		case 'h':
-			usage();
-			return EXIT_SUCCESS;
-		case 'c':
-			rc = handle_create(argc, argv);
-			goto end;
-		case 'a':
-			rc = handle_assemble(argc, argv);
-			goto end;
-		case 'd':
-			rc = handle_disassemble(argc, argv);
-			goto end;
-		case 'm':
-			rc = handle_modify(argc, argv);
-			goto end;
-		case 's':
-			rc = handle_status(argc, argv);
-			goto end;
-		default:
-			goto end;
-		}
+	int c = getopt_long(argc, argv, "hcadms", top_level_opts, NULL);
+	switch (c) {
+	case 'h':
+		usage();
+		goto end;
+	case 'c':
+		rc = handle_create(hr, argc, argv);
+		goto end;
+	case 'a':
+		rc = handle_assemble(hr, argc, argv);
+		goto end;
+	case 'd':
+		rc = handle_disassemble(hr, argc, argv);
+		goto end;
+	case 'm':
+		rc = handle_modify(hr, argc, argv);
+		goto end;
+	case 's':
+		rc = handle_status(hr, argc, argv);
+		goto end;
+	default:
+		goto end;
 	}
 
 end:
+	hr_sess_destroy(hr);
+
 	if (rc != EXIT_SUCCESS)
 		printf(NAME ": use --help to see usage\n");
 	return rc;
