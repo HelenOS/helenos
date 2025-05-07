@@ -378,8 +378,10 @@ static errno_t meta_native_save(hr_volume_t *vol, bool with_state_callback)
 		fibril_rwlock_read_lock(&vol->states_lock);
 
 		/* TODO: special case for REBUILD */
-		if (ext->state != HR_EXT_ONLINE)
+		if (ext->state != HR_EXT_ONLINE) {
+			fibril_rwlock_read_unlock(&vol->states_lock);
 			continue;
+		}
 
 		fibril_rwlock_read_unlock(&vol->states_lock);
 
