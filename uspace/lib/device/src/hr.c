@@ -224,7 +224,7 @@ static errno_t print_vol_info(size_t index, hr_vol_info_t *vol_info)
 		return rc;
 	printf("devname: %s\n", devname);
 
-	printf("status: %s\n", hr_get_vol_status_msg(vol_info->status));
+	printf("status: %s\n", hr_get_vol_state_str(vol_info->status));
 
 	printf("level: %d\n", vol_info->level);
 	if (vol_info->level == HR_LVL_4 || vol_info->level == HR_LVL_5) {
@@ -263,11 +263,11 @@ static errno_t print_vol_info(size_t index, hr_vol_info_t *vol_info)
 			if ((i == 0 && vol_info->layout == HR_RLQ_RAID4_0) ||
 			    (i == vol_info->extent_no - 1 &&
 			    vol_info->layout == HR_RLQ_RAID4_N))
-				printf("          P   %s    %zu       %s\n", hr_get_ext_status_msg(ext->status), i, devname);
+				printf("          P   %s    %zu       %s\n", hr_get_ext_state_str(ext->status), i, devname);
 			else
-				printf("              %s    %zu       %s\n", hr_get_ext_status_msg(ext->status), i, devname);
+				printf("              %s    %zu       %s\n", hr_get_ext_state_str(ext->status), i, devname);
 		} else {
-			printf("          %s    %zu       %s\n", hr_get_ext_status_msg(ext->status), i, devname);
+			printf("          %s    %zu       %s\n", hr_get_ext_state_str(ext->status), i, devname);
 		}
 	}
 
@@ -285,7 +285,7 @@ static errno_t print_vol_info(size_t index, hr_vol_info_t *vol_info)
 				return rc;
 		}
 		printf("            %s   %zu     %s\n",
-		    hr_get_ext_status_msg(ext->status), i, devname);
+		    hr_get_ext_state_str(ext->status), i, devname);
 	}
 
 	return EOK;
@@ -476,7 +476,13 @@ error:
 	return rc;
 }
 
-const char *hr_get_vol_status_msg(hr_vol_status_t status)
+/** Get volume state string.
+ *
+ * @param state	State value
+ *
+ * @return State string
+ */
+const char *hr_get_vol_state_str(hr_vol_status_t status)
 {
 	switch (status) {
 	case HR_VOL_NONE:
@@ -494,7 +500,13 @@ const char *hr_get_vol_status_msg(hr_vol_status_t status)
 	}
 }
 
-const char *hr_get_ext_status_msg(hr_ext_status_t status)
+/** Get extent state string.
+ *
+ * @param state	State value
+ *
+ * @return State string
+ */
+const char *hr_get_ext_state_str(hr_ext_status_t status)
 {
 	switch (status) {
 	case HR_EXT_NONE:
@@ -516,6 +528,12 @@ const char *hr_get_ext_status_msg(hr_ext_status_t status)
 	}
 }
 
+/** Get volume layout string.
+ *
+ * @param layout Layout value
+ *
+ * @return Layout string
+ */
 const char *hr_get_layout_str(hr_layout_t layout)
 {
 	switch (layout) {
@@ -536,6 +554,12 @@ const char *hr_get_layout_str(hr_layout_t layout)
 	}
 }
 
+/** Get volume metadata type string.
+ *
+ * @param type Metadata type value
+ *
+ * @return Metadata type string
+ */
 const char *hr_get_metadata_type_str(hr_metadata_type_t type)
 {
 	switch (type) {

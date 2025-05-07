@@ -384,8 +384,8 @@ void hr_update_ext_status(hr_volume_t *vol, size_t ext_idx, hr_ext_status_t s)
 
 	hr_ext_status_t old = vol->extents[ext_idx].status;
 	HR_NOTE("\"%s\": changing extent %zu state: %s -> %s\n",
-	    vol->devname, ext_idx, hr_get_ext_status_msg(old),
-	    hr_get_ext_status_msg(s));
+	    vol->devname, ext_idx, hr_get_ext_state_str(old),
+	    hr_get_ext_state_str(s));
 	vol->extents[ext_idx].status = s;
 }
 
@@ -398,8 +398,8 @@ void hr_update_hotspare_status(hr_volume_t *vol, size_t hs_idx,
 
 	hr_ext_status_t old = vol->hotspares[hs_idx].status;
 	HR_NOTE("\"%s\": changing hotspare %zu state: %s -> %s\n",
-	    vol->devname, hs_idx, hr_get_ext_status_msg(old),
-	    hr_get_ext_status_msg(s));
+	    vol->devname, hs_idx, hr_get_ext_state_str(old),
+	    hr_get_ext_state_str(s));
 	vol->hotspares[hs_idx].status = s;
 }
 
@@ -408,7 +408,7 @@ void hr_update_vol_status(hr_volume_t *vol, hr_vol_status_t new)
 	assert(fibril_rwlock_is_write_locked(&vol->states_lock));
 
 	HR_NOTE("\"%s\": changing volume state: %s -> %s\n", vol->devname,
-	    hr_get_vol_status_msg(vol->status), hr_get_vol_status_msg(new));
+	    hr_get_vol_state_str(vol->status), hr_get_vol_state_str(new));
 	vol->status = new;
 }
 

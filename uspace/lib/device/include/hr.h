@@ -129,8 +129,8 @@ extern errno_t		 hr_stop_all(hr_t *);
 extern errno_t		 hr_fail_extent(hr_t *, const char *, unsigned long);
 extern errno_t		 hr_add_hotspare(hr_t *, const char *, const char *);
 extern errno_t		 hr_print_status(hr_t *);
-extern const char	*hr_get_vol_status_msg(hr_vol_status_t);
-extern const char	*hr_get_ext_status_msg(hr_ext_status_t);
+extern const char	*hr_get_vol_state_str(hr_vol_status_t);
+extern const char	*hr_get_ext_state_str(hr_ext_status_t);
 extern const char	*hr_get_layout_str(hr_layout_t);
 extern const char	*hr_get_metadata_type_str(hr_metadata_type_t);
 

@@ -744,7 +744,7 @@ static errno_t hr_raid5_rebuild(void *arg)
 	hr_ext_status_t hs_state = vol->hotspares[hotspare_idx].status;
 	if (hs_state != HR_EXT_HOTSPARE) {
 		HR_ERROR("hr_raid5_rebuild(): invalid hotspare state \"%s\", "
-		    "aborting rebuild\n", hr_get_ext_status_msg(hs_state));
+		    "aborting rebuild\n", hr_get_ext_state_str(hs_state));
 		rc = EINVAL;
 		goto end;
 	}
