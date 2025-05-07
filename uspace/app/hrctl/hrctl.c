@@ -33,6 +33,7 @@
  * @file
  */
 
+#include <ctype.h>
 #include <errno.h>
 #include <getopt.h>
 #include <hr.h>
@@ -274,7 +275,13 @@ static int handle_create(hr_t *hr, int argc, char **argv)
 			goto error;
 		}
 
-		vol_config->level = strtol(argv[optind++], NULL, 10);
+		const char *level_str = argv[optind++];
+		if (str_size(level_str) != 1 && !isdigit(level_str[0])) {
+			printf(NAME ": unknown level \"%s\"\n", level_str);
+			goto error;
+		}
+
+		vol_config->level = strtol(level_str, NULL, 10);
 
 		errno_t rc = fill_config_devs(argc, argv, vol_config);
 		if (rc != EOK)
