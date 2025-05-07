@@ -30,7 +30,7 @@
  * @{
  */
 /**
- * @file
+ * @file HelenRAID client API
  */
 
 #include <abi/ipc/interfaces.h>
@@ -43,6 +43,12 @@
 #include <stdio.h>
 #include <str.h>
 
+/** Initialize server session.
+ *
+ * @param rhr	Place to store inited session
+ *
+ * @return EOK on success or an error code
+ */
 errno_t hr_sess_init(hr_t **rhr)
 {
 	errno_t rc;
@@ -78,6 +84,10 @@ error:
 	return rc;
 }
 
+/** Destroy server session.
+ *
+ * @param hr	Session to destroy
+ */
 void hr_sess_destroy(hr_t *hr)
 {
 	if (hr == NULL)
@@ -87,6 +97,13 @@ void hr_sess_destroy(hr_t *hr)
 	free(hr);
 }
 
+/** Create volume.
+ *
+ * @param hr		Server session
+ * @param hr_config	Config to create from
+ *
+ * @return EOK on success or an error code
+ */
 errno_t hr_create(hr_t *hr, hr_config_t *hr_config)
 {
 	errno_t rc, retval;
@@ -111,6 +128,14 @@ errno_t hr_create(hr_t *hr, hr_config_t *hr_config)
 	return retval;
 }
 
+/** Assemble volumes.
+ *
+ * @param hr		 Server session
+ * @param hr_config	 Config to assemble from
+ * @param rassembled_cnt Place to store assembled count
+ *
+ * @return EOK on success or an error code
+ */
 errno_t hr_assemble(hr_t *hr, hr_config_t *hr_config, size_t *rassembled_cnt)
 {
 	errno_t rc;
@@ -147,6 +172,13 @@ errno_t hr_assemble(hr_t *hr, hr_config_t *hr_config, size_t *rassembled_cnt)
 	return rc;
 }
 
+/** Automatically assemble volumes.
+ *
+ * @param hr		 Server session
+ * @param rassembled_cnt Place to store assembled count
+ *
+ * @return EOK on success or an error code
+ */
 errno_t hr_auto_assemble(hr_t *hr, size_t *rassembled_cnt)
 {
 	errno_t rc;
@@ -259,6 +291,13 @@ static errno_t print_vol_info(size_t index, hr_vol_info_t *vol_info)
 	return EOK;
 }
 
+/** Stop/deactivate volume.
+ *
+ * @param hr		Server session
+ * @param devname	Volume name
+ *
+ * @return EOK on success or an error code
+ */
 errno_t hr_stop(hr_t *hr, const char *devname)
 {
 	errno_t rc;
@@ -281,6 +320,12 @@ error:
 	return rc;
 }
 
+/** Stop/deactivate all volumes.
+ *
+ * @param hr		Server session
+ *
+ * @return EOK on success or an error code
+ */
 errno_t hr_stop_all(hr_t *hr)
 {
 	async_exch_t *exch;
@@ -298,6 +343,14 @@ error:
 	return rc;
 }
 
+/** Fail an extent in volume.
+ *
+ * @param hr		Server session
+ * @param volume_name	Volume name
+ * @param extent	Extent index to fail
+ *
+ * @return EOK on success or an error code
+ */
 errno_t hr_fail_extent(hr_t *hr, const char *volume_name, unsigned long extent)
 {
 	errno_t rc;
@@ -320,6 +373,14 @@ error:
 	return rc;
 }
 
+/** Add a hotspare to volume.
+ *
+ * @param hr		Server session
+ * @param volume_name	Volume name
+ * @param hotspare	Hotspare service name
+ *
+ * @return EOK on success or an error code
+ */
 errno_t hr_add_hotspare(hr_t *hr, const char *volume_name, const char *hotspare)
 {
 	errno_t rc;
@@ -346,6 +407,12 @@ error:
 	return rc;
 }
 
+/** Print state of volumes.
+ *
+ * @param hr	Server session
+ *
+ * @return EOK on success or an error code
+ */
 errno_t hr_print_status(hr_t *hr)
 {
 	errno_t rc, retval;
