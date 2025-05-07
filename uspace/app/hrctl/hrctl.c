@@ -107,7 +107,7 @@ static errno_t fill_config_devs(int argc, char **argv, hr_config_t *cfg)
 	errno_t rc;
 	size_t i;
 
-	for (i = 0; i < HR_MAX_EXTENTS; i++) {
+	for (i = 0; i < HR_MAX_EXTENTS && optind < argc; i++) {
 		rc = loc_service_get_id(argv[optind], &cfg->devs[i], 0);
 		if (rc == ENOENT) {
 			printf(NAME ": device \"%s\" not found, aborting\n",
@@ -118,9 +118,7 @@ static errno_t fill_config_devs(int argc, char **argv, hr_config_t *cfg)
 			    argv[optind]);
 			return EINVAL;
 		}
-
-		if (++optind >= argc)
-			break;
+		optind++;
 	}
 
 	if (optind < argc) {
