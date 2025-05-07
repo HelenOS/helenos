@@ -364,14 +364,24 @@ static void hr_fail_extent_srv(ipc_call_t *icall)
 		return;
 	}
 
-	fibril_rwlock_write_lock(&vol->states_lock);
 	fibril_rwlock_read_lock(&vol->extents_lock);
+	fibril_rwlock_write_lock(&vol->states_lock);
 
-	hr_update_ext_status(vol, fail_extent, HR_EXT_FAILED);
-	hr_mark_vol_state_dirty(vol);
+	switch (vol->extents[fail_extent].status) {
+	case HR_EXT_NONE:
+	case HR_EXT_MISSING:
+	case HR_EXT_FAILED:
+		fibril_rwlock_write_unlock(&vol->states_lock);
+		fibril_rwlock_read_unlock(&vol->extents_lock);
+		async_answer_0(icall, EINVAL);
+		return;
+	default:
+		hr_update_ext_status(vol, fail_extent, HR_EXT_FAILED);
+		hr_mark_vol_state_dirty(vol);
+	}
 
-	fibril_rwlock_read_unlock(&vol->extents_lock);
 	fibril_rwlock_write_unlock(&vol->states_lock);
+	fibril_rwlock_read_unlock(&vol->extents_lock);
 
 	vol->hr_ops.status_event(vol);
 
