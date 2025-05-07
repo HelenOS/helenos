@@ -1,0 +1,9 @@
+mkfile -s 100M /tmp/file1
+mkfile -s 100M /tmp/file2
+mkfile -s 100M /tmp/file3
+mkfile -s 100M /tmp/file4
+
+/srv/bd/file_bd -b 512 /tmp/file1 disk1
+/srv/bd/file_bd -b 512 /tmp/file2 disk2
+/srv/bd/file_bd -b 512 /tmp/file3 disk3
+/srv/bd/file_bd -b 512 /tmp/file4 disk4

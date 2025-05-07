@@ -49,7 +49,7 @@
 
 static void	usage(void);
 static errno_t	fill_config_devs(int, char **, hr_config_t *);
-static errno_t	load_config(const char *, hr_config_t *);
+static errno_t get_vol_configs_from_sif(const char *, hr_config_t **, size_t *);
 
 static const char usage_str[] =
     "Usage: hrctl [OPTION]...\n"
@@ -93,9 +93,12 @@ static const char usage_str[] =
     "  Simulating an extent failure with -m volume -f index is dangerous. It marks\n"
     "  metadata as dirty in other healthy extents, and therefore invalidates\n"
     "  the specified extent.\n"
+    "  Nested levels have to be created manually, or from config file, but need to\n"
+    "  be specified as separate volumes.\n"
     "\n"
     "Limitations:\n"
-    "\t- volume name must be shorter than 32 characters\n";
+    "\t- volume name must be shorter than 32 characters\n"
+    "\t- automatic assembly and disassembly on nested volumes is UNDEFINED!\n";
 
 static void usage(void)
 {
@@ -132,171 +135,277 @@ static errno_t fill_config_devs(int argc, char **argv, hr_config_t *cfg)
 	return EOK;
 }
 
-static errno_t load_config(const char *path, hr_config_t *cfg)
+static errno_t get_vol_configs_from_sif(const char *path, hr_config_t **rcfgs,
+    size_t *rcount)
 {
 	errno_t rc;
-	size_t i;
 	sif_doc_t *doc = NULL;
-	sif_node_t *narrays;
-	sif_node_t *rnode;
-	sif_node_t *narray;
+	sif_node_t *hrconfig_node;
+	sif_node_t *root_node;
+	sif_node_t *volume_node;
 	sif_node_t *nextent;
 	const char *ntype;
 	const char *devname;
 	const char *level_str;
-	const char *dev_no_str;
 	const char *extent_devname;
+	hr_config_t *vol_configs = NULL;
 
 	rc = sif_load(path, &doc);
 	if (rc != EOK)
 		goto error;
 
-	rnode = sif_get_root(doc);
+	root_node = sif_get_root(doc);
 
-	narrays = sif_node_first_child(rnode);
-	ntype = sif_node_get_type(narrays);
-	if (str_cmp(ntype, "arrays") != 0) {
-		rc = EIO;
+	hrconfig_node = sif_node_first_child(root_node);
+	ntype = sif_node_get_type(hrconfig_node);
+	if (str_cmp(ntype, "hrconfig") != 0) {
+		rc = EINVAL;
 		goto error;
 	}
 
-	narray = sif_node_first_child(narrays);
-	ntype = sif_node_get_type(narray);
-	if (str_cmp(ntype, "array") != 0) {
-		rc = EIO;
-		goto error;
-	}
-
-	devname = sif_node_get_attr(narray, "devname");
-	if (devname == NULL) {
-		rc = EIO;
-		goto error;
-	}
-	str_cpy(cfg->devname, sizeof(cfg->devname), devname);
-
-	level_str = sif_node_get_attr(narray, "level");
-	if (level_str == NULL)
-		cfg->level = HR_LVL_UNKNOWN;
-	else
-		cfg->level = strtol(level_str, NULL, 10);
-
-	dev_no_str = sif_node_get_attr(narray, "n");
-	if (dev_no_str == NULL) {
-		rc = EIO;
-		goto error;
-	}
-	cfg->dev_no = strtol(dev_no_str, NULL, 10);
-
-	nextent = sif_node_first_child(narray);
-	for (i = 0; i < cfg->dev_no; i++) {
-		if (nextent == NULL) {
+	size_t vol_count = 0;
+	volume_node = sif_node_first_child(hrconfig_node);
+	while (volume_node) {
+		ntype = sif_node_get_type(volume_node);
+		if (str_cmp(ntype, "volume") != 0) {
 			rc = EINVAL;
 			goto error;
 		}
+		vol_configs = realloc(vol_configs,
+		    (vol_count + 1) * sizeof(hr_config_t));
+		hr_config_t *cfg = vol_configs + vol_count;
 
-		ntype = sif_node_get_type(nextent);
-		if (str_cmp(ntype, "extent") != 0) {
-			rc = EIO;
+		devname = sif_node_get_attr(volume_node, "devname");
+		if (devname == NULL) {
+			rc = EINVAL;
 			goto error;
 		}
+		str_cpy(cfg->devname, sizeof(cfg->devname), devname);
 
-		extent_devname = sif_node_get_attr(nextent, "devname");
-		if (extent_devname == NULL) {
-			rc = EIO;
-			goto error;
+		level_str = sif_node_get_attr(volume_node, "level");
+		if (level_str == NULL)
+			cfg->level = HR_LVL_UNKNOWN;
+		else
+			cfg->level = strtol(level_str, NULL, 10);
+
+		nextent = sif_node_first_child(volume_node);
+		size_t i = 0;
+		while (nextent && i < HR_MAX_EXTENTS) {
+			ntype = sif_node_get_type(nextent);
+			if (str_cmp(ntype, "extent") != 0) {
+				rc = EINVAL;
+				goto error;
+			}
+
+			extent_devname = sif_node_get_attr(nextent, "devname");
+			if (extent_devname == NULL) {
+				rc = EINVAL;
+				goto error;
+			}
+
+			rc = loc_service_get_id(extent_devname, &cfg->devs[i], 0);
+			if (rc == ENOENT) {
+				printf(NAME ": no device \"%s\", marking as missing\n",
+				    extent_devname);
+				cfg->devs[i] = 0;
+				rc = EOK;
+			} else if (rc != EOK) {
+				printf(NAME ": error resolving device \"%s\", aborting\n",
+				    extent_devname);
+				goto error;
+			}
+
+			nextent = sif_node_next_child(nextent);
+			i++;
 		}
 
-		rc = loc_service_get_id(extent_devname, &cfg->devs[i], 0);
-		if (rc == ENOENT) {
-			printf("hrctl: no device \"%s\", marking as missing\n",
-			    extent_devname);
-			cfg->devs[i] = 0;
-			rc = EOK;
-		} else if (rc != EOK) {
-			printf("hrctl: error resolving device \"%s\", aborting\n",
-			    extent_devname);
-			return EINVAL;
+		if (i > HR_MAX_EXTENTS) {
+			printf(NAME ": too many devices specified in volume \"%s\", "
+			    "skipping\n", devname);
+			memset(&vol_configs[vol_count], 0, sizeof(hr_config_t));
+		} else {
+			cfg->dev_no = i;
+			vol_count++;
 		}
 
-		nextent = sif_node_next_child(nextent);
+		volume_node = sif_node_next_child(volume_node);
 	}
 
+	if (rc == EOK) {
+		if (rcount)
+			*rcount = vol_count;
+		if (rcfgs)
+			*rcfgs = vol_configs;
+	}
 error:
 	if (doc != NULL)
 		sif_delete(doc);
+	if (rc != EOK) {
+		if (vol_configs)
+			free(vol_configs);
+	}
 	return rc;
 }
 
-static int handle_create(hr_t *hr, int argc, char **argv)
+static int create_from_config(hr_t *hr, const char *config_path)
 {
-	if (optind >= argc) {
-		printf(NAME ": no arguments to --create\n");
+	hr_config_t *vol_configs = NULL;
+	size_t vol_count = 0;
+	errno_t rc = get_vol_configs_from_sif(config_path, &vol_configs,
+	    &vol_count);
+	if (rc != EOK) {
+		printf(NAME ": config parsing failed\n");
+		return EXIT_FAILURE;
+	}
+
+	for (size_t i = 0; i < vol_count; i++) {
+		rc = hr_create(hr, &vol_configs[i]);
+		if (rc != EOK) {
+			printf(NAME ": creation of volume \"%s\" failed: %s, "
+			    "but continuing\n",
+			    vol_configs[i].devname, str_error(rc));
+		} else {
+			printf(NAME ": volume \"%s\" successfully created\n",
+			    vol_configs[i].devname);
+		}
+	}
+
+	free(vol_configs);
+	return EXIT_SUCCESS;
+}
+
+static int create_from_argv(hr_t *hr, int argc, char **argv)
+{
+	/* we need name + --level + arg + at least one extent */
+	if (optind + 3 >= argc) {
+		printf(NAME ": not enough arguments\n");
 		return EXIT_FAILURE;
 	}
 
 	hr_config_t *vol_config = calloc(1, sizeof(hr_config_t));
 	if (vol_config == NULL) {
-		printf(NAME ": not enough memory");
-		return ENOMEM;
+		printf(NAME ": not enough memory\n");
+		return EXIT_FAILURE;
+	}
+
+	const char *name = argv[optind++];
+	if (str_size(name) >= HR_DEVNAME_LEN) {
+		printf(NAME ": devname must be less then 32 bytes.\n");
+		goto error;
+	}
+
+	str_cpy(vol_config->devname, HR_DEVNAME_LEN, name);
+
+	const char *level_opt = argv[optind++];
+	if (str_cmp(level_opt, "--level") != 0 &&
+	    str_cmp(level_opt, "-l") != 0) {
+		printf(NAME ": unknown option \"%s\"\n", level_opt);
+		goto error;
+	}
+
+	const char *level_str = argv[optind++];
+	if (str_size(level_str) != 1 && !isdigit(level_str[0])) {
+		printf(NAME ": unknown level \"%s\"\n", level_str);
+		goto error;
+	}
+
+	vol_config->level = strtol(level_str, NULL, 10);
+
+	errno_t rc = fill_config_devs(argc, argv, vol_config);
+	if (rc != EOK)
+		goto error;
+
+	rc = hr_create(hr, vol_config);
+	if (rc != EOK) {
+		printf(NAME ": creation failed: %s\n", str_error(rc));
+		goto error;
+	} else {
+		printf(NAME ": volume \"%s\" successfully created\n",
+		    vol_config->devname);
+	}
+
+	free(vol_config);
+	return EXIT_SUCCESS;
+error:
+	free(vol_config);
+	return EXIT_FAILURE;
+}
+
+static int handle_create(hr_t *hr, int argc, char **argv)
+{
+	int rc;
+
+	if (optind >= argc) {
+		printf(NAME ": no arguments to --create\n");
+		return EXIT_FAILURE;
 	}
 
 	if (str_cmp(argv[optind], "-f") == 0) {
-		if (++optind >= argc) {
+		optind++;
+		if (optind >= argc) {
 			printf(NAME ": not enough arguments\n");
-			goto error;
+			return EXIT_FAILURE;
 		}
+
 		const char *config_path = argv[optind++];
-		errno_t rc = load_config(config_path, vol_config);
-		if (rc != EOK) {
-			printf(NAME ": config parsing failed\n");
-			goto error;
+
+		if (optind < argc) {
+			printf(NAME ": unexpected arguments\n");
+			return EXIT_FAILURE;
 		}
+
+		rc = create_from_config(hr, config_path);
 	} else {
-		/* we need name + --level + arg + at least one extent */
-		if (optind + 3 >= argc) {
-			printf(NAME ": not enough arguments\n");
-			goto error;
-		}
-
-		const char *name = argv[optind++];
-		if (str_size(name) >= HR_DEVNAME_LEN) {
-			printf(NAME ": devname must be less then 32 bytes.\n");
-			goto error;
-		}
-
-		str_cpy(vol_config->devname, HR_DEVNAME_LEN, name);
-
-		const char *level_opt = argv[optind++];
-		if (str_cmp(level_opt, "--level") != 0 &&
-		    str_cmp(level_opt, "-l") != 0) {
-			printf(NAME ": unknown option \"%s\"\n", level_opt);
-			goto error;
-		}
-
-		const char *level_str = argv[optind++];
-		if (str_size(level_str) != 1 && !isdigit(level_str[0])) {
-			printf(NAME ": unknown level \"%s\"\n", level_str);
-			goto error;
-		}
-
-		vol_config->level = strtol(level_str, NULL, 10);
-
-		errno_t rc = fill_config_devs(argc, argv, vol_config);
-		if (rc != EOK)
-			goto error;
+		rc = create_from_argv(hr, argc, argv);
 	}
 
-	if (optind < argc) {
-		printf(NAME ": unexpected arguments\n");
-		goto error;
-	}
+	return rc;
+}
 
-	errno_t rc = hr_create(hr, vol_config);
+static int assemble_from_config(hr_t *hr, const char *config_path)
+{
+	hr_config_t *vol_configs = NULL;
+	size_t vol_count = 0;
+	errno_t rc = get_vol_configs_from_sif(config_path, &vol_configs,
+	    &vol_count);
 	if (rc != EOK) {
-		printf(NAME ": creation failed: %s\n",
-		    str_error(rc));
+		printf(NAME ": config parsing failed\n");
+		return EXIT_FAILURE;
+	}
+
+	size_t cnt = 0;
+	for (size_t i = 0; i < vol_count; i++) {
+		size_t tmpcnt = 0;
+		(void)hr_assemble(hr, &vol_configs[i], &tmpcnt);
+		cnt += tmpcnt;
+	}
+
+	printf(NAME ": assembled %zu volumes\n", cnt);
+
+	free(vol_configs);
+	return EXIT_SUCCESS;
+}
+
+static int assemble_from_argv(hr_t *hr, int argc, char **argv)
+{
+	hr_config_t *vol_config = calloc(1, sizeof(hr_config_t));
+	if (vol_config == NULL) {
+		printf(NAME ": not enough memory\n");
+		return ENOMEM;
+	}
+
+	errno_t rc = fill_config_devs(argc, argv, vol_config);
+	if (rc != EOK)
+		goto error;
+
+	size_t cnt;
+	rc = hr_assemble(hr, vol_config, &cnt);
+	if (rc != EOK) {
+		printf(NAME ": assmeble failed: %s\n", str_error(rc));
 		goto error;
 	}
+
+	printf("hrctl: assembled %zu volumes\n", cnt);
 
 	free(vol_config);
 	return EXIT_SUCCESS;
@@ -307,6 +416,8 @@ error:
 
 static int handle_assemble(hr_t *hr, int argc, char **argv)
 {
+	int rc;
+
 	if (optind >= argc) {
 		size_t cnt;
 		errno_t rc = hr_auto_assemble(hr, &cnt);
@@ -320,47 +431,24 @@ static int handle_assemble(hr_t *hr, int argc, char **argv)
 		return EXIT_SUCCESS;
 	}
 
-	hr_config_t *vol_config = calloc(1, sizeof(hr_config_t));
-	if (vol_config == NULL) {
-		printf(NAME ": not enough memory");
-		return ENOMEM;
-	}
-
 	if (str_cmp(argv[optind], "-f") == 0) {
 		if (++optind >= argc) {
 			printf(NAME ": not enough arguments\n");
-			goto error;
+			return EXIT_FAILURE;
 		}
 		const char *config_path = argv[optind++];
-		errno_t rc = load_config(config_path, vol_config);
-		if (rc != EOK) {
-			printf(NAME ": config parsing failed\n");
-			goto error;
-		}
+
 		if (optind < argc) {
 			printf(NAME ": unexpected arguments\n");
-			goto error;
+			return EXIT_FAILURE;
 		}
+
+		rc = assemble_from_config(hr, config_path);
 	} else {
-		errno_t rc = fill_config_devs(argc, argv, vol_config);
-		if (rc != EOK)
-			goto error;
+		rc = assemble_from_argv(hr, argc, argv);
 	}
 
-	size_t cnt;
-	errno_t rc = hr_assemble(hr, vol_config, &cnt);
-	if (rc != EOK) {
-		printf(NAME ": assmeble failed: %s\n", str_error(rc));
-		goto error;
-	}
-
-	printf("hrctl: auto assembled %zu volumes\n", cnt);
-
-	free(vol_config);
-	return EXIT_SUCCESS;
-error:
-	free(vol_config);
-	return EXIT_FAILURE;
+	return rc;
 }
 
 static int handle_disassemble(hr_t *hr, int argc, char **argv)
@@ -463,7 +551,8 @@ int main(int argc, char **argv)
 		goto end;
 	}
 
-	if (hr_sess_init(&hr) != EOK) {
+	rc = hr_sess_init(&hr);
+	if (rc != EOK) {
 		printf(NAME ": hr server session init failed: %s\n",
 		    str_error(rc));
 		return EXIT_FAILURE;

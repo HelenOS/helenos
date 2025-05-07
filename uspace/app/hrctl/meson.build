@@ -29,4 +29,6 @@
 deps = [ 'device', 'sif' ]
 src = files('hrctl.c')
 
-installed_data += { 'name': 'sample_hr_config.sif', 'dir': '/cfg' }
+installed_data += { 'name': 'sample_hrconfig_pci.sif', 'dir': '/cfg' }
+installed_data += { 'name': 'sample_hrconfig_file_bd.sif', 'dir': '/cfg' }
+installed_data += { 'name': 'create_file_bd_disks.bdsh', 'dir': '/cfg' }
