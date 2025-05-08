@@ -1037,7 +1037,7 @@ errno_t hr_util_add_hotspare(hr_volume_t *vol, service_id_t hotspare)
 		goto error;
 	}
 
-	if (hs_blkno - vol->meta_ops->get_size() < vol->truncated_blkno) {
+	if (hs_blkno < vol->truncated_blkno) {
 		HR_ERROR("%s(): hotspare (%" PRIun ") doesn't have enough "
 		    "blocks\n", __func__, hotspare);
 
