@@ -98,7 +98,7 @@ errno_t hr_raid5_create(hr_volume_t *new_volume)
 	assert(new_volume->level == HR_LVL_5 || new_volume->level == HR_LVL_4);
 
 	if (new_volume->extent_no < 3) {
-		HR_ERROR("RAID 5 array needs at least 3 devices\n");
+		HR_ERROR("RAID 5 volume needs at least 3 devices\n");
 		return EINVAL;
 	}
 

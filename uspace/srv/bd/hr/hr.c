@@ -114,7 +114,7 @@ static void hr_create_srv(ipc_call_t *icall)
 
 	/*
 	 * If there was a missing device provided
-	 * for creation of a new array, abort
+	 * for creation of a new volume, abort
 	 */
 	for (i = 0; i < cfg->dev_no; i++) {
 		if (cfg->devs[i] == 0) {
@@ -122,7 +122,7 @@ static void hr_create_srv(ipc_call_t *icall)
 			 * XXX: own error codes, no need to log this...
 			 * its user error not service error
 			 */
-			HR_ERROR("missing device provided for array "
+			HR_ERROR("missing device provided for volume "
 			    "creation, aborting");
 			free(cfg);
 			async_answer_0(icall, EINVAL);

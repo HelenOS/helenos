@@ -97,7 +97,7 @@ errno_t hr_raid1_create(hr_volume_t *new_volume)
 	assert(new_volume->level == HR_LVL_1);
 
 	if (new_volume->extent_no < 2) {
-		HR_ERROR("RAID 1 array needs at least 2 devices\n");
+		HR_ERROR("RAID 1 volume needs at least 2 devices\n");
 		return EINVAL;
 	}
 
