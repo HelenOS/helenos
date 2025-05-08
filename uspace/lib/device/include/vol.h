@@ -60,6 +60,7 @@ extern errno_t vol_info(vol_t *, volume_id_t, vol_info_t *);
 extern errno_t vol_fstype_format(vol_fstype_t, char **);
 extern errno_t vol_pcnt_fs_format(vol_part_cnt_t, vol_fstype_t, char **);
 extern errno_t vol_mountp_validate(const char *);
+extern errno_t vol_part_by_mp(vol_t *, const char *, service_id_t *);
 
 #endif
 

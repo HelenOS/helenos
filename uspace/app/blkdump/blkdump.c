@@ -94,7 +94,7 @@ int main(int argc, char **argv)
 		relative = true;
 	}
 
-	if (str_cmp(*argv, "--offset") == 0) {
+	if (*argv && str_cmp(*argv, "--offset") == 0) {
 		--argc;
 		++argv;
 		if (*argv == NULL) {
@@ -114,7 +114,7 @@ int main(int argc, char **argv)
 		++argv;
 	}
 
-	if (str_cmp(*argv, "--count") == 0) {
+	if (*argv && str_cmp(*argv, "--count") == 0) {
 		--argc;
 		++argv;
 		if (*argv == NULL) {
@@ -135,6 +135,12 @@ int main(int argc, char **argv)
 	}
 
 devname:
+	if (*argv == NULL) {
+		printf(NAME ": Error, argument missing (device_name).\n");
+		syntax_print();
+		return 1;
+	}
+
 	if (argc != 1) {
 		printf(NAME ": Error, unexpected argument.\n");
 		syntax_print();

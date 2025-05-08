@@ -72,6 +72,7 @@
  */
 #define DEFAULT_DEV_0 "devices/\\hw\\sys\\00:01.1\\c0d0"
 #define DEFAULT_DEV_1 "devices/\\hw\\sys\\ide1\\c0d0"
+#define DEFAULT_DEV_2 "devices/\\hw\\sys\\00:01.0\\ide1\\c0d0"
 //#define DEFAULT_DEV "devices/\\hw\\pci0\\00:01.2\\uhci_rh\\usb01_a1\\mass-storage0\\l0"
 /** Volume label for the new file system */
 #define INST_VOL_LABEL "HelenOS"
@@ -94,6 +95,7 @@
 static const char *default_devs[] = {
 	DEFAULT_DEV_0,
 	DEFAULT_DEV_1,
+	DEFAULT_DEV_2,
 	NULL
 };
 
@@ -154,6 +156,8 @@ static void sysinst_debug(sysinst_t *, const char *);
 
 static void sysinst_futil_copy_file(void *, const char *, const char *);
 static void sysinst_futil_create_dir(void *, const char *);
+static errno_t sysinst_eject_dev(sysinst_t *, service_id_t);
+static errno_t sysinst_eject_phys_by_mp(sysinst_t *, const char *);
 
 static futil_cb_t sysinst_futil_cb = {
 	.copy_file = sysinst_futil_copy_file,
@@ -268,6 +272,8 @@ static void sysinst_restart_dlg_button(ui_msg_dialog_t *dialog, void *arg,
 	switch (btn) {
 	case 0:
 		/* OK */
+		sysinst_action(sysinst, "Ejecting installation media.");
+		(void)sysinst_eject_phys_by_mp(sysinst, CD_MOUNT_POINT);
 		(void)sysinst_restart(sysinst);
 		break;
 	default:
@@ -423,7 +429,7 @@ static errno_t sysinst_check_dev(const char *dev)
 	return EOK;
 }
 
-/** Label the destination device.
+/** Label and mount the destination device.
  *
  * @param sysinst System installer
  * @param dev Disk device to label
@@ -431,14 +437,15 @@ static errno_t sysinst_check_dev(const char *dev)
  *
  * @return EOK on success or an error code
  */
-static errno_t sysinst_label_dev(sysinst_t *sysinst, const char *dev,
-    service_id_t *psvc_id)
+static errno_t sysinst_label_dev(sysinst_t *sysinst, const char *dev)
 {
-	fdisk_t *fdisk;
-	fdisk_dev_t *fdev;
+	fdisk_t *fdisk = NULL;
+	fdisk_dev_t *fdev = NULL;
 	fdisk_part_t *part;
 	fdisk_part_spec_t pspec;
 	fdisk_part_info_t pinfo;
+	bool dir_created = false;
+	bool label_created = false;
 	capa_spec_t capa;
 	service_id_t sid;
 	errno_t rc;
@@ -447,20 +454,20 @@ static errno_t sysinst_label_dev(sysinst_t *sysinst, const char *dev,
 
 	rc = loc_service_get_id(dev, &sid, 0);
 	if (rc != EOK)
-		return rc;
+		goto error;
 
 	sysinst_debug(sysinst, "sysinst_label_dev(): open device");
 
 	rc = fdisk_create(&fdisk);
 	if (rc != EOK) {
 		sysinst_error(sysinst, "Error initializing fdisk.");
-		return rc;
+		goto error;
 	}
 
 	rc = fdisk_dev_open(fdisk, sid, &fdev);
 	if (rc != EOK) {
 		sysinst_error(sysinst, "Error opening device.");
-		return rc;
+		goto error;
 	}
 
 	sysinst_debug(sysinst, "sysinst_label_dev(): create mount directory");
@@ -468,16 +475,20 @@ static errno_t sysinst_label_dev(sysinst_t *sysinst, const char *dev,
 	rc = vfs_link_path(MOUNT_POINT, KIND_DIRECTORY, NULL);
 	if (rc != EOK) {
 		sysinst_error(sysinst, "Error creating mount directory.");
-		return rc;
+		goto error;
 	}
+
+	dir_created = true;
 
 	sysinst_debug(sysinst, "sysinst_label_dev(): create label");
 
 	rc = fdisk_label_create(fdev, lt_mbr);
 	if (rc != EOK) {
 		sysinst_error(sysinst, "Error creating label.");
-		return rc;
+		goto error;
 	}
+
+	label_created = true;
 
 	sysinst_debug(sysinst, "sysinst_label_dev(): create partition");
 
@@ -485,7 +496,7 @@ static errno_t sysinst_label_dev(sysinst_t *sysinst, const char *dev,
 	if (rc != EOK) {
 		sysinst_error(sysinst,
 		    "Error getting available capacity.");
-		return rc;
+		goto error;
 	}
 
 	fdisk_pspec_init(&pspec);
@@ -498,17 +509,51 @@ static errno_t sysinst_label_dev(sysinst_t *sysinst, const char *dev,
 	rc = fdisk_part_create(fdev, &pspec, &part);
 	if (rc != EOK) {
 		sysinst_error(sysinst, "Error creating partition.");
-		return rc;
+		goto error;
 	}
 
 	rc = fdisk_part_get_info(part, &pinfo);
 	if (rc != EOK) {
 		sysinst_error(sysinst, "Error getting partition information.");
-		return rc;
+		goto error;
 	}
 
 	sysinst_debug(sysinst, "sysinst_label_dev(): OK");
-	*psvc_id = pinfo.svc_id;
+	fdisk_dev_close(fdev);
+	fdisk_destroy(fdisk);
+	sysinst->psvc_id = pinfo.svc_id;
+	return EOK;
+error:
+	if (label_created)
+		fdisk_label_destroy(fdev);
+	if (dir_created)
+		(void)vfs_unlink_path(MOUNT_POINT);
+	if (fdev != NULL)
+		fdisk_dev_close(fdev);
+	if (fdisk != NULL)
+		fdisk_destroy(fdisk);
+	return rc;
+}
+
+/** Finish/unmount destination device.
+ *
+ * @param sysinst System installer
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t sysinst_finish_dev(sysinst_t *sysinst)
+{
+	errno_t rc;
+
+	sysinst_debug(sysinst, "sysinst_finish_dev(): eject target volume");
+	rc = sysinst_eject_dev(sysinst, sysinst->psvc_id);
+	if (rc != EOK)
+		return rc;
+
+	sysinst_debug(sysinst, "sysinst_finish_dev(): "
+	    "deleting mount directory");
+	(void)vfs_unlink_path(MOUNT_POINT);
+
 	return EOK;
 }
 
@@ -549,8 +594,11 @@ static errno_t sysinst_setup_sysvol(sysinst_t *sysinst)
 	/* Copy initial configuration files */
 	rc = futil_rcopy_contents(sysinst->futil, CFG_FILES_SRC,
 	    CFG_FILES_DEST);
-	if (rc != EOK)
+	if (rc != EOK) {
+		sysinst_error(sysinst, "Error copying initial configuration "
+		    "files.");
 		return rc;
+	}
 
 	return EOK;
 error:
@@ -570,8 +618,11 @@ static errno_t sysinst_copy_boot_files(sysinst_t *sysinst)
 	log_msg(LOG_DEFAULT, LVL_NOTE,
 	    "sysinst_copy_boot_files(): copy bootloader files");
 	rc = futil_rcopy_contents(sysinst->futil, BOOT_FILES_SRC, MOUNT_POINT);
-	if (rc != EOK)
+	if (rc != EOK) {
+		sysinst_error(sysinst, "Error copying bootloader "
+		    "files.");
 		return rc;
+	}
 
 	sysinst_debug(sysinst, "sysinst_copy_boot_files(): OK");
 	return EOK;
@@ -810,7 +861,7 @@ static errno_t sysinst_copy_boot_blocks(sysinst_t *sysinst, const char *devp)
 /** Eject installation volume.
  *
  * @param sysinst System installer
- * @param psvc_id Partition service ID
+ * @param part_id Partition service ID
  * @return EOK on success or an error code
  */
 static errno_t sysinst_eject_dev(sysinst_t *sysinst, service_id_t part_id)
@@ -824,6 +875,49 @@ static errno_t sysinst_eject_dev(sysinst_t *sysinst, service_id_t part_id)
 		goto out;
 	}
 
+	rc = vol_part_eject(vol, part_id, vef_none);
+	if (rc != EOK) {
+		sysinst_error(sysinst, "Error ejecting volume.");
+		goto out;
+	}
+
+	rc = EOK;
+out:
+	vol_destroy(vol);
+	return rc;
+}
+
+/** Physically eject volume by mount point.
+ *
+ * @param sysinst System installer
+ * @param path Mount point
+ * @return EOK on success or an error code
+ */
+static errno_t sysinst_eject_phys_by_mp(sysinst_t *sysinst, const char *path)
+{
+	vol_t *vol = NULL;
+	sysarg_t part_id;
+	errno_t rc;
+
+	log_msg(LOG_DEFAULT, LVL_NOTE,
+	    "sysinst_eject_phys_by_mp(%s)", path);
+
+	rc = vol_create(&vol);
+	if (rc != EOK) {
+		sysinst_error(sysinst, "Error contacting volume service.");
+		goto out;
+	}
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_by_mp: mp='%s'\n",
+	    path);
+	rc = vol_part_by_mp(vol, path, &part_id);
+	if (rc != EOK) {
+		sysinst_error(sysinst,
+		    "Error finding installation media mount point.");
+		goto out;
+	}
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "eject svc_id %lu", (unsigned long)part_id);
 	rc = vol_part_eject(vol, part_id, vef_physical);
 	if (rc != EOK) {
 		sysinst_error(sysinst, "Error ejecting volume.");
@@ -850,6 +944,8 @@ static errno_t sysinst_restart(sysinst_t *sysinst)
 	fibril_condvar_initialize(&shutdown_cv);
 	shutdown_stopped = false;
 	shutdown_failed = false;
+
+	sysinst_action(sysinst, "Restarting the system.");
 
 	rc = system_open(SYSTEM_DEFAULT, &sysinst_system_cb, NULL, &system);
 	if (rc != EOK) {
@@ -900,40 +996,48 @@ static errno_t sysinst_restart(sysinst_t *sysinst)
 static errno_t sysinst_install(sysinst_t *sysinst, const char *dev)
 {
 	errno_t rc;
-	service_id_t psvc_id;
+	bool clean_dev = false;
 
 	sysinst_action(sysinst, "Creating device label and file system.");
 
-	rc = sysinst_label_dev(sysinst, dev, &psvc_id);
+	rc = sysinst_label_dev(sysinst, dev);
 	if (rc != EOK)
-		return rc;
+		goto error;
+
+	clean_dev = true;
 
 	sysinst_action(sysinst, "Creating system directory structure.");
 	rc = sysinst_setup_sysvol(sysinst);
 	if (rc != EOK)
-		return rc;
+		goto error;
 
 	sysinst_action(sysinst, "Copying boot files.");
 	rc = sysinst_copy_boot_files(sysinst);
 	if (rc != EOK)
-		return rc;
+		goto error;
 
 	sysinst_action(sysinst, "Configuring the system.");
 	rc = sysinst_customize_initrd(sysinst);
 	if (rc != EOK)
-		return rc;
+		goto error;
+
+	sysinst_action(sysinst, "Finishing system volume.");
+	rc = sysinst_finish_dev(sysinst);
+	if (rc != EOK)
+		goto error;
+
+	clean_dev = false;
 
 	sysinst_action(sysinst, "Installing boot blocks.");
 	rc = sysinst_copy_boot_blocks(sysinst, dev);
 	if (rc != EOK)
 		return rc;
 
-	sysinst_action(sysinst, "Ejecting device.");
-	rc = sysinst_eject_dev(sysinst, psvc_id);
-	if (rc != EOK)
-		return rc;
-
 	return EOK;
+error:
+	if (clean_dev)
+		(void)sysinst_finish_dev(sysinst);
+	return rc;
 }
 
 /** Installation fibril.
@@ -968,6 +1072,8 @@ static errno_t sysinst_install_fibril(void *arg)
 		goto error;
 
 	sysinst_progress_destroy(sysinst->progress);
+	sysinst->progress = NULL;
+
 	rc = sysinst_restart_dlg_create(sysinst);
 	if (rc != EOK)
 		goto error;
@@ -1146,12 +1252,13 @@ static void sysinst_progress_destroy(sysinst_progress_t *progress)
  */
 static void sysinst_action(sysinst_t *sysinst, const char *action)
 {
+	log_msg(LOG_DEFAULT, LVL_NOTE, "%s", action);
+
 	if (sysinst->progress == NULL)
 		return;
 
 	ui_label_set_text(sysinst->progress->action, action);
 	ui_label_paint(sysinst->progress->action);
-	log_msg(LOG_DEFAULT, LVL_NOTE, "%s", action);
 }
 
 /** Set current error message.

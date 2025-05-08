@@ -38,6 +38,7 @@
 
 #include <futil.h>
 #include <gfx/color.h>
+#include <loc.h>
 #include <system.h>
 #include <ui/fixed.h>
 #include <ui/label.h>
@@ -59,6 +60,8 @@ typedef struct {
 	gfx_color_t *bg_color;
 	sysinst_progress_t *progress;
 	system_t *system;
+	/** Service ID of destination partition. */
+	sysarg_t psvc_id;
 	futil_t *futil;
 	char errmsg[128];
 } sysinst_t;

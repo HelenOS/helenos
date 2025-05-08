@@ -287,6 +287,7 @@ foreach l : libs
 				include_directories: includes,
 				dependencies: _shared_deps,
 			)
+			exported_devel_files += [ 'sharedlib', _shared_lib, _libname ]
 		endif
 
 		_static_lib = static_library(l, src,
