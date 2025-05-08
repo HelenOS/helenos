@@ -141,6 +141,8 @@ errno_t hr_raid5_init(hr_volume_t *vol)
 
 	vol->strip_size = HR_STRIP_SIZE;
 
+	vol->layout = HR_RLQ_RAID5_NR;
+
 	return EOK;
 }
 
@@ -548,7 +550,7 @@ static errno_t hr_raid5_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 	if (rc != EOK)
 		return rc;
 
-	uint8_t layout = vol->layout;
+	hr_layout_t layout = vol->layout;
 	hr_level_t level = vol->level;
 
 	uint64_t strip_size = vol->strip_size / vol->bsize; /* in blocks */
