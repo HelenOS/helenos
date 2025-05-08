@@ -830,10 +830,13 @@ static errno_t hr_raid5_rebuild(void *arg)
 		 * Let other IO requests be served
 		 * during rebuild.
 		 */
-		fibril_rwlock_write_unlock(&vol->states_lock);
-		fibril_mutex_unlock(&vol->lock);
-		fibril_mutex_lock(&vol->lock);
-		fibril_rwlock_write_lock(&vol->states_lock);
+
+		/*
+		 * fibril_rwlock_write_unlock(&vol->states_lock);
+		 * fibril_mutex_unlock(&vol->lock);
+		 * fibril_mutex_lock(&vol->lock);
+		 * fibril_rwlock_write_lock(&vol->states_lock);
+		 */
 	}
 
 	HR_DEBUG("hr_raid5_rebuild(): rebuild finished on \"%s\" (%" PRIun "), "
@@ -841,7 +844,15 @@ static errno_t hr_raid5_rebuild(void *arg)
 
 	hr_update_ext_state(vol, bad, HR_EXT_ONLINE);
 
+	fibril_rwlock_write_unlock(&vol->states_lock);
+	fibril_rwlock_read_unlock(&vol->extents_lock);
+	fibril_mutex_unlock(&vol->lock);
+
 	rc = vol->meta_ops->save(vol, WITH_STATE_CALLBACK);
+
+	fibril_mutex_lock(&vol->lock);
+	fibril_rwlock_read_lock(&vol->extents_lock);
+	fibril_rwlock_write_lock(&vol->states_lock);
 
 end:
 	(void)hr_raid5_update_vol_state(vol);
