@@ -1,0 +1,9 @@
+<sif>
+<hrconfig>
+	<volume devname="hr1" level="1">
+		<extent devname="disk1"></extent>
+		<extent devname="disk2"></extent>
+		<extent devname="disk3"></extent>
+	</volume>
+</hrconfig>
+</sif>
