@@ -656,12 +656,7 @@ static errno_t hr_fill_disk_part_svcs_list(list_t *list)
 		if (rc != EOK)
 			goto error;
 
-		if (disk_info.ltype == lt_none) {
-			rc = hr_add_svc_linked_to_list(list, disk_svcs[i],
-			    false, NULL);
-			if (rc != EOK)
-				goto error;
-		} else {
+		if (disk_info.ltype != lt_none) {
 			size_t part_count;
 			service_id_t *part_ids = NULL;
 			rc = vbd_label_get_parts(vbd, disk_svcs[i], &part_ids,
@@ -687,6 +682,24 @@ static errno_t hr_fill_disk_part_svcs_list(list_t *list)
 			}
 
 			free(part_ids);
+
+			/*
+			 * vbd can detect some bogus label type, but
+			 * no partitions. In that case we handle the
+			 * svc_id as a label-less disk.
+			 *
+			 * This can happen when creating an exfat fs
+			 * in FreeBSD for example.
+			 */
+			if (part_count == 0)
+				disk_info.ltype = lt_none;
+		}
+
+		if (disk_info.ltype == lt_none) {
+			rc = hr_add_svc_linked_to_list(list, disk_svcs[i],
+			    false, NULL);
+			if (rc != EOK)
+				goto error;
 		}
 	}
 
