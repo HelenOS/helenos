@@ -127,8 +127,6 @@ static errno_t meta_gstripe_init_meta2vol(const list_t *list, hr_volume_t *vol)
 	list_foreach(*list, link, struct dev_list_member, iter) {
 		struct g_stripe_metadata *iter_meta = iter->md;
 
-		meta_gstripe_dump(iter_meta);
-
 		if (iter_meta->md_provsize < smallest_provider_size) {
 			smallest_provider_size = iter_meta->md_provsize;
 			main_meta = iter_meta;
