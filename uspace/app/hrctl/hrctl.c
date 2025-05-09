@@ -173,6 +173,11 @@ static errno_t get_vol_configs_from_sif(const char *path, hr_config_t **rcfgs,
 		}
 		vol_configs = realloc(vol_configs,
 		    (vol_count + 1) * sizeof(hr_config_t));
+		if (vol_configs == NULL) {
+			rc = ENOMEM;
+			goto error;
+		}
+
 		hr_config_t *cfg = vol_configs + vol_count;
 
 		devname = sif_node_get_attr(volume_node, "devname");
