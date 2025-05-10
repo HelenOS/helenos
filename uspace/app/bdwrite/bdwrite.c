@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Miroslav Cimerman
+ * Copyright (c) 2025 Miroslav Cimerman
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,6 +40,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <abi/ipc/ipc.h>
+#include <perf.h>
 
 static void usage(void);
 
@@ -112,6 +113,11 @@ int main(int argc, char **argv)
 		rc = ENOMEM;
 		goto end;
 	}
+
+	stopwatch_t stopwatch;
+	stopwatch_init(&stopwatch);
+	stopwatch_start(&stopwatch);
+
 	uint64_t left = blkcnt;
 	while (left != 0) {
 		uint64_t blks_to_write = min(to_alloc / bsize, left);
@@ -130,6 +136,11 @@ int main(int argc, char **argv)
 		off += blks_to_write;
 	}
 end:
+	stopwatch_stop(&stopwatch);
+	nsec_t t = stopwatch_get_nanos(&stopwatch);
+	printf("Elapsed time:\n");
+	printf("\t%llu ms\n", NSEC2MSEC(t));
+	printf("\t%lf s\n", NSEC2SEC((double)t));
 	free(buf);
 	block_fini(dev);
 	return rc;
