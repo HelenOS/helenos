@@ -295,17 +295,10 @@ static void hr_stop_srv(ipc_call_t *icall)
 
 	errno_t rc = EOK;
 	service_id_t svc_id;
-	hr_volume_t *vol;
 
 	svc_id = ipc_get_arg1(icall);
 
-	vol = hr_get_volume(svc_id);
-	if (vol == NULL) {
-		async_answer_0(icall, ENOENT);
-		return;
-	}
-
-	rc = hr_remove_volume(vol);
+	rc = hr_remove_volume(svc_id);
 
 	async_answer_0(icall, rc);
 }
@@ -318,25 +311,23 @@ static void hr_stop_all_srv(ipc_call_t *icall)
 {
 	HR_DEBUG("%s()", __func__);
 
-	hr_volume_t *vol;
+	service_id_t *vol_svcs = NULL;
 	errno_t rc = EOK;
+	size_t i, vol_cnt;
 
-	while (true) {
-		fibril_rwlock_write_lock(&hr_volumes_lock);
-		if (list_empty(&hr_volumes)) {
-			fibril_rwlock_write_unlock(&hr_volumes_lock);
-			break;
-		}
+	rc = hr_get_volume_svcs(&vol_cnt, &vol_svcs);
+	if (rc != EOK)
+		goto fail;
 
-		vol = list_pop(&hr_volumes, hr_volume_t, lvolumes);
-
-		fibril_rwlock_write_unlock(&hr_volumes_lock);
-
-		rc = hr_remove_volume(vol);
+	for (i = 0; i < vol_cnt; i++) {
+		rc = hr_remove_volume(vol_svcs[i]);
 		if (rc != EOK)
 			break;
 	}
 
+fail:
+	if (vol_svcs != NULL)
+		free(vol_svcs);
 	async_answer_0(icall, rc);
 }
 

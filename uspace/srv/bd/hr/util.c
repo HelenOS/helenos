@@ -214,19 +214,24 @@ hr_volume_t *hr_get_volume(service_id_t svc_id)
 			break;
 		}
 	}
-
 	fibril_rwlock_read_unlock(&hr_volumes_lock);
+
 	return rvol;
 }
 
-errno_t hr_remove_volume(hr_volume_t *vol)
+errno_t hr_remove_volume(service_id_t svc_id)
 {
 	HR_DEBUG("%s()", __func__);
+
+	hr_volume_t *vol = hr_get_volume(svc_id);
+	if (vol == NULL)
+		return ENOENT;
 
 	fibril_rwlock_write_lock(&hr_volumes_lock);
 
 	int open_cnt = atomic_load_explicit(&vol->open_cnt,
 	    memory_order_relaxed);
+
 	/*
 	 * The atomicity of this if condition (and this whole
 	 * operation) is provided by the write lock - no new
@@ -245,8 +250,6 @@ errno_t hr_remove_volume(hr_volume_t *vol)
 
 	/* save metadata, but we don't care about states anymore */
 	(void)vol->meta_ops->save(vol, NO_STATE_CALLBACK);
-
-	service_id_t svc_id = vol->svc_id;
 
 	HR_NOTE("deactivating volume \"%s\"\n", vol->devname);
 
