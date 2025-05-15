@@ -172,6 +172,35 @@ void hr_destroy_vol_struct(hr_volume_t *vol)
 	free(vol);
 }
 
+errno_t hr_get_volume_svcs(size_t *rcnt, service_id_t **rsvcs)
+{
+	size_t i;
+	service_id_t *vol_svcs;
+
+	if (rcnt == NULL || rsvcs == NULL)
+		return EINVAL;
+
+	fibril_rwlock_read_lock(&hr_volumes_lock);
+
+	size_t vol_cnt = list_count(&hr_volumes);
+	vol_svcs = malloc(vol_cnt * sizeof(service_id_t));
+	if (vol_svcs == NULL) {
+		fibril_rwlock_read_unlock(&hr_volumes_lock);
+		return ENOMEM;
+	}
+
+	i = 0;
+	list_foreach(hr_volumes, lvolumes, hr_volume_t, iter)
+		vol_svcs[i++] = iter->svc_id;
+
+	fibril_rwlock_read_unlock(&hr_volumes_lock);
+
+	*rcnt = vol_cnt;
+	*rsvcs = vol_svcs;
+
+	return EOK;
+}
+
 hr_volume_t *hr_get_volume(service_id_t svc_id)
 {
 	HR_DEBUG("%s()", __func__);
