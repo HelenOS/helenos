@@ -323,17 +323,12 @@ errno_t hr_register_volume(hr_volume_t *vol)
 	errno_t rc;
 	service_id_t new_id;
 	category_id_t cat_id;
-	char *fullname = NULL;
-	char *devname = vol->devname;
+	const char *devname = vol->devname;
 
-	if (asprintf(&fullname, "devices/%s", devname) < 0)
-		return ENOMEM;
-
-	rc = loc_service_register(hr_srv, fullname, &new_id);
+	rc = loc_service_register(hr_srv, devname, &new_id);
 	if (rc != EOK) {
 		HR_ERROR("unable to register device \"%s\": %s\n",
-		    fullname, str_error(rc));
-		free(fullname);
+		    devname, str_error(rc));
 		return rc;
 	}
 
@@ -347,17 +342,14 @@ errno_t hr_register_volume(hr_volume_t *vol)
 	rc = loc_service_add_to_cat(hr_srv, new_id, cat_id);
 	if (rc != EOK) {
 		HR_ERROR("failed adding \"%s\" to category \"raid\": %s\n",
-		    fullname, str_error(rc));
+		    devname, str_error(rc));
 		goto error;
 	}
 
 	vol->svc_id = new_id;
-
-	free(fullname);
 	return EOK;
 error:
 	rc = loc_service_unregister(hr_srv, new_id);
-	free(fullname);
 	return rc;
 }
 
