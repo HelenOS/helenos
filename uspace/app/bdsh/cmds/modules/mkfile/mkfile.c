@@ -47,7 +47,7 @@
 #include "cmds.h"
 
 /** Number of bytes to write at a time */
-#define BUFFER_SIZE 16384
+#define BUFFER_SIZE (1024 * 64)
 
 static const char *cmdname = "mkfile";
 
