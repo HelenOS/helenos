@@ -26,6 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <abi/ipc/ipc.h> /* DATA_XFER_LIMIT */
 #include <errno.h>
 #include <str_error.h>
 #include <stdio.h>
@@ -44,7 +45,7 @@
 #include "cmds.h"
 
 #define CP_VERSION "0.0.1"
-#define CP_DEFAULT_BUFLEN  1024
+#define CP_DEFAULT_BUFLEN  DATA_XFER_LIMIT
 
 static const char *cmdname = "cp";
 static console_ctrl_t *con;
