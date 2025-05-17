@@ -166,7 +166,7 @@ static void hr_create_srv(ipc_call_t *icall)
 	list_append(&vol->lvolumes, &hr_volumes);
 	fibril_rwlock_write_unlock(&hr_volumes_lock);
 
-	HR_NOTE("created volume \"%s\"\n", vol->devname);
+	HR_NOTE("created volume \"%s\" (%lu)\n", vol->devname, vol->svc_id);
 
 	free(cfg);
 	async_answer_0(icall, rc);
