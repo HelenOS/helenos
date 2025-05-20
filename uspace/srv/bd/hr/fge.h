@@ -37,15 +37,64 @@
 #ifndef _HR_FGE_H
 #define _HR_FGE_H
 
+#include <adt/bitmap.h>
+#include <adt/circ_buf.h>
 #include <errno.h>
 #include <stddef.h>
 
-struct hr_fpool;
+/* forward declarations */
 typedef struct hr_fpool hr_fpool_t;
-struct hr_fgroup;
 typedef struct hr_fgroup hr_fgroup_t;
+typedef struct fge_fibril_data fge_fibril_data_t;
+typedef struct wu_queue wu_queue_t;
 
 typedef errno_t (*hr_wu_t)(void *);
+
+struct fge_fibril_data {
+	hr_wu_t wu; /* work unit function pointer */
+	void *arg; /* work unit function argument */
+	hr_fgroup_t *group; /* back-pointer to group */
+	ssize_t memslot; /* index to pool bitmap slot */
+};
+
+struct wu_queue {
+	fibril_mutex_t lock;
+	fibril_condvar_t not_empty;
+	fibril_condvar_t not_full;
+	fge_fibril_data_t *fexecs; /* circ-buf memory */
+	circ_buf_t cbuf;
+};
+
+struct hr_fpool {
+	fibril_mutex_t lock;
+	bitmap_t bitmap; /* memory slot bitmap */
+	wu_queue_t queue;
+	fid_t *fibrils;
+	uint8_t *wu_storage; /* pre-allocated pool storage */
+	size_t fibril_cnt;
+	size_t max_wus;
+	size_t active_groups;
+	bool stop;
+	size_t wu_size;
+	size_t wu_storage_free_count;
+	fibril_condvar_t all_wus_done;
+};
+
+struct hr_fgroup {
+	hr_fpool_t *pool;/* back-pointer to pool */
+	size_t wu_cnt;/* upper bound of work units */
+	size_t submitted; /* number of submitted jobs */
+	size_t reserved_cnt; /* no. of reserved wu storage slots */
+	size_t reserved_avail;
+	size_t *memslots; /* indices to pool bitmap */
+	void *own_mem; /* own allocated memory */
+	size_t own_used; /* own memory slots used counter */
+	errno_t final_errno; /* agreggated errno */
+	size_t finished_okay; /* no. of wus that ended with EOK */
+	size_t finished_fail; /* no. of wus that ended with != EOK */
+	fibril_mutex_t lock;
+	fibril_condvar_t all_done;
+};
 
 extern hr_fpool_t *hr_fpool_create(size_t, size_t, size_t);
 extern void hr_fpool_destroy(hr_fpool_t *);
