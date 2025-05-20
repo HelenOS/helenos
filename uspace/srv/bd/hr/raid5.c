@@ -53,40 +53,41 @@
 #include "util.h"
 #include "var.h"
 
-static errno_t	hr_raid5_vol_usable(hr_volume_t *);
-static ssize_t	hr_raid5_get_bad_ext(hr_volume_t *);
-static errno_t	hr_raid5_update_vol_state(hr_volume_t *);
-static void	hr_raid5_handle_extent_error(hr_volume_t *, size_t, errno_t);
-static void	xor(void *, const void *, size_t);
-static errno_t	hr_raid5_read_degraded(hr_volume_t *, uint64_t, uint64_t,
+static errno_t hr_raid5_vol_usable(hr_volume_t *);
+static ssize_t hr_raid5_get_bad_ext(hr_volume_t *);
+static errno_t hr_raid5_update_vol_state(hr_volume_t *);
+static void hr_raid5_handle_extent_error(hr_volume_t *, size_t, errno_t);
+static void xor(void *, const void *, size_t);
+
+static errno_t hr_raid5_read_degraded(hr_volume_t *, uint64_t, uint64_t,
     void *, size_t);
-static errno_t	hr_raid5_write(hr_volume_t *, uint64_t, uint64_t, aoff64_t,
+static errno_t hr_raid5_write(hr_volume_t *, uint64_t, uint64_t, aoff64_t,
     const void *, size_t);
-static errno_t	hr_raid5_write_parity(hr_volume_t *, uint64_t, uint64_t,
+static errno_t hr_raid5_write_parity(hr_volume_t *, uint64_t, uint64_t,
     uint64_t, const void *, size_t);
-static errno_t	hr_raid5_bd_op(hr_bd_op_type_t, bd_srv_t *, aoff64_t, size_t,
+static errno_t hr_raid5_bd_op(hr_bd_op_type_t, bd_srv_t *, aoff64_t, size_t,
     void *, const void *, size_t);
-static errno_t	hr_raid5_rebuild(void *);
+static errno_t hr_raid5_rebuild(void *);
 
 /* bdops */
-static errno_t	hr_raid5_bd_open(bd_srvs_t *, bd_srv_t *);
-static errno_t	hr_raid5_bd_close(bd_srv_t *);
-static errno_t	hr_raid5_bd_read_blocks(bd_srv_t *, aoff64_t, size_t, void *,
+static errno_t hr_raid5_bd_open(bd_srvs_t *, bd_srv_t *);
+static errno_t hr_raid5_bd_close(bd_srv_t *);
+static errno_t hr_raid5_bd_read_blocks(bd_srv_t *, aoff64_t, size_t, void *,
     size_t);
-static errno_t	hr_raid5_bd_sync_cache(bd_srv_t *, aoff64_t, size_t);
-static errno_t	hr_raid5_bd_write_blocks(bd_srv_t *, aoff64_t, size_t,
+static errno_t hr_raid5_bd_sync_cache(bd_srv_t *, aoff64_t, size_t);
+static errno_t hr_raid5_bd_write_blocks(bd_srv_t *, aoff64_t, size_t,
     const void *, size_t);
-static errno_t	hr_raid5_bd_get_block_size(bd_srv_t *, size_t *);
-static errno_t	hr_raid5_bd_get_num_blocks(bd_srv_t *, aoff64_t *);
+static errno_t hr_raid5_bd_get_block_size(bd_srv_t *, size_t *);
+static errno_t hr_raid5_bd_get_num_blocks(bd_srv_t *, aoff64_t *);
 
 static bd_ops_t hr_raid5_bd_ops = {
-	.open		= hr_raid5_bd_open,
-	.close		= hr_raid5_bd_close,
-	.sync_cache	= hr_raid5_bd_sync_cache,
-	.read_blocks	= hr_raid5_bd_read_blocks,
-	.write_blocks	= hr_raid5_bd_write_blocks,
-	.get_block_size	= hr_raid5_bd_get_block_size,
-	.get_num_blocks	= hr_raid5_bd_get_num_blocks
+	.open = hr_raid5_bd_open,
+	.close = hr_raid5_bd_close,
+	.sync_cache = hr_raid5_bd_sync_cache,
+	.read_blocks = hr_raid5_bd_read_blocks,
+	.write_blocks = hr_raid5_bd_write_blocks,
+	.get_block_size = hr_raid5_bd_get_block_size,
+	.get_num_blocks = hr_raid5_bd_get_num_blocks
 };
 
 extern loc_srv_t *hr_srv;

@@ -58,57 +58,57 @@ typedef struct fge_fibril_data fge_fibril_data_t;
 struct wu_queue;
 typedef struct wu_queue wu_queue_t;
 
-static void	*hr_fpool_make_storage(hr_fpool_t *, ssize_t *);
-static void	 hr_fpool_group_epilogue(hr_fpool_t *);
-static errno_t	 fge_fibril(void *);
-static errno_t	 wu_queue_init(wu_queue_t *, size_t);
-static void	 wu_queue_push(wu_queue_t *, fge_fibril_data_t *);
-static void	 wu_queue_pop(wu_queue_t *, fge_fibril_data_t *);
-static ssize_t	 hr_fpool_get_free_slot(hr_fpool_t *);
+static void *hr_fpool_make_storage(hr_fpool_t *, ssize_t *);
+static void hr_fpool_group_epilogue(hr_fpool_t *);
+static errno_t fge_fibril(void *);
+static errno_t wu_queue_init(wu_queue_t *, size_t);
+static void wu_queue_push(wu_queue_t *, fge_fibril_data_t *);
+static void wu_queue_pop(wu_queue_t *, fge_fibril_data_t *);
+static ssize_t hr_fpool_get_free_slot(hr_fpool_t *);
 
 struct fge_fibril_data {
-	hr_wu_t		 wu;		/* work unit function pointer */
-	void		*arg;		/* work unit function argument */
-	hr_fgroup_t	*group;		/* back-pointer to group */
-	ssize_t		 memslot;	/* index to pool bitmap slot */
+	hr_wu_t wu; /* work unit function pointer */
+	void *arg; /* work unit function argument */
+	hr_fgroup_t *group; /* back-pointer to group */
+	ssize_t memslot; /* index to pool bitmap slot */
 };
 
 struct wu_queue {
-	fibril_mutex_t		 lock;
-	fibril_condvar_t	 not_empty;
-	fibril_condvar_t	 not_full;
-	fge_fibril_data_t	*fexecs;	/* circ-buf memory */
+	fibril_mutex_t lock;
+	fibril_condvar_t not_empty;
+	fibril_condvar_t not_full;
+	fge_fibril_data_t *fexecs; /* circ-buf memory */
 	circ_buf_t cbuf;
 };
 
 struct hr_fpool {
-	fibril_mutex_t	 lock;
-	bitmap_t	 bitmap;	/* memory slot bitmap */
-	wu_queue_t	 queue;
-	fid_t		*fibrils;
-	uint8_t		*wu_storage;	/* pre-allocated pool storage */
-	size_t		 fibril_cnt;
-	size_t		 max_wus;
-	size_t		 active_groups;
-	bool		 stop;
-	size_t		 wu_size;
-	size_t		 wu_storage_free_count;
+	fibril_mutex_t lock;
+	bitmap_t bitmap; /* memory slot bitmap */
+	wu_queue_t queue;
+	fid_t *fibrils;
+	uint8_t *wu_storage; /* pre-allocated pool storage */
+	size_t fibril_cnt;
+	size_t max_wus;
+	size_t active_groups;
+	bool stop;
+	size_t wu_size;
+	size_t wu_storage_free_count;
 	fibril_condvar_t all_wus_done;
 };
 
 struct hr_fgroup {
-	hr_fpool_t	*pool;		/* back-pointer to pool */
-	size_t		 wu_cnt;	/* upper bound of work units */
-	size_t		 submitted;	/* number of submitted jobs */
-	size_t		 reserved_cnt;	/* no. of reserved wu storage slots */
-	size_t		 reserved_avail;
-	size_t		*memslots;	/* indices to pool bitmap */
-	void		*own_mem;	/* own allocated memory */
-	size_t		 own_used;	/* own memory slots used counter */
-	errno_t		 final_errno;	/* agreggated errno */
-	size_t		 finished_okay;	/* no. of wus that ended with EOK */
-	size_t		 finished_fail;	/* no. of wus that ended with != EOK */
-	fibril_mutex_t	 lock;
+	hr_fpool_t *pool;/* back-pointer to pool */
+	size_t wu_cnt;/* upper bound of work units */
+	size_t submitted; /* number of submitted jobs */
+	size_t reserved_cnt; /* no. of reserved wu storage slots */
+	size_t reserved_avail;
+	size_t *memslots; /* indices to pool bitmap */
+	void *own_mem; /* own allocated memory */
+	size_t own_used; /* own memory slots used counter */
+	errno_t final_errno; /* agreggated errno */
+	size_t finished_okay; /* no. of wus that ended with EOK */
+	size_t finished_fail; /* no. of wus that ended with != EOK */
+	fibril_mutex_t lock;
 	fibril_condvar_t all_done;
 };
 

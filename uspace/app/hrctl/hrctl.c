@@ -47,8 +47,8 @@
 
 #define NAME "hrctl"
 
-static void	usage(void);
-static errno_t	fill_config_devs(int, char **, hr_config_t *);
+static void usage(void);
+static errno_t fill_config_devs(int, char **, hr_config_t *);
 static errno_t get_vol_configs_from_sif(const char *, hr_config_t **, size_t *);
 
 static const char usage_str[] =

@@ -54,18 +54,18 @@
 #include "util.h"
 #include "var.h"
 
-static bool	hr_range_lock_overlap(hr_range_lock_t *, hr_range_lock_t *);
-static errno_t	hr_add_svc_linked_to_list(list_t *, service_id_t, bool,
-    void *);
-static void	free_dev_list_member(struct dev_list_member *);
-static void	free_svc_id_list(list_t *);
-static errno_t	hr_fill_disk_part_svcs_list(list_t *);
-static errno_t	block_init_dev_list(list_t *);
-static void	block_fini_dev_list(list_t *);
-static errno_t	hr_util_get_matching_md_svcs_list(list_t *, list_t *,
+static bool hr_range_lock_overlap(hr_range_lock_t *, hr_range_lock_t *);
+static errno_t hr_add_svc_linked_to_list(list_t *, service_id_t, bool, void *);
+static void free_dev_list_member(struct dev_list_member *);
+static void free_svc_id_list(list_t *);
+static errno_t hr_fill_disk_part_svcs_list(list_t *);
+static errno_t block_init_dev_list(list_t *);
+static void block_fini_dev_list(list_t *);
+static errno_t hr_util_get_matching_md_svcs_list(list_t *, list_t *,
     service_id_t, hr_metadata_type_t, void *);
-static errno_t	hr_util_assemble_from_matching_list(list_t *, hr_metadata_type_t);
-static errno_t	hr_fill_svcs_list_from_cfg(hr_config_t *, list_t *);
+static errno_t hr_util_assemble_from_matching_list(list_t *,
+    hr_metadata_type_t);
+static errno_t hr_fill_svcs_list_from_cfg(hr_config_t *, list_t *);
 
 #define HR_RL_LIST_LOCK(vol) (fibril_mutex_lock(&(vol)->range_lock_list_lock))
 #define HR_RL_LIST_UNLOCK(vol) \

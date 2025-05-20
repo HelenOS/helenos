@@ -43,28 +43,28 @@ typedef struct hr_volume hr_volume_t;
 #define HR_METADATA_HOTSPARE_SUPPORT 0x01
 
 typedef struct hr_superblock_ops {
-	void		*(*alloc_struct)(void);
-	errno_t		 (*init_vol2meta)(const hr_volume_t *, void *);
-	errno_t		 (*init_meta2vol)(const list_t *, hr_volume_t *);
-	void		 (*encode)(void *, void *);
-	errno_t		 (*decode)(const void *, void *);
-	errno_t		 (*get_block)(service_id_t, void **);
-	errno_t		 (*write_block)(service_id_t, const void *);
-	bool		 (*has_valid_magic)(const void *);
-	bool		 (*compare_uuids)(const void *, const void *);
-	void		 (*inc_counter)(void *);
-	errno_t		 (*save)(hr_volume_t *, bool);
-	const char	*(*get_devname)(const void *);
-	hr_level_t	 (*get_level)(const void *);
-	uint64_t	 (*get_data_offset)(void);
-	size_t		 (*get_size)(void);
-	uint8_t		 (*get_flags)(void);
-	void		 (*dump)(const void *);
+	void *(*alloc_struct)(void);
+	errno_t (*init_vol2meta)(const hr_volume_t *, void *);
+	errno_t (*init_meta2vol)(const list_t *, hr_volume_t *);
+	void (*encode)(void *, void *);
+	errno_t (*decode)(const void *, void *);
+	errno_t (*get_block)(service_id_t, void **);
+	errno_t (*write_block)(service_id_t, const void *);
+	bool (*has_valid_magic)(const void *);
+	bool (*compare_uuids)(const void *, const void *);
+	void (*inc_counter)(void *);
+	errno_t (*save)(hr_volume_t *, bool);
+	const char *(*get_devname)(const void *);
+	hr_level_t (*get_level)(const void *);
+	uint64_t (*get_data_offset)(void);
+	size_t (*get_size)(void);
+	uint8_t (*get_flags)(void);
+	void (*dump)(const void *);
 	hr_metadata_type_t (*get_type)(void);
 } hr_superblock_ops_t;
 
 extern hr_superblock_ops_t *get_type_ops(hr_metadata_type_t);
-extern errno_t	find_metadata(service_id_t, void **, hr_metadata_type_t *);
+extern errno_t find_metadata(service_id_t, void **, hr_metadata_type_t *);
 
 #endif
 

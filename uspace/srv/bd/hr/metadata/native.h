@@ -41,36 +41,36 @@
 /*
  * Metadata is stored on the last block of an extent.
  */
-#define HR_NATIVE_META_SIZE		1	/* in blocks */
-#define HR_NATIVE_DATA_OFF		0
+#define HR_NATIVE_META_SIZE 1 /* in blocks */
+#define HR_NATIVE_DATA_OFF 0
 
-#define HR_NATIVE_MAGIC_STR		"HelenRAID"
-#define HR_NATIVE_MAGIC_SIZE		16
-#define HR_NATIVE_UUID_LEN		16
-#define HR_NATIVE_METADATA_VERSION	1
+#define HR_NATIVE_MAGIC_STR "HelenRAID"
+#define HR_NATIVE_MAGIC_SIZE 16
+#define HR_NATIVE_UUID_LEN 16
+#define HR_NATIVE_METADATA_VERSION 1
 
 struct hr_metadata {
-	char		magic[HR_NATIVE_MAGIC_SIZE];
+	char magic[HR_NATIVE_MAGIC_SIZE];
 
-	uint8_t		uuid[HR_NATIVE_UUID_LEN];
+	uint8_t uuid[HR_NATIVE_UUID_LEN];
 
-	uint64_t	data_blkno;		/* usable blocks */
-	uint64_t	truncated_blkno;	/* size of smallest extent */
+	uint64_t data_blkno; /* usable blocks */
+	uint64_t truncated_blkno; /* size of smallest extent */
 
-	uint64_t	data_offset;
-	uint64_t	counter;
+	uint64_t data_offset;
+	uint64_t counter;
 
-	uint32_t	version;		/* XXX: yet unused */
-	uint32_t	extent_no;
-	uint32_t	index;			/* index of extent in volume */
-	uint32_t	level;
+	uint32_t version; /* XXX: yet unused */
+	uint32_t extent_no;
+	uint32_t index; /* index of extent in volume */
+	uint32_t level;
 
-	uint32_t	layout;
-	uint32_t	strip_size;
+	uint32_t layout;
+	uint32_t strip_size;
 
-	uint32_t	bsize;
+	uint32_t bsize;
 
-	char		devname[HR_DEVNAME_LEN];
+	char devname[HR_DEVNAME_LEN];
 } __attribute__((packed));
 
 #endif

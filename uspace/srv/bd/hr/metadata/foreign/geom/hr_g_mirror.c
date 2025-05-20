@@ -52,45 +52,44 @@
 
 #include "g_mirror.h"
 
-static void		*meta_gmirror_alloc_struct(void);
-static errno_t		 meta_gmirror_init_vol2meta(const hr_volume_t *, void *);
-static errno_t		 meta_gmirror_init_meta2vol(const list_t *,
-    hr_volume_t *);
-static void		 meta_gmirror_encode(void *, void *);
-static errno_t		 meta_gmirror_decode(const void *, void *);
-static errno_t		 meta_gmirror_get_block(service_id_t, void **);
-static errno_t		 meta_gmirror_write_block(service_id_t, const void *);
-static bool		 meta_gmirror_has_valid_magic(const void *);
-static bool		 meta_gmirror_compare_uuids(const void *, const void *);
-static void		 meta_gmirror_inc_counter(void *);
-static errno_t		 meta_gmirror_save(hr_volume_t *, bool);
-static const char	*meta_gmirror_get_devname(const void *);
-static hr_level_t	 meta_gmirror_get_level(const void *);
-static uint64_t		 meta_gmirror_get_data_offset(void);
-static size_t		 meta_gmirror_get_size(void);
-static uint8_t		 meta_gmirror_get_flags(void);
+static void *meta_gmirror_alloc_struct(void);
+static errno_t meta_gmirror_init_vol2meta(const hr_volume_t *, void *);
+static errno_t meta_gmirror_init_meta2vol(const list_t *, hr_volume_t *);
+static void meta_gmirror_encode(void *, void *);
+static errno_t meta_gmirror_decode(const void *, void *);
+static errno_t meta_gmirror_get_block(service_id_t, void **);
+static errno_t meta_gmirror_write_block(service_id_t, const void *);
+static bool meta_gmirror_has_valid_magic(const void *);
+static bool meta_gmirror_compare_uuids(const void *, const void *);
+static void meta_gmirror_inc_counter(void *);
+static errno_t meta_gmirror_save(hr_volume_t *, bool);
+static const char *meta_gmirror_get_devname(const void *);
+static hr_level_t meta_gmirror_get_level(const void *);
+static uint64_t meta_gmirror_get_data_offset(void);
+static size_t meta_gmirror_get_size(void);
+static uint8_t meta_gmirror_get_flags(void);
 static hr_metadata_type_t meta_gmirror_get_type(void);
-static void		 meta_gmirror_dump(const void *);
+static void meta_gmirror_dump(const void *);
 
 hr_superblock_ops_t metadata_gmirror_ops = {
-	.alloc_struct		= meta_gmirror_alloc_struct,
-	.init_vol2meta		= meta_gmirror_init_vol2meta,
-	.init_meta2vol		= meta_gmirror_init_meta2vol,
-	.encode			= meta_gmirror_encode,
-	.decode			= meta_gmirror_decode,
-	.get_block		= meta_gmirror_get_block,
-	.write_block		= meta_gmirror_write_block,
-	.has_valid_magic	= meta_gmirror_has_valid_magic,
-	.compare_uuids		= meta_gmirror_compare_uuids,
-	.inc_counter		= meta_gmirror_inc_counter,
-	.save			= meta_gmirror_save,
-	.get_devname		= meta_gmirror_get_devname,
-	.get_level		= meta_gmirror_get_level,
-	.get_data_offset	= meta_gmirror_get_data_offset,
-	.get_size		= meta_gmirror_get_size,
-	.get_flags		= meta_gmirror_get_flags,
-	.get_type		= meta_gmirror_get_type,
-	.dump			= meta_gmirror_dump
+	.alloc_struct = meta_gmirror_alloc_struct,
+	.init_vol2meta = meta_gmirror_init_vol2meta,
+	.init_meta2vol = meta_gmirror_init_meta2vol,
+	.encode = meta_gmirror_encode,
+	.decode = meta_gmirror_decode,
+	.get_block = meta_gmirror_get_block,
+	.write_block = meta_gmirror_write_block,
+	.has_valid_magic = meta_gmirror_has_valid_magic,
+	.compare_uuids = meta_gmirror_compare_uuids,
+	.inc_counter = meta_gmirror_inc_counter,
+	.save = meta_gmirror_save,
+	.get_devname = meta_gmirror_get_devname,
+	.get_level = meta_gmirror_get_level,
+	.get_data_offset = meta_gmirror_get_data_offset,
+	.get_size = meta_gmirror_get_size,
+	.get_flags = meta_gmirror_get_flags,
+	.get_type = meta_gmirror_get_type,
+	.dump = meta_gmirror_dump
 };
 
 static void *meta_gmirror_alloc_struct(void)

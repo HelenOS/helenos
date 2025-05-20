@@ -39,13 +39,13 @@
 #include "var.h"
 
 typedef struct hr_io {
-	hr_bd_op_type_t	 type;
-	uint64_t	 ba;
-	uint64_t	 cnt;
-	size_t		 extent;
-	void		*data_read;
-	const void	*data_write;
-	hr_volume_t	*vol;
+	hr_bd_op_type_t type;
+	uint64_t ba;
+	uint64_t cnt;
+	size_t extent;
+	void *data_read;
+	const void *data_write;
+	hr_volume_t *vol;
 } hr_io_t;
 
 errno_t hr_io_worker(void *);
