@@ -15,7 +15,7 @@ ld = '@COMPPREFIX@ld'
 has_function_printf = true
 needs_exe_wrapper = true
 
-cc_arch = 'mips'
+cc_arch = 'mipsel'
 bits = 32
 
 [host_machine]
