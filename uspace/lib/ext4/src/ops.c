@@ -64,7 +64,7 @@ static errno_t ext4_read_file(ipc_call_t *, aoff64_t, size_t, ext4_instance_t *,
 static bool ext4_is_dots(const uint8_t *, size_t);
 static errno_t ext4_instance_get(service_id_t, ext4_instance_t **);
 static errno_t handle_sparse_or_unallocated_fblock(ext4_filesystem_t *,
-    ext4_inode_ref_t *, uint32_t, uint32_t, uint32_t *, int *);
+    ext4_inode_ref_t *, uint32_t, uint32_t, uint32_t *, int *, bool *);
 
 /* Forward declarations of ext4 libfs operations. */
 
@@ -1287,6 +1287,8 @@ static errno_t ext4_write(service_id_t service_id, fs_index_t index, aoff64_t po
 {
 	fs_node_t *fn;
 	errno_t rc2;
+	bool fblock_allocated = false;
+
 	errno_t rc = ext4_node_get(&fn, service_id, index);
 	if (rc != EOK)
 		return rc;
@@ -1326,7 +1328,7 @@ static errno_t ext4_write(service_id_t service_id, fs_index_t index, aoff64_t po
 	/* Handle sparse or unallocated block */
 	if (fblock == 0) {
 		rc = handle_sparse_or_unallocated_fblock(fs, inode_ref,
-		    block_size, iblock, &fblock, &flags);
+		    block_size, iblock, &fblock, &flags, &fblock_allocated);
 		if (rc != EOK) {
 			async_answer_0(&call, rc);
 			goto exit;
@@ -1369,6 +1371,9 @@ static errno_t ext4_write(service_id_t service_id, fs_index_t index, aoff64_t po
 	*wbytes = bytes;
 
 exit:
+	if (rc != EOK && fblock_allocated)
+		ext4_balloc_free_block(inode_ref, fblock);
+
 	rc2 = ext4_node_put(fn);
 	return rc == EOK ? rc2 : rc;
 }
@@ -1381,13 +1386,14 @@ exit:
  * @param iblock	Logical block
  * @param fblock	Place to store allocated block address
  * @param flags		BLOCK_FLAGS to update
+ * @param allocated	Place to store whether new block was allocated
  *
  * @return Error code
  *
  */
 static errno_t handle_sparse_or_unallocated_fblock(ext4_filesystem_t *fs,
     ext4_inode_ref_t *inode_ref, uint32_t block_size, uint32_t iblock,
-    uint32_t *fblock, int *flags)
+    uint32_t *fblock, int *flags, bool *allocated)
 {
 	errno_t rc;
 
@@ -1410,6 +1416,8 @@ static errno_t handle_sparse_or_unallocated_fblock(ext4_filesystem_t *fs,
 		    false);
 		if (rc != EOK)
 			return rc;
+
+		*allocated = false;
 	} else { /* Allocate new block */
 		rc = ext4_balloc_alloc_block(inode_ref, fblock);
 		if (rc != EOK)
@@ -1421,6 +1429,8 @@ static errno_t handle_sparse_or_unallocated_fblock(ext4_filesystem_t *fs,
 			ext4_balloc_free_block(inode_ref, *fblock);
 			return rc;
 		}
+
+		*allocated = true;
 	}
 
 	*flags = BLOCK_FLAGS_NOREAD;
