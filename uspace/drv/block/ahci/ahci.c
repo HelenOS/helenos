@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2012 Petr Jerman
  * All rights reserved.
  *
@@ -1074,6 +1075,7 @@ static errno_t ahci_sata_create(ahci_dev_t *ahci, ddf_dev_t *dev,
 		goto error;
 	}
 
+	fun = sata->fun;
 	ddf_fun_set_ops(fun, &ahci_ops);
 
 	rc = ddf_fun_bind(fun);

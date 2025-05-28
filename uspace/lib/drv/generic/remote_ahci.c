@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2012 Petr Jerman
  * All rights reserved.
  *
@@ -151,14 +152,16 @@ errno_t ahci_read_blocks(async_sess_t *sess, uint64_t blocknum, size_t count,
 	req = async_send_4(exch, DEV_IFACE_ID(AHCI_DEV_IFACE),
 	    IPC_M_AHCI_READ_BLOCKS, HI(blocknum),  LO(blocknum), count, NULL);
 
-	async_share_out_start(exch, buf, AS_AREA_READ | AS_AREA_WRITE);
-
+	errno_t rc = async_data_read_start(exch, buf, count * 512);
 	async_exchange_end(exch);
+	if (rc != EOK) {
+		async_forget(req);
+		return rc;
+	}
 
-	errno_t rc;
-	async_wait_for(req, &rc);
-
-	return rc;
+	errno_t retval;
+	async_wait_for(req, &retval);
+	return retval;
 }
 
 errno_t ahci_write_blocks(async_sess_t *sess, uint64_t blocknum, size_t count,
@@ -171,14 +174,17 @@ errno_t ahci_write_blocks(async_sess_t *sess, uint64_t blocknum, size_t count,
 	aid_t req = async_send_4(exch, DEV_IFACE_ID(AHCI_DEV_IFACE),
 	    IPC_M_AHCI_WRITE_BLOCKS, HI(blocknum),  LO(blocknum), count, NULL);
 
-	async_share_out_start(exch, buf, AS_AREA_READ | AS_AREA_WRITE);
-
+	errno_t rc = async_data_write_start(exch, buf, count * 512);
 	async_exchange_end(exch);
 
-	errno_t rc;
-	async_wait_for(req, &rc);
+	if (rc != EOK) {
+		async_forget(req);
+		return rc;
+	}
 
-	return rc;
+	errno_t retval;
+	async_wait_for(req, &retval);
+	return retval;
 }
 
 static void remote_ahci_get_sata_device_name(ddf_fun_t *, void *, ipc_call_t *);
@@ -283,49 +289,70 @@ void remote_ahci_read_blocks(ddf_fun_t *fun, void *iface, ipc_call_t *call)
 		return;
 	}
 
-	ipc_call_t data;
-	size_t maxblock_size;
-	unsigned int flags;
-	async_share_out_receive(&data, &maxblock_size, &flags);
+	ipc_call_t rcall;
+	size_t size;
+	if (!async_data_read_receive(&rcall, &size)) {
+		async_answer_0(&rcall, EINVAL);
+		async_answer_0(call, EINVAL);
+		return;
+	}
 
-	void *buf;
-	async_share_out_finalize(&data, &buf);
+	void *buf = malloc(size);
+	if (buf == NULL) {
+		async_answer_0(&rcall, ENOMEM);
+		async_answer_0(call, ENOMEM);
+		return;
+	}
 
-	const uint64_t blocknum =
+	uint64_t blocknum =
 	    (((uint64_t) (DEV_IPC_GET_ARG1(*call))) << 32) |
 	    (((uint64_t) (DEV_IPC_GET_ARG2(*call))) & 0xffffffff);
-	const size_t cnt = (size_t) DEV_IPC_GET_ARG3(*call);
+	size_t cnt = (size_t) DEV_IPC_GET_ARG3(*call);
 
-	const errno_t ret = ahci_iface->read_blocks(fun, blocknum, cnt, buf);
+	errno_t rc = ahci_iface->read_blocks(fun, blocknum, cnt, buf);
+	if (rc != EOK) {
+		async_answer_0(&rcall, ENOMEM);
+		async_answer_0(call, ENOMEM);
+		free(buf);
+		return;
+	}
 
-	async_answer_0(call, ret);
+	async_data_read_finalize(&rcall, buf, size);
+
+	free(buf);
+	async_answer_0(call, EOK);
 }
 
 void remote_ahci_write_blocks(ddf_fun_t *fun, void *iface, ipc_call_t *call)
 {
 	const ahci_iface_t *ahci_iface = (ahci_iface_t *) iface;
 
-	if (ahci_iface->read_blocks == NULL) {
+	if (ahci_iface->write_blocks == NULL) {
 		async_answer_0(call, ENOTSUP);
 		return;
 	}
 
-	ipc_call_t data;
-	size_t maxblock_size;
-	unsigned int flags;
-	async_share_out_receive(&data, &maxblock_size, &flags);
+	void *data;
+	size_t dsize;
+	errno_t rc = async_data_write_accept(&data, false, 0, 0, 0, &dsize);
+	if (rc != EOK) {
+		async_answer_0(call, rc);
+		return;
+	}
 
-	void *buf;
-	async_share_out_finalize(&data, &buf);
-
-	const uint64_t blocknum =
+	uint64_t blocknum =
 	    (((uint64_t)(DEV_IPC_GET_ARG1(*call))) << 32) |
 	    (((uint64_t)(DEV_IPC_GET_ARG2(*call))) & 0xffffffff);
-	const size_t cnt = (size_t) DEV_IPC_GET_ARG3(*call);
+	size_t cnt = (size_t) DEV_IPC_GET_ARG3(*call);
 
-	const errno_t ret = ahci_iface->write_blocks(fun, blocknum, cnt, buf);
+	if (dsize != cnt * 512) {
+		async_answer_0(call, EINVAL);
+		return;
+	}
 
-	async_answer_0(call, ret);
+	rc = ahci_iface->write_blocks(fun, blocknum, cnt, data);
+	free(data);
+	async_answer_0(call, rc);
 }
 
 /**
