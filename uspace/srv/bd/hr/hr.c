@@ -375,7 +375,7 @@ static void hr_fail_extent_srv(ipc_call_t *icall)
 	fibril_rwlock_write_unlock(&vol->states_lock);
 	fibril_rwlock_read_unlock(&vol->extents_lock);
 
-	vol->hr_ops.state_event(vol);
+	vol->hr_ops.vol_state_eval(vol);
 
 	async_answer_0(icall, EOK);
 }

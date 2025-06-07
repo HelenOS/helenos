@@ -56,7 +56,6 @@
 static errno_t hr_raid5_vol_usable(hr_volume_t *);
 static ssize_t hr_raid5_get_bad_ext(hr_volume_t *);
 static errno_t hr_raid5_update_vol_state(hr_volume_t *);
-static void hr_raid5_handle_extent_error(hr_volume_t *, size_t, errno_t);
 static void xor(void *, const void *, size_t);
 
 static errno_t hr_raid5_read_degraded(hr_volume_t *, uint64_t, uint64_t,
@@ -147,7 +146,7 @@ errno_t hr_raid5_init(hr_volume_t *vol)
 	return EOK;
 }
 
-void hr_raid5_state_event(hr_volume_t *vol)
+void hr_raid5_vol_state_eval(hr_volume_t *vol)
 {
 	fibril_mutex_lock(&vol->lock);
 	fibril_rwlock_write_lock(&vol->states_lock);
@@ -186,6 +185,15 @@ end:
 	fibril_mutex_unlock(&vol->lock);
 
 	return rc;
+}
+
+void hr_raid5_ext_state_cb(hr_volume_t *vol, size_t extent,
+    errno_t rc)
+{
+	if (rc == ENOENT)
+		hr_update_ext_state(vol, extent, HR_EXT_MISSING);
+	else if (rc != EOK)
+		hr_update_ext_state(vol, extent, HR_EXT_FAILED);
 }
 
 static errno_t hr_raid5_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
@@ -298,15 +306,6 @@ static errno_t hr_raid5_update_vol_state(hr_volume_t *vol)
 			hr_update_vol_state(vol, HR_VOL_FAULTY);
 		return EIO;
 	}
-}
-
-static void hr_raid5_handle_extent_error(hr_volume_t *vol, size_t extent,
-    errno_t rc)
-{
-	if (rc == ENOENT)
-		hr_update_ext_state(vol, extent, HR_EXT_MISSING);
-	else if (rc != EOK)
-		hr_update_ext_state(vol, extent, HR_EXT_FAILED);
 }
 
 static void xor(void *dst, const void *src, size_t size)
@@ -647,7 +646,7 @@ static errno_t hr_raid5_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 		if (rc == ENOMEM)
 			goto error;
 
-		hr_raid5_handle_extent_error(vol, extent, rc);
+		hr_raid5_ext_state_cb(vol, extent, rc);
 
 		if (rc != EOK) {
 			rc = hr_raid5_update_vol_state(vol);
@@ -801,7 +800,7 @@ static errno_t hr_raid5_rebuild(void *arg)
 				rc = block_read_direct(vol->extents[i].svc_id,
 				    ba, cnt, buf);
 			if (rc != EOK) {
-				hr_raid5_handle_extent_error(vol, i, rc);
+				hr_raid5_ext_state_cb(vol, i, rc);
 				HR_ERROR("rebuild on \"%s\" (%" PRIun "), "
 				    "failed due to a failed ONLINE extent, "
 				    "number %zu\n",
@@ -817,7 +816,7 @@ static errno_t hr_raid5_rebuild(void *arg)
 
 		rc = block_write_direct(rebuild_ext->svc_id, ba, cnt, xorbuf);
 		if (rc != EOK) {
-			hr_raid5_handle_extent_error(vol, bad, rc);
+			hr_raid5_ext_state_cb(vol, bad, rc);
 			HR_ERROR("rebuild on \"%s\" (%" PRIun "), failed due to "
 			    "the rebuilt extent number %zu failing\n",
 			    vol->devname, vol->svc_id, bad);

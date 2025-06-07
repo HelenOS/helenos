@@ -52,8 +52,6 @@
 #include "util.h"
 #include "var.h"
 
-static void hr_raid0_update_vol_state(hr_volume_t *);
-static void hr_raid0_state_callback(hr_volume_t *, size_t, errno_t);
 static errno_t hr_raid0_bd_op(hr_bd_op_type_t, bd_srv_t *, aoff64_t, size_t,
     void *, const void *, size_t);
 
@@ -91,7 +89,7 @@ errno_t hr_raid0_create(hr_volume_t *new_volume)
 		return EINVAL;
 	}
 
-	hr_raid0_update_vol_state(new_volume);
+	hr_raid0_vol_state_eval(new_volume);
 	if (new_volume->state != HR_VOL_ONLINE) {
 		HR_NOTE("\"%s\": unusable state, not creating\n",
 		    new_volume->devname);
@@ -101,8 +99,6 @@ errno_t hr_raid0_create(hr_volume_t *new_volume)
 	bd_srvs_init(&new_volume->hr_bds);
 	new_volume->hr_bds.ops = &hr_raid0_bd_ops;
 	new_volume->hr_bds.sarg = new_volume;
-
-	new_volume->state_callback = hr_raid0_state_callback;
 
 	return EOK;
 }
@@ -129,11 +125,62 @@ errno_t hr_raid0_init(hr_volume_t *vol)
 	return EOK;
 }
 
-void hr_raid0_state_event(hr_volume_t *vol)
+void hr_raid0_vol_state_eval(hr_volume_t *vol)
 {
 	HR_DEBUG("%s()", __func__);
 
-	hr_raid0_update_vol_state(vol);
+	fibril_mutex_lock(&vol->md_lock);
+
+	vol->meta_ops->inc_counter(vol->in_mem_md);
+	/* TODO: save right away */
+
+	fibril_mutex_unlock(&vol->md_lock);
+
+	fibril_rwlock_read_lock(&vol->states_lock);
+
+	hr_vol_state_t old_state = vol->state;
+
+	for (size_t i = 0; i < vol->extent_no; i++) {
+		if (vol->extents[i].state != HR_EXT_ONLINE) {
+			fibril_rwlock_read_unlock(&vol->states_lock);
+
+			if (old_state != HR_VOL_FAULTY) {
+				fibril_rwlock_write_lock(&vol->states_lock);
+				hr_update_vol_state(vol, HR_VOL_FAULTY);
+				fibril_rwlock_write_unlock(&vol->states_lock);
+			}
+			return;
+		}
+	}
+	fibril_rwlock_read_unlock(&vol->states_lock);
+
+	if (old_state != HR_VOL_ONLINE) {
+		fibril_rwlock_write_lock(&vol->states_lock);
+		hr_update_vol_state(vol, HR_VOL_ONLINE);
+		fibril_rwlock_write_unlock(&vol->states_lock);
+	}
+}
+
+void hr_raid0_ext_state_cb(hr_volume_t *vol, size_t extent, errno_t rc)
+{
+	HR_DEBUG("%s()", __func__);
+
+	if (rc == EOK)
+		return;
+
+	fibril_rwlock_write_lock(&vol->states_lock);
+
+	switch (rc) {
+	case ENOENT:
+		hr_update_ext_state(vol, extent, HR_EXT_MISSING);
+		break;
+	default:
+		hr_update_ext_state(vol, extent, HR_EXT_FAILED);
+	}
+
+	hr_update_vol_state(vol, HR_VOL_FAULTY);
+
+	fibril_rwlock_write_unlock(&vol->states_lock);
 }
 
 static errno_t hr_raid0_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
@@ -191,63 +238,11 @@ static errno_t hr_raid0_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
 	return EOK;
 }
 
-static void hr_raid0_update_vol_state(hr_volume_t *vol)
-{
-	fibril_mutex_lock(&vol->md_lock);
-
-	vol->meta_ops->inc_counter(vol->in_mem_md);
-	/* TODO: save right away */
-
-	fibril_mutex_unlock(&vol->md_lock);
-
-	fibril_rwlock_read_lock(&vol->states_lock);
-
-	hr_vol_state_t old_state = vol->state;
-
-	for (size_t i = 0; i < vol->extent_no; i++) {
-		if (vol->extents[i].state != HR_EXT_ONLINE) {
-			fibril_rwlock_read_unlock(&vol->states_lock);
-
-			if (old_state != HR_VOL_FAULTY) {
-				fibril_rwlock_write_lock(&vol->states_lock);
-				hr_update_vol_state(vol, HR_VOL_FAULTY);
-				fibril_rwlock_write_unlock(&vol->states_lock);
-			}
-			return;
-		}
-	}
-	fibril_rwlock_read_unlock(&vol->states_lock);
-
-	if (old_state != HR_VOL_ONLINE) {
-		fibril_rwlock_write_lock(&vol->states_lock);
-		hr_update_vol_state(vol, HR_VOL_ONLINE);
-		fibril_rwlock_write_unlock(&vol->states_lock);
-	}
-}
-
-static void hr_raid0_state_callback(hr_volume_t *vol, size_t extent, errno_t rc)
-{
-	if (rc == EOK)
-		return;
-
-	fibril_rwlock_write_lock(&vol->states_lock);
-
-	switch (rc) {
-	case ENOENT:
-		hr_update_ext_state(vol, extent, HR_EXT_MISSING);
-		break;
-	default:
-		hr_update_ext_state(vol, extent, HR_EXT_FAILED);
-	}
-
-	hr_update_vol_state(vol, HR_VOL_FAULTY);
-
-	fibril_rwlock_write_unlock(&vol->states_lock);
-}
-
 static errno_t hr_raid0_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
     size_t cnt, void *dst, const void *src, size_t size)
 {
+	HR_DEBUG("%s()", __func__);
+
 	hr_volume_t *vol = bd->srvs->sarg;
 	errno_t rc;
 	uint64_t phys_block, len;

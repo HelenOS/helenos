@@ -57,8 +57,9 @@ typedef struct hr_superblock_ops hr_superblock_ops_t;
 typedef struct hr_ops {
 	errno_t (*create)(hr_volume_t *);
 	errno_t (*init)(hr_volume_t *);
-	void (*state_event)(hr_volume_t *);
 	errno_t (*add_hotspare)(hr_volume_t *, service_id_t);
+	void (*vol_state_eval)(hr_volume_t *);
+	void (*ext_state_cb)(hr_volume_t *, size_t, errno_t);
 } hr_ops_t;
 
 typedef struct hr_volume {
@@ -103,7 +104,6 @@ typedef struct hr_volume {
 	_Atomic uint64_t rebuild_blk; /* rebuild position */
 	_Atomic int open_cnt; /* open/close() counter */
 	hr_vol_state_t state; /* volume state */
-	void (*state_callback)(hr_volume_t *, size_t, errno_t);
 } hr_volume_t;
 
 typedef enum {
@@ -135,13 +135,16 @@ extern errno_t hr_raid0_init(hr_volume_t *);
 extern errno_t hr_raid1_init(hr_volume_t *);
 extern errno_t hr_raid5_init(hr_volume_t *);
 
-extern void hr_raid0_state_event(hr_volume_t *);
-extern void hr_raid1_state_event(hr_volume_t *);
-extern void hr_raid5_state_event(hr_volume_t *);
-
 extern errno_t hr_raid1_add_hotspare(hr_volume_t *, service_id_t);
 extern errno_t hr_raid5_add_hotspare(hr_volume_t *, service_id_t);
 
+extern void hr_raid0_vol_state_eval(hr_volume_t *);
+extern void hr_raid1_vol_state_eval(hr_volume_t *);
+extern void hr_raid5_vol_state_eval(hr_volume_t *);
+
+extern void hr_raid0_ext_state_cb(hr_volume_t *, size_t, errno_t);
+extern void hr_raid1_ext_state_cb(hr_volume_t *, size_t, errno_t);
+extern void hr_raid5_ext_state_cb(hr_volume_t *, size_t, errno_t);
 #endif
 
 /** @}

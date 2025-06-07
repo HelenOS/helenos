@@ -59,7 +59,7 @@ errno_t hr_io_worker(void *arg)
 	 * other writes, there is no way to rollback.
 	 */
 	if (rc != EOK && (rc != ENOMEM || io->type == HR_BD_WRITE))
-		io->vol->state_callback(io->vol, io->extent, rc);
+		io->vol->hr_ops.ext_state_cb(io->vol, io->extent, rc);
 
 	return rc;
 }

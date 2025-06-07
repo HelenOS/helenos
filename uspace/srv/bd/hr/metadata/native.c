@@ -388,7 +388,7 @@ static errno_t meta_native_save(hr_volume_t *vol, bool with_state_callback)
 		meta_native_encode(md, md_block);
 		rc = meta_native_write_block(ext->svc_id, md_block);
 		if (with_state_callback && rc != EOK)
-			vol->state_callback(vol, i, rc);
+			vol->hr_ops.ext_state_cb(vol, i, rc);
 	}
 
 	fibril_mutex_unlock(&vol->md_lock);
@@ -396,7 +396,7 @@ static errno_t meta_native_save(hr_volume_t *vol, bool with_state_callback)
 	fibril_rwlock_read_unlock(&vol->extents_lock);
 
 	if (with_state_callback)
-		vol->hr_ops.state_event(vol);
+		vol->hr_ops.vol_state_eval(vol);
 
 	free(md_block);
 	return EOK;

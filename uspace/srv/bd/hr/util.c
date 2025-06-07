@@ -97,12 +97,14 @@ errno_t hr_create_vol_struct(hr_volume_t **rvol, hr_level_t level,
 	case HR_LVL_0:
 		vol->hr_ops.create = hr_raid0_create;
 		vol->hr_ops.init = hr_raid0_init;
-		vol->hr_ops.state_event = hr_raid0_state_event;
+		vol->hr_ops.vol_state_eval = hr_raid0_vol_state_eval;
+		vol->hr_ops.ext_state_cb = hr_raid0_ext_state_cb;
 		break;
 	case HR_LVL_1:
 		vol->hr_ops.create = hr_raid1_create;
 		vol->hr_ops.init = hr_raid1_init;
-		vol->hr_ops.state_event = hr_raid1_state_event;
+		vol->hr_ops.vol_state_eval = hr_raid1_vol_state_eval;
+		vol->hr_ops.ext_state_cb = hr_raid1_ext_state_cb;
 		if (meta_flags & HR_METADATA_HOTSPARE_SUPPORT)
 			vol->hr_ops.add_hotspare = hr_raid1_add_hotspare;
 		break;
@@ -110,7 +112,8 @@ errno_t hr_create_vol_struct(hr_volume_t **rvol, hr_level_t level,
 	case HR_LVL_5:
 		vol->hr_ops.create = hr_raid5_create;
 		vol->hr_ops.init = hr_raid5_init;
-		vol->hr_ops.state_event = hr_raid5_state_event;
+		vol->hr_ops.vol_state_eval = hr_raid5_vol_state_eval;
+		vol->hr_ops.ext_state_cb = hr_raid5_ext_state_cb;
 		if (meta_flags & HR_METADATA_HOTSPARE_SUPPORT)
 			vol->hr_ops.add_hotspare = hr_raid5_add_hotspare;
 		break;
