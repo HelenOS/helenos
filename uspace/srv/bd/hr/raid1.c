@@ -92,7 +92,8 @@ errno_t hr_raid1_create(hr_volume_t *new_volume)
 {
 	HR_DEBUG("%s()", __func__);
 
-	assert(new_volume->level == HR_LVL_1);
+	if (new_volume->level != HR_LVL_1)
+		return EINVAL;
 
 	if (new_volume->extent_no < 2) {
 		HR_ERROR("RAID 1 volume needs at least 2 devices\n");
@@ -126,7 +127,8 @@ errno_t hr_raid1_init(hr_volume_t *vol)
 {
 	HR_DEBUG("%s()", __func__);
 
-	assert(vol->level == HR_LVL_1);
+	if (vol->level != HR_LVL_1)
+		return EINVAL;
 
 	vol->data_offset = vol->meta_ops->get_data_offset();
 	vol->data_blkno = vol->truncated_blkno - vol->meta_ops->get_size();

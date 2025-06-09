@@ -95,7 +95,8 @@ errno_t hr_raid5_create(hr_volume_t *new_volume)
 {
 	HR_DEBUG("%s()", __func__);
 
-	assert(new_volume->level == HR_LVL_5 || new_volume->level == HR_LVL_4);
+	if (new_volume->level != HR_LVL_5 && new_volume->level != HR_LVL_4)
+		return EINVAL;
 
 	if (new_volume->extent_no < 3) {
 		HR_ERROR("RAID 5 volume needs at least 3 devices\n");
@@ -128,7 +129,8 @@ errno_t hr_raid5_init(hr_volume_t *vol)
 {
 	HR_DEBUG("%s()", __func__);
 
-	assert(vol->level == HR_LVL_5 || vol->level == HR_LVL_4);
+	if (vol->level != HR_LVL_5 && vol->level != HR_LVL_4)
+		return EINVAL;
 
 	uint64_t total_blkno = vol->truncated_blkno * vol->extent_no;
 
