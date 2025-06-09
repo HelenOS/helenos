@@ -651,6 +651,11 @@ int main(int argc, char **argv)
 		return EEXIST;
 	}
 
+	printf("%s: Trying automatic assembly.\n", NAME);
+	size_t assembled = 0;
+	(void)hr_util_try_assemble(NULL, &assembled);
+	printf("%s: Assembled %zu volume(s).\n", NAME, assembled);
+
 	printf("%s: Accepting connections.\n", NAME);
 	task_retval(0);
 	async_manager();
