@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024 Jiri Svoboda
+# Copyright (c) 2025 Jiri Svoboda
 # Copyright (c) 2019 Jiří Zárevúcky
 # All rights reserved.
 #
@@ -31,7 +31,6 @@ srvs = [
 	'audio/hound',
 	'bd/file_bd',
 	'bd/rd',
-	'bd/sata_bd',
 	'bd/vbd',
 	'clipboard',
 	'devman',

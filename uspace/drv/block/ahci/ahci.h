@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2012 Petr Jerman
  * All rights reserved.
  *
@@ -30,10 +31,11 @@
  * Header for AHCI driver.
  */
 
-#ifndef __AHCI_H__
-#define __AHCI_H__
+#ifndef AHCI_H
+#define AHCI_H
 
 #include <async.h>
+#include <bd_srv.h>
 #include <ddf/interrupt.h>
 #include <stdio.h>
 #include <stddef.h>
@@ -104,6 +106,9 @@ typedef struct {
 
 	/** Highest UDMA mode supported. */
 	uint8_t highest_udma_mode;
+
+	/** Block device service structure */
+	bd_srvs_t bds;
 } sata_dev_t;
 
 #endif

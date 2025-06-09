@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2012 Petr Jerman
  * All rights reserved.
  *
@@ -30,8 +31,8 @@
  * Header for AHCI driver (SATA/ATA and related things).
  */
 
-#ifndef __AHCI_SATA_H__
-#define __AHCI_SATA_H__
+#ifndef AHCI_SATA_H
+#define AHCI_SATA_H
 
 #include <stdint.h>
 

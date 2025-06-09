@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2010 Lenka Trochtova
  * All rights reserved.
  *
@@ -52,7 +53,6 @@
 #include "remote_pci.h"
 #include "remote_audio_mixer.h"
 #include "remote_audio_pcm.h"
-#include "remote_ahci.h"
 
 static const iface_dipatch_table_t remote_ifaces = {
 	.ifaces = {
@@ -70,7 +70,6 @@ static const iface_dipatch_table_t remote_ifaces = {
 		[CLOCK_DEV_IFACE] = &remote_clock_dev_iface,
 		[LED_DEV_IFACE] = &remote_led_dev_iface,
 		[BATTERY_DEV_IFACE] = &remote_battery_dev_iface,
-		[AHCI_DEV_IFACE] = &remote_ahci_iface,
 	}
 };
 
