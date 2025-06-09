@@ -50,6 +50,7 @@ typedef struct hr_superblock_ops {
 	errno_t (*decode)(const void *, void *);
 	errno_t (*get_block)(service_id_t, void **);
 	errno_t (*write_block)(service_id_t, const void *);
+	errno_t (*erase_block)(service_id_t);
 	bool (*has_valid_magic)(const void *);
 	bool (*compare_uuids)(const void *, const void *);
 	void (*inc_counter)(void *);

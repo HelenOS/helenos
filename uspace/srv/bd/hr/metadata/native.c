@@ -59,6 +59,7 @@ static void meta_native_encode(void *, void *);
 static errno_t meta_native_decode(const void *, void *);
 static errno_t meta_native_get_block(service_id_t, void **);
 static errno_t meta_native_write_block(service_id_t, const void *);
+static errno_t meta_native_erase_block(service_id_t);
 static bool meta_native_has_valid_magic(const void *);
 static bool meta_native_compare_uuids(const void *, const void *);
 static void meta_native_inc_counter(void *);
@@ -79,6 +80,7 @@ hr_superblock_ops_t metadata_native_ops = {
 	.decode = meta_native_decode,
 	.get_block = meta_native_get_block,
 	.write_block = meta_native_write_block,
+	.erase_block = meta_native_erase_block,
 	.has_valid_magic = meta_native_has_valid_magic,
 	.compare_uuids = meta_native_compare_uuids,
 	.inc_counter = meta_native_inc_counter,
@@ -318,6 +320,25 @@ static errno_t meta_native_write_block(service_id_t dev, const void *block)
 
 	rc = block_write_direct(dev, blkno - 1, HR_NATIVE_META_SIZE, block);
 
+	return rc;
+}
+
+static errno_t meta_native_erase_block(service_id_t dev)
+{
+	HR_DEBUG("%s()", __func__);
+
+	errno_t rc;
+	size_t bsize;
+
+	rc = block_get_bsize(dev, &bsize);
+	if (rc != EOK)
+		return rc;
+
+	void *zero_block = calloc(1, bsize);
+	if (zero_block == NULL)
+		return ENOMEM;
+
+	rc = meta_native_write_block(dev, zero_block);
 	return rc;
 }
 
