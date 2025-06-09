@@ -119,6 +119,7 @@ typedef struct hr_vol_info {
 	size_t extent_no;
 	size_t hotspare_no;
 	uint64_t data_blkno;
+	uint64_t rebuild_blk;
 	uint32_t strip_size;
 	size_t bsize;
 	hr_vol_state_t state;

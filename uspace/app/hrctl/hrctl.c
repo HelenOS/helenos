@@ -670,7 +670,15 @@ static errno_t print_vol_info(hr_vol_info_t *info)
 
 	free(scapa);
 
-	printf("|           state: %s\n", hr_get_vol_state_str(info->state));
+	printf("|           state: %s", hr_get_vol_state_str(info->state));
+	if (info->state == HR_VOL_REBUILD) {
+		unsigned int percent =
+		    (info->rebuild_blk * 100) / info->data_blkno;
+		printf(" (%u%% done)\n", percent);
+	} else {
+		printf("\n");
+	}
+
 	printf("|         extents:\n");
 
 	for (i = 0; i < info->extent_no; i++) {

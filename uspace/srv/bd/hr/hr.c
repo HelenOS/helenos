@@ -519,6 +519,7 @@ static void hr_get_vol_info_srv(ipc_call_t *icall)
 	info.hotspare_no = vol->hotspare_no;
 	info.level = vol->level;
 	info.data_blkno = vol->data_blkno;
+	info.rebuild_blk = vol->rebuild_blk;
 	info.strip_size = vol->strip_size;
 	info.bsize = vol->bsize;
 	info.state = vol->state;
