@@ -133,9 +133,6 @@ void hr_raid0_vol_state_eval(hr_volume_t *vol)
 
 	fibril_mutex_lock(&vol->md_lock);
 
-	vol->meta_ops->inc_counter(vol->in_mem_md);
-	/* TODO: save right away */
-
 	fibril_mutex_unlock(&vol->md_lock);
 
 	fibril_rwlock_read_lock(&vol->states_lock);
@@ -154,6 +151,7 @@ void hr_raid0_vol_state_eval(hr_volume_t *vol)
 			return;
 		}
 	}
+
 	fibril_rwlock_read_unlock(&vol->states_lock);
 
 	if (old_state != HR_VOL_ONLINE) {
