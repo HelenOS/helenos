@@ -305,12 +305,10 @@ static errno_t meta_gmirror_save(hr_volume_t *vol, bool with_state_callback)
 	/*
 	 * cannot support right now, because would need to store the
 	 * metadata for all disks, because of hardcoded provider names and
-	 * most importantly, disk unique ids
+	 * more importantly, disk unique ids
 	 */
 
-	/* silent */
-	return EOK;
-	/* return ENOTSUP; */
+	return ENOTSUP;
 }
 
 static const char *meta_gmirror_get_devname(const void *md_v)

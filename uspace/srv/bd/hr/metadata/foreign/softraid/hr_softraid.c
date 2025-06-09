@@ -433,8 +433,7 @@ static errno_t meta_softraid_save(hr_volume_t *vol, bool with_state_callback)
 {
 	HR_DEBUG("%s()", __func__);
 
-	/* silent */
-	return EOK;
+	return ENOTSUP;
 }
 
 static const char *meta_softraid_get_devname(const void *md_v)

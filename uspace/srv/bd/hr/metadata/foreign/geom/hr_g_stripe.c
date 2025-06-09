@@ -294,7 +294,7 @@ static errno_t meta_gstripe_save(hr_volume_t *vol, bool with_state_callback)
 {
 	HR_DEBUG("%s()", __func__);
 
-	return EOK;
+	return ENOTSUP;
 }
 
 static const char *meta_gstripe_get_devname(const void *md_v)
