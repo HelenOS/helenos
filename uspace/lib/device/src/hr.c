@@ -495,17 +495,17 @@ const char *hr_get_ext_state_str(hr_ext_state_t state)
 const char *hr_get_layout_str(hr_layout_t layout)
 {
 	switch (layout) {
-	case HR_RLQ_NONE:
+	case HR_LAYOUT_NONE:
 		return "RAID layout not set";
-	case HR_RLQ_RAID4_0:
+	case HR_LAYOUT_RAID4_0:
 		return "RAID-4 Non-Rotating Parity 0";
-	case HR_RLQ_RAID4_N:
+	case HR_LAYOUT_RAID4_N:
 		return "RAID-4 Non-Rotating Parity N";
-	case HR_RLQ_RAID5_0R:
+	case HR_LAYOUT_RAID5_0R:
 		return "RAID-5 Rotating Parity 0 with Data Restart";
-	case HR_RLQ_RAID5_NR:
+	case HR_LAYOUT_RAID5_NR:
 		return "RAID-5 Rotating Parity N with Data Restart";
-	case HR_RLQ_RAID5_NC:
+	case HR_LAYOUT_RAID5_NC:
 		return "RAID-5 Rotating Parity N with Data Continuation";
 	default:
 		return "Invalid RAID layout";

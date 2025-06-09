@@ -145,9 +145,9 @@ static errno_t meta_softraid_init_meta2vol(const list_t *list, hr_volume_t *vol)
 	vol->extent_no = main_meta->ssdi.ssd_chunk_no;
 
 	if (main_meta->ssdi.ssd_level == 5)
-		vol->layout = HR_RLQ_RAID5_NR;
+		vol->layout = HR_LAYOUT_RAID5_NR;
 	else
-		vol->layout = HR_RLQ_NONE;
+		vol->layout = HR_LAYOUT_NONE;
 
 	vol->strip_size = main_meta->ssdi.ssd_strip_size;
 

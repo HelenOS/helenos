@@ -55,12 +55,12 @@ typedef enum hr_level {
 } hr_level_t;
 
 typedef enum hr_layout {
-	HR_RLQ_NONE = 0,
-	HR_RLQ_RAID4_0,	/* RAID-4 Non-Rotating Parity 0 */
-	HR_RLQ_RAID4_N,	/* RAID-4 Non-Rotating Parity N */
-	HR_RLQ_RAID5_0R, /* RAID-5 Rotating Parity 0 with Data Restart */
-	HR_RLQ_RAID5_NR, /* RAID-5 Rotating Parity N with Data Restart */
-	HR_RLQ_RAID5_NC  /* RAID-5 Rotating Parity N with Data Continuation */
+	HR_LAYOUT_NONE = 0,
+	HR_LAYOUT_RAID4_0, /* RAID-4 Non-Rotating Parity 0 */
+	HR_LAYOUT_RAID4_N, /* RAID-4 Non-Rotating Parity N */
+	HR_LAYOUT_RAID5_0R, /* RAID-5 Rotating Parity 0 with Data Restart */
+	HR_LAYOUT_RAID5_NR, /* RAID-5 Rotating Parity N with Data Restart */
+	HR_LAYOUT_RAID5_NC /* RAID-5 Rotating Parity N with Data Continuation */
 } hr_layout_t;
 
 typedef enum hr_vol_state {

@@ -141,7 +141,7 @@ errno_t hr_raid5_init(hr_volume_t *vol)
 
 	vol->strip_size = HR_STRIP_SIZE;
 
-	vol->layout = HR_RLQ_RAID5_NR;
+	vol->layout = HR_LAYOUT_RAID5_NR;
 
 	return EOK;
 }
@@ -558,14 +558,14 @@ static errno_t hr_raid5_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 
 	/* parity extent */
 	uint64_t p_extent;
-	if (level == HR_LVL_4 && layout == HR_RLQ_RAID4_0) {
+	if (level == HR_LVL_4 && layout == HR_LAYOUT_RAID4_0) {
 		p_extent = 0;
-	} else if (level == HR_LVL_4 && layout == HR_RLQ_RAID4_N) {
+	} else if (level == HR_LVL_4 && layout == HR_LAYOUT_RAID4_N) {
 		p_extent = vol->extent_no - 1;
-	} else if (level == HR_LVL_5 && layout == HR_RLQ_RAID5_0R) {
+	} else if (level == HR_LVL_5 && layout == HR_LAYOUT_RAID5_0R) {
 		p_extent = (stripe / (vol->extent_no - 1)) % vol->extent_no;
 	} else if (level == HR_LVL_5 &&
-	    (layout == HR_RLQ_RAID5_NR || layout == HR_RLQ_RAID5_NC)) {
+	    (layout == HR_LAYOUT_RAID5_NR || layout == HR_LAYOUT_RAID5_NC)) {
 		p_extent = (vol->extent_no - 1) -
 		    (stripe / (vol->extent_no - 1)) % vol->extent_no;
 	} else {
@@ -573,17 +573,17 @@ static errno_t hr_raid5_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 	}
 
 	uint64_t extent;
-	if (level == HR_LVL_4 && layout == HR_RLQ_RAID4_0) {
+	if (level == HR_LVL_4 && layout == HR_LAYOUT_RAID4_0) {
 		extent = (stripe % (vol->extent_no - 1)) + 1;
-	} else if (level == HR_LVL_4 && layout == HR_RLQ_RAID4_N) {
+	} else if (level == HR_LVL_4 && layout == HR_LAYOUT_RAID4_N) {
 		extent = stripe % (vol->extent_no - 1);
 	} else if (level == HR_LVL_5 &&
-	    (layout == HR_RLQ_RAID5_0R || layout == HR_RLQ_RAID5_NR)) {
+	    (layout == HR_LAYOUT_RAID5_0R || layout == HR_LAYOUT_RAID5_NR)) {
 		if ((stripe % (vol->extent_no - 1)) < p_extent)
 			extent = stripe % (vol->extent_no - 1);
 		else
 			extent = (stripe % (vol->extent_no - 1)) + 1;
-	} else if (level == HR_LVL_5 && layout == HR_RLQ_RAID5_NC) {
+	} else if (level == HR_LVL_5 && layout == HR_LAYOUT_RAID5_NC) {
 		extent =
 		    ((stripe % (vol->extent_no - 1)) + p_extent + 1) %
 		    vol->extent_no;
@@ -674,26 +674,26 @@ static errno_t hr_raid5_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 
 		ext_stripe = stripe / (vol->extent_no - 1); /* stripe level */
 
-		if (level == HR_LVL_5 && layout == HR_RLQ_RAID5_0R) {
+		if (level == HR_LVL_5 && layout == HR_LAYOUT_RAID5_0R) {
 			p_extent =
 			    (stripe / (vol->extent_no - 1)) % vol->extent_no;
 		} else if (level == HR_LVL_5 &&
-		    (layout == HR_RLQ_RAID5_NR || layout == HR_RLQ_RAID5_NC)) {
+		    (layout == HR_LAYOUT_RAID5_NR || layout == HR_LAYOUT_RAID5_NC)) {
 			p_extent = (vol->extent_no - 1) -
 			    (stripe / (vol->extent_no - 1)) % vol->extent_no;
 		}
 
-		if (level == HR_LVL_4 && layout == HR_RLQ_RAID4_0) {
+		if (level == HR_LVL_4 && layout == HR_LAYOUT_RAID4_0) {
 			extent = (stripe % (vol->extent_no - 1)) + 1;
-		} else if (level == HR_LVL_4 && layout == HR_RLQ_RAID4_N) {
+		} else if (level == HR_LVL_4 && layout == HR_LAYOUT_RAID4_N) {
 			extent = stripe % (vol->extent_no - 1);
 		} else if (level == HR_LVL_5 &&
-		    (layout == HR_RLQ_RAID5_0R || layout == HR_RLQ_RAID5_NR)) {
+		    (layout == HR_LAYOUT_RAID5_0R || layout == HR_LAYOUT_RAID5_NR)) {
 			if ((stripe % (vol->extent_no - 1)) < p_extent)
 				extent = stripe % (vol->extent_no - 1);
 			else
 				extent = (stripe % (vol->extent_no - 1)) + 1;
-		} else if (level == HR_LVL_5 && layout == HR_RLQ_RAID5_NC) {
+		} else if (level == HR_LVL_5 && layout == HR_LAYOUT_RAID5_NC) {
 			extent =
 			    ((stripe % (vol->extent_no - 1)) + p_extent + 1) %
 			    vol->extent_no;

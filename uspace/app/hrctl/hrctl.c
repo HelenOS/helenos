@@ -637,7 +637,7 @@ static errno_t print_vol_info(hr_vol_info_t *info)
 	printf("|   metadata type: %s\n",
 	    hr_get_metadata_type_str(info->meta_type));
 	printf("|           level: %s\n", hr_get_level_str(info->level));
-	if (info->layout != HR_RLQ_NONE)
+	if (info->layout != HR_LAYOUT_NONE)
 		printf("|          layout: %s\n",
 		    hr_get_layout_str(info->layout));
 

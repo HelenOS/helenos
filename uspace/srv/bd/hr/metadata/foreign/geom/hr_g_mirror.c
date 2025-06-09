@@ -141,7 +141,7 @@ static errno_t meta_gmirror_init_meta2vol(const list_t *list, hr_volume_t *vol)
 
 	vol->extent_no = main_meta->md_all;
 
-	vol->layout = HR_RLQ_NONE;
+	vol->layout = HR_LAYOUT_NONE;
 
 	vol->strip_size = 0;
 
