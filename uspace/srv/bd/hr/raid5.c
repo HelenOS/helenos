@@ -141,7 +141,10 @@ errno_t hr_raid5_init(hr_volume_t *vol)
 
 	vol->strip_size = HR_STRIP_SIZE;
 
-	vol->layout = HR_LAYOUT_RAID5_NR;
+	if (vol->level == HR_LVL_4)
+		vol->layout = HR_LAYOUT_RAID4_N;
+	else
+		vol->layout = HR_LAYOUT_RAID5_NR;
 
 	return EOK;
 }
