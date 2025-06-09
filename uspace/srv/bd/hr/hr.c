@@ -58,7 +58,7 @@ static void hr_auto_assemble_srv(ipc_call_t *);
 static void hr_stop_srv(ipc_call_t *);
 static void hr_stop_all_srv(ipc_call_t *);
 static void hr_add_hotspare_srv(ipc_call_t *);
-static void hr_print_state_srv(ipc_call_t *);
+static void hr_get_vol_states_srv(ipc_call_t *);
 static void hr_ctl_conn(ipc_call_t *);
 static void hr_client_conn(ipc_call_t *, void *);
 
@@ -415,17 +415,17 @@ static void hr_add_hotspare_srv(ipc_call_t *icall)
 	async_answer_0(icall, rc);
 }
 
-/** Volume state printing (server).
+/** Send volume states.
  *
- * Prints info about all active volumes.
+ * Sends the client pairs of (volume service_id, state).
  */
-static void hr_print_state_srv(ipc_call_t *icall)
+static void hr_get_vol_states_srv(ipc_call_t *icall)
 {
 	HR_DEBUG("%s()", __func__);
 
 	errno_t rc;
 	size_t vol_cnt = 0;
-	hr_vol_info_t info;
+	hr_pair_vol_state_t pair;
 	ipc_call_t call;
 	size_t size;
 
@@ -438,7 +438,7 @@ static void hr_print_state_srv(ipc_call_t *icall)
 		goto error;
 	}
 
-	if (size != sizeof(size_t)) {
+	if (size != sizeof(vol_cnt)) {
 		rc = EINVAL;
 		goto error;
 	}
@@ -448,33 +448,20 @@ static void hr_print_state_srv(ipc_call_t *icall)
 		goto error;
 
 	list_foreach(hr_volumes, lvolumes, hr_volume_t, vol) {
-		memcpy(info.extents, vol->extents,
-		    sizeof(hr_extent_t) * HR_MAX_EXTENTS);
-		memcpy(info.hotspares, vol->hotspares,
-		    sizeof(hr_extent_t) * HR_MAX_HOTSPARES);
-		info.svc_id = vol->svc_id;
-		info.extent_no = vol->extent_no;
-		info.hotspare_no = vol->hotspare_no;
-		info.level = vol->level;
-		/* print usable number of blocks */
-		/* TODO: change to data_blkno */
-		info.nblocks = vol->data_blkno;
-		info.strip_size = vol->strip_size;
-		info.bsize = vol->bsize;
-		info.state = vol->state;
-		info.layout = vol->layout;
+		pair.svc_id = vol->svc_id;
+		pair.state = vol->state;
 
 		if (!async_data_read_receive(&call, &size)) {
 			rc = EREFUSED;
 			goto error;
 		}
 
-		if (size != sizeof(hr_vol_info_t)) {
+		if (size != sizeof(pair)) {
 			rc = EINVAL;
 			goto error;
 		}
 
-		rc = async_data_read_finalize(&call, &info, size);
+		rc = async_data_read_finalize(&call, &pair, size);
 		if (rc != EOK)
 			goto error;
 	}
@@ -484,6 +471,78 @@ static void hr_print_state_srv(ipc_call_t *icall)
 	return;
 error:
 	fibril_rwlock_read_unlock(&hr_volumes_lock);
+	async_answer_0(&call, rc);
+	async_answer_0(icall, rc);
+}
+
+/** Send volume info.
+ *
+ * Sends the client volume info.
+ */
+static void hr_get_vol_info_srv(ipc_call_t *icall)
+{
+	HR_DEBUG("%s()", __func__);
+
+	errno_t rc;
+	size_t size;
+	ipc_call_t call;
+	service_id_t svc_id;
+	hr_vol_info_t info;
+	hr_volume_t *vol;
+
+	if (!async_data_write_receive(&call, &size)) {
+		rc = EREFUSED;
+		goto error;
+	}
+
+	if (size != sizeof(service_id_t)) {
+		rc = EINVAL;
+		goto error;
+	}
+
+	rc = async_data_write_finalize(&call, &svc_id, size);
+	if (rc != EOK)
+		goto error;
+
+	vol = hr_get_volume(svc_id);
+	if (vol == NULL) {
+		rc = ENOENT;
+		goto error;
+	}
+
+	memcpy(info.extents, vol->extents,
+	    sizeof(hr_extent_t) * HR_MAX_EXTENTS);
+	memcpy(info.hotspares, vol->hotspares,
+	    sizeof(hr_extent_t) * HR_MAX_HOTSPARES);
+	info.svc_id = vol->svc_id;
+	info.extent_no = vol->extent_no;
+	info.hotspare_no = vol->hotspare_no;
+	info.level = vol->level;
+	info.data_blkno = vol->data_blkno;
+	info.strip_size = vol->strip_size;
+	info.bsize = vol->bsize;
+	info.state = vol->state;
+	info.layout = vol->layout;
+	info.meta_type = vol->meta_ops->get_type();
+	memcpy(info.devname, vol->devname, HR_DEVNAME_LEN);
+
+	if (!async_data_read_receive(&call, &size)) {
+		rc = EREFUSED;
+		goto error;
+	}
+
+	if (size != sizeof(info)) {
+		rc = EINVAL;
+		goto error;
+	}
+
+	rc = async_data_read_finalize(&call, &info, size);
+	if (rc != EOK)
+		goto error;
+
+	async_answer_0(icall, EOK);
+	return;
+error:
 	async_answer_0(&call, rc);
 	async_answer_0(icall, rc);
 }
@@ -528,8 +587,11 @@ static void hr_ctl_conn(ipc_call_t *icall)
 		case HR_ADD_HOTSPARE:
 			hr_add_hotspare_srv(&call);
 			break;
-		case HR_STATUS:
-			hr_print_state_srv(&call);
+		case HR_GET_VOL_STATES:
+			hr_get_vol_states_srv(&call);
+			break;
+		case HR_GET_VOL_INFO:
+			hr_get_vol_info_srv(&call);
 			break;
 		default:
 			async_answer_0(&call, EINVAL);

@@ -81,6 +81,14 @@ typedef enum hr_ext_state {
 	HR_EXT_HOTSPARE
 } hr_ext_state_t;
 
+typedef enum {
+	HR_METADATA_NATIVE = 0,
+	HR_METADATA_GEOM_MIRROR,
+	HR_METADATA_GEOM_STRIPE,
+	HR_METADATA_SOFTRAID,
+	HR_METADATA_LAST_DUMMY
+} hr_metadata_type_t;
+
 typedef struct hr {
 	async_sess_t *sess;
 } hr_t;
@@ -97,27 +105,27 @@ typedef struct hr_extent {
 	hr_ext_state_t state;
 } hr_extent_t;
 
+typedef struct hr_pair_vol_state {
+	service_id_t svc_id;
+	hr_vol_state_t state;
+} hr_pair_vol_state_t;
+
 typedef struct hr_vol_info {
+	char devname[HR_DEVNAME_LEN];
+	service_id_t svc_id;
+	hr_level_t level;
 	hr_extent_t extents[HR_MAX_EXTENTS];
 	hr_extent_t hotspares[HR_MAX_HOTSPARES];
 	size_t extent_no;
 	size_t hotspare_no;
-	service_id_t svc_id;
-	hr_level_t level;
-	uint64_t nblocks;
+	uint64_t data_blkno;
 	uint32_t strip_size;
 	size_t bsize;
 	hr_vol_state_t state;
-	uint8_t layout;
+	hr_layout_t layout;
+	hr_metadata_type_t meta_type;
+	/* TODO: add rebuild pos */
 } hr_vol_info_t;
-
-typedef enum {
-	HR_METADATA_NATIVE = 0,
-	HR_METADATA_GEOM_MIRROR,
-	HR_METADATA_GEOM_STRIPE,
-	HR_METADATA_SOFTRAID,
-	HR_METADATA_LAST_DUMMY
-} hr_metadata_type_t;
 
 extern errno_t hr_sess_init(hr_t **);
 extern void hr_sess_destroy(hr_t *);
@@ -128,10 +136,12 @@ extern errno_t hr_stop(hr_t *, const char *);
 extern errno_t hr_stop_all(hr_t *);
 extern errno_t hr_fail_extent(hr_t *, const char *, unsigned long);
 extern errno_t hr_add_hotspare(hr_t *, const char *, const char *);
-extern errno_t hr_print_state(hr_t *);
+extern errno_t hr_get_vol_states(hr_t *, hr_pair_vol_state_t **, size_t *);
+extern errno_t hr_get_vol_info(hr_t *, service_id_t, hr_vol_info_t *);
 extern const char *hr_get_vol_state_str(hr_vol_state_t);
 extern const char *hr_get_ext_state_str(hr_ext_state_t);
 extern const char *hr_get_layout_str(hr_layout_t);
+extern const char *hr_get_level_str(hr_level_t);
 extern const char *hr_get_metadata_type_str(hr_metadata_type_t);
 
 #endif

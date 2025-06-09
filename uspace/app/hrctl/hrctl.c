@@ -33,6 +33,7 @@
  * @file
  */
 
+#include <capa.h>
 #include <ctype.h>
 #include <errno.h>
 #include <getopt.h>
@@ -50,6 +51,16 @@
 static void usage(void);
 static errno_t fill_config_devs(int, char **, hr_config_t *);
 static errno_t get_vol_configs_from_sif(const char *, hr_config_t **, size_t *);
+static int create_from_config(hr_t *, const char *);
+static int create_from_argv(hr_t *, int, char **);
+static int handle_create(hr_t *, int, char **);
+static int assemble_from_config(hr_t *, const char *);
+static int assemble_from_argv(hr_t *, int, char **);
+static int handle_assemble(hr_t *, int, char **);
+static int handle_disassemble(hr_t *, int, char **);
+static int handle_modify(hr_t *, int, char **);
+static errno_t print_vol_info(hr_vol_info_t *);
+static int handle_state(hr_t *, int, char **);
 
 static const char usage_str[] =
     NAME ": HelenOS RAID configuration and management utility.\n"
@@ -75,7 +86,7 @@ static const char usage_str[] =
     "          -f, --fail index                  fail an extent (DANGEROUS), or\n"
     "          -h, --hotspare device             add hotspare.\n"
     "\n"
-    "  -s, --state                               Display state of active volumes.\n"
+    "  -s, --state [volume]                      Display state of active volume(s).\n"
     "\n"
     "level can be one of:\n"
     "  0 | stripe | striping |\n"
@@ -106,6 +117,68 @@ static const char usage_str[] =
     "Limitations:\n"
     "\t- volume name must be shorter than 32 characters\n"
     "\t- automatic assembly and disassembly on nested volumes is UNDEFINED!\n";
+
+int main(int argc, char **argv)
+{
+	int rc = EXIT_SUCCESS;
+	hr_t *hr = NULL;
+
+	if (argc < 2) {
+		rc = EXIT_FAILURE;
+		goto end;
+	}
+
+	rc = hr_sess_init(&hr);
+	if (rc != EOK) {
+		printf(NAME ": hr server session init failed: %s\n",
+		    str_error(rc));
+		return EXIT_FAILURE;
+	}
+
+	optreset = 1;
+	optind = 0;
+
+	struct option const top_level_opts[] = {
+		{ "help",		no_argument, 0, 'h' },
+		{ "create",		no_argument, 0, 'c' },
+		{ "assemble",		no_argument, 0, 'a' },
+		{ "disassemble",	no_argument, 0, 'd' },
+		{ "modify",		no_argument, 0, 'm' },
+		{ "state",		no_argument, 0, 's' },
+		{ 0, 0, 0, 0 }
+	};
+
+	int c = getopt_long(argc, argv, "hcadms", top_level_opts, NULL);
+	switch (c) {
+	case 'h':
+		usage();
+		goto end;
+	case 'c':
+		rc = handle_create(hr, argc, argv);
+		goto end;
+	case 'a':
+		rc = handle_assemble(hr, argc, argv);
+		goto end;
+	case 'd':
+		rc = handle_disassemble(hr, argc, argv);
+		goto end;
+	case 'm':
+		rc = handle_modify(hr, argc, argv);
+		goto end;
+	case 's':
+		rc = handle_state(hr, argc, argv);
+		goto end;
+	default:
+		goto end;
+	}
+
+end:
+	hr_sess_destroy(hr);
+
+	if (rc != EXIT_SUCCESS)
+		printf(NAME ": use --help to see usage\n");
+	return rc;
+}
 
 static void usage(void)
 {
@@ -552,80 +625,165 @@ static int handle_modify(hr_t *hr, int argc, char **argv)
 	return EXIT_SUCCESS;
 }
 
+static errno_t print_vol_info(hr_vol_info_t *info)
+{
+	errno_t rc;
+	size_t i;
+	hr_extent_t *ext;
+	const char *devname;
+
+	printf("volume: \"%s\" (%" PRIun ")\n", info->devname, info->svc_id);
+
+	printf("|   metadata type: %s\n",
+	    hr_get_metadata_type_str(info->meta_type));
+	printf("|           level: %s\n", hr_get_level_str(info->level));
+	if (info->layout != HR_RLQ_NONE)
+		printf("|          layout: %s\n",
+		    hr_get_layout_str(info->layout));
+
+	if (info->strip_size > 0) {
+		if (info->strip_size < 1024) {
+			printf("|      strip size: %" PRIu32 "B\n",
+			    info->strip_size);
+		} else {
+			printf("|      strip size: %" PRIu32 "KiB\n",
+			    info->strip_size / 1024);
+		}
+	}
+
+	printf("|  no. of extents: %zu\n", info->extent_no);
+	printf("|no. of hotspares: %zu\n", info->hotspare_no);
+	printf("|number of blocks: %" PRIu64 "\n", info->data_blkno);
+	printf("|      block size: %zuB\n", info->bsize);
+
+	capa_spec_t capa;
+	char *scapa = NULL;
+	capa_from_blocks(info->data_blkno, info->bsize, &capa);
+	capa_simplify(&capa);
+	rc = capa_format(&capa, &scapa);
+	if (rc != EOK) {
+		printf(NAME ": failed to format capacity: %s\n", str_error(rc));
+		return rc;
+	}
+
+	printf("| volume capacity: %s\n", scapa);
+
+	free(scapa);
+
+	printf("|           state: %s\n", hr_get_vol_state_str(info->state));
+	printf("|         extents:\n");
+
+	for (i = 0; i < info->extent_no; i++) {
+		ext = &info->extents[i];
+		char *tmpname = NULL;
+		if (ext->state == HR_EXT_MISSING || ext->state == HR_EXT_NONE) {
+			devname = "MISSING";
+		} else {
+			rc = loc_service_get_name(ext->svc_id, &tmpname);
+			if (rc != EOK)
+				devname = "MISSING";
+			else
+				devname = tmpname;
+		}
+		printf("|                  %zu %s\n", i, hr_get_ext_state_str(ext->state));
+		printf("|                      %s\n", devname);
+		if (tmpname != NULL)
+			free(tmpname);
+	}
+
+	if (info->hotspare_no == 0)
+		return EOK;
+
+	printf("|       hotspares:\n");
+	for (i = 0; i < info->hotspare_no; i++) {
+		ext = &info->hotspares[i];
+		char *tmpname;
+		if (ext->state == HR_EXT_MISSING || ext->state == HR_EXT_NONE) {
+			devname = "MISSING";
+		} else {
+			rc = loc_service_get_name(ext->svc_id, &tmpname);
+			if (rc != EOK)
+				devname = "MISSING";
+			else
+				devname = tmpname;
+		}
+		printf("|                  %zu %s\n", i, hr_get_ext_state_str(ext->state));
+		printf("|                      %s\n", devname);
+		if (tmpname != NULL)
+			free(tmpname);
+	}
+
+	return EOK;
+}
+
 static int handle_state(hr_t *hr, int argc, char **argv)
 {
-	(void)argc;
-	(void)argv;
+	errno_t rc;
+	size_t cnt;
+	hr_pair_vol_state_t *pairs = NULL;
+	char *devname;
 
-	errno_t rc = hr_print_state(hr);
-	if (rc != EOK) {
-		printf(NAME ": state printing failed: %s\n", str_error(rc));
-		return EXIT_FAILURE;
+	/* print state of all volumes */
+	if (optind >= argc) {
+		rc = hr_get_vol_states(hr, &pairs, &cnt);
+		if (rc != EOK) {
+			printf(NAME ": failed getting state of volumes: %s\n",
+			    str_error(rc));
+			return EXIT_FAILURE;
+		}
+
+		if (cnt == 0) {
+			printf(NAME ": no active volumes\n");
+			return EXIT_SUCCESS;
+		}
+
+		for (size_t i = 0; i < cnt; i++) {
+			service_id_t svc_id = pairs[i].svc_id;
+			hr_vol_state_t state = pairs[i].state;
+			rc = loc_service_get_name(svc_id, &devname);
+			if (rc != EOK) {
+				printf(NAME ": getting service name failed: "
+				    "%s\n", str_error(rc));
+				return EXIT_FAILURE;
+			}
+			printf("volume \"%s\" (%" PRIun ") %s\n", devname,
+			    svc_id, hr_get_vol_state_str(state));
+
+			free(devname);
+		}
+		free(pairs);
+
+		return EXIT_SUCCESS;
+	}
+
+	/* print volume info of requested volumes */
+	while (optind < argc) {
+		service_id_t svc_id;
+		devname = argv[optind++];
+		rc = loc_service_get_id(devname, &svc_id, 0);
+		if (rc != EOK) {
+			printf(NAME ": getting service id of \"%s\" failed: "
+			    "%s\n", devname, str_error(rc));
+			return EXIT_FAILURE;
+		}
+
+		hr_vol_info_t info;
+		rc = hr_get_vol_info(hr, svc_id, &info);
+		if (rc != EOK) {
+			printf(NAME ": getting volume info failed: %s\n",
+			    str_error(rc));
+			return EXIT_FAILURE;
+		}
+
+		rc = print_vol_info(&info);
+		if (rc != EOK) {
+			printf(NAME ": volume info printing failed: %s\n",
+			    str_error(rc));
+			return EXIT_FAILURE;
+		}
 	}
 
 	return EXIT_SUCCESS;
-}
-
-int main(int argc, char **argv)
-{
-	int rc = EXIT_SUCCESS;
-	hr_t *hr = NULL;
-
-	if (argc < 2) {
-		rc = EXIT_FAILURE;
-		goto end;
-	}
-
-	rc = hr_sess_init(&hr);
-	if (rc != EOK) {
-		printf(NAME ": hr server session init failed: %s\n",
-		    str_error(rc));
-		return EXIT_FAILURE;
-	}
-
-	optreset = 1;
-	optind = 0;
-
-	struct option const top_level_opts[] = {
-		{ "help",		no_argument, 0, 'h' },
-		{ "create",		no_argument, 0, 'c' },
-		{ "assemble",		no_argument, 0, 'a' },
-		{ "disassemble",	no_argument, 0, 'd' },
-		{ "modify",		no_argument, 0, 'm' },
-		{ "state",		no_argument, 0, 's' },
-		{ 0, 0, 0, 0 }
-	};
-
-	int c = getopt_long(argc, argv, "hcadms", top_level_opts, NULL);
-	switch (c) {
-	case 'h':
-		usage();
-		goto end;
-	case 'c':
-		rc = handle_create(hr, argc, argv);
-		goto end;
-	case 'a':
-		rc = handle_assemble(hr, argc, argv);
-		goto end;
-	case 'd':
-		rc = handle_disassemble(hr, argc, argv);
-		goto end;
-	case 'm':
-		rc = handle_modify(hr, argc, argv);
-		goto end;
-	case 's':
-		rc = handle_state(hr, argc, argv);
-		goto end;
-	default:
-		goto end;
-	}
-
-end:
-	hr_sess_destroy(hr);
-
-	if (rc != EXIT_SUCCESS)
-		printf(NAME ": use --help to see usage\n");
-	return rc;
 }
 
 /** @}

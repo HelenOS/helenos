@@ -45,7 +45,8 @@ typedef enum {
 	HR_STOP_ALL,
 	HR_FAIL_EXTENT,
 	HR_ADD_HOTSPARE,
-	HR_STATUS
+	HR_GET_VOL_STATES,
+	HR_GET_VOL_INFO
 } hr_request_t;
 
 #endif

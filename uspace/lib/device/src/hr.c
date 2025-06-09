@@ -208,89 +208,6 @@ error:
 	return rc;
 }
 
-static errno_t print_vol_info(size_t index, hr_vol_info_t *vol_info)
-{
-	errno_t rc;
-	size_t i;
-	char *devname;
-	hr_extent_t *ext;
-
-	printf("--- vol %zu ---\n", index);
-
-	printf("svc_id: %" PRIun "\n", vol_info->svc_id);
-
-	rc = loc_service_get_name(vol_info->svc_id, &devname);
-	if (rc != EOK)
-		return rc;
-	printf("devname: %s\n", devname);
-
-	printf("state: %s\n", hr_get_vol_state_str(vol_info->state));
-
-	printf("level: %d\n", vol_info->level);
-	if (vol_info->level == HR_LVL_4 || vol_info->level == HR_LVL_5) {
-		printf("layout: %s\n",
-		    hr_get_layout_str(vol_info->layout));
-	}
-	if (vol_info->level == HR_LVL_0 || vol_info->level == HR_LVL_4) {
-		if (vol_info->strip_size / 1024 < 1)
-			printf("strip size in bytes: %" PRIu32 "\n",
-			    vol_info->strip_size);
-		else
-			printf("strip size: %" PRIu32 "K\n",
-			    vol_info->strip_size / 1024);
-	}
-	printf("size in bytes: %" PRIu64 "MiB\n",
-	    vol_info->nblocks * vol_info->bsize / 1024 / 1024);
-	printf("size in blocks: %" PRIu64 "\n", vol_info->nblocks);
-	printf("block size: %zu\n", vol_info->bsize);
-
-	if (vol_info->level == HR_LVL_4)
-		printf("extents: [P] [state] [index] [devname]\n");
-	else
-		printf("extents: [state] [index] [devname]\n");
-	for (i = 0; i < vol_info->extent_no; i++) {
-		ext = &vol_info->extents[i];
-		if (ext->state == HR_EXT_MISSING || ext->state == HR_EXT_NONE) {
-			devname = (char *) "MISSING-devname";
-		} else {
-			rc = loc_service_get_name(ext->svc_id, &devname);
-			if (rc != EOK) {
-				printf("loc_service_get_name() failed, skipping...\n");
-				continue;
-			}
-		}
-		if (vol_info->level == HR_LVL_4) {
-			if ((i == 0 && vol_info->layout == HR_RLQ_RAID4_0) ||
-			    (i == vol_info->extent_no - 1 &&
-			    vol_info->layout == HR_RLQ_RAID4_N))
-				printf("          P   %s    %zu       %s\n", hr_get_ext_state_str(ext->state), i, devname);
-			else
-				printf("              %s    %zu       %s\n", hr_get_ext_state_str(ext->state), i, devname);
-		} else {
-			printf("          %s    %zu       %s\n", hr_get_ext_state_str(ext->state), i, devname);
-		}
-	}
-
-	if (vol_info->hotspare_no == 0)
-		return EOK;
-
-	printf("hotspares: [state] [index] [devname]\n");
-	for (i = 0; i < vol_info->hotspare_no; i++) {
-		ext = &vol_info->hotspares[i];
-		if (ext->state == HR_EXT_MISSING) {
-			devname = (char *) "MISSING-devname";
-		} else {
-			rc = loc_service_get_name(ext->svc_id, &devname);
-			if (rc != EOK)
-				return rc;
-		}
-		printf("            %s   %zu     %s\n",
-		    hr_get_ext_state_str(ext->state), i, devname);
-	}
-
-	return EOK;
-}
-
 /** Stop/deactivate volume.
  *
  * @param hr		Server session
@@ -407,19 +324,21 @@ error:
 	return rc;
 }
 
-/** Print state of volumes.
+/** Get state of volumes.
  *
- * @param hr	Server session
+ * @param hr		Server session
+ * @param rpairs	Place to store pointer to (service id, vol state) pairs
+ * @param rcnt		Place to store pair count
  *
  * @return EOK on success or an error code
  */
-errno_t hr_print_state(hr_t *hr)
+errno_t hr_get_vol_states(hr_t *hr, hr_pair_vol_state_t **rpairs, size_t *rcnt)
 {
 	errno_t rc, retval;
 	async_exch_t *exch;
 	aid_t req;
-	size_t size, i;
-	hr_vol_info_t *vols = NULL;
+	size_t cnt, i;
+	hr_pair_vol_state_t *pairs = NULL;
 
 	exch = async_exchange_begin(hr->sess);
 	if (exch == NULL) {
@@ -427,24 +346,23 @@ errno_t hr_print_state(hr_t *hr)
 		goto error;
 	}
 
-	req = async_send_0(exch, HR_STATUS, NULL);
-	rc = async_data_read_start(exch, &size, sizeof(size_t));
+	req = async_send_0(exch, HR_GET_VOL_STATES, NULL);
+	rc = async_data_read_start(exch, &cnt, sizeof(size_t));
 	if (rc != EOK) {
 		async_exchange_end(exch);
 		async_forget(req);
 		return rc;
 	}
 
-	vols = calloc(size, sizeof(hr_vol_info_t));
-	if (vols == NULL) {
+	pairs = calloc(cnt, sizeof(*pairs));
+	if (pairs == NULL) {
 		async_exchange_end(exch);
 		async_forget(req);
 		return ENOMEM;
 	}
 
-	for (i = 0; i < size; i++) {
-		rc = async_data_read_start(exch, &vols[i],
-		    sizeof(hr_vol_info_t));
+	for (i = 0; i < cnt; i++) {
+		rc = async_data_read_start(exch, &pairs[i], sizeof(*pairs));
 		if (rc != EOK) {
 			async_exchange_end(exch);
 			async_forget(req);
@@ -459,20 +377,60 @@ errno_t hr_print_state(hr_t *hr)
 		goto error;
 	}
 
-	if (size == 0) {
-		printf("no active volumes\n");
+	if (rpairs != NULL)
+		*rpairs = pairs;
+	if (rcnt != NULL)
+		*rcnt = cnt;
+	return EOK;
+
+error:
+	if (pairs != NULL)
+		free(pairs);
+	return rc;
+}
+
+/** Get volume info.
+ *
+ * @param hr		Server session
+ * @param svc_id	Service id of volume
+ * @param rinfo		Place to store volume info
+ *
+ * @return EOK on success or an error code
+ */
+errno_t hr_get_vol_info(hr_t *hr, service_id_t svc_id, hr_vol_info_t *rinfo)
+{
+	errno_t rc, retval;
+	async_exch_t *exch;
+	aid_t req;
+
+	exch = async_exchange_begin(hr->sess);
+	if (exch == NULL) {
+		rc = EINVAL;
 		goto error;
 	}
 
-	for (i = 0; i < size; i++) {
-		rc = print_vol_info(i, &vols[i]);
-		if (rc != EOK)
-			goto error;
+	req = async_send_0(exch, HR_GET_VOL_INFO, NULL);
+	rc = async_data_write_start(exch, &svc_id, sizeof(svc_id));
+	if (rc != EOK) {
+		async_exchange_end(exch);
+		async_forget(req);
+		return rc;
+	}
+
+	rc = async_data_read_start(exch, rinfo, sizeof(*rinfo));
+	async_exchange_end(exch);
+	if (rc != EOK) {
+		async_forget(req);
+		goto error;
+	}
+
+	async_wait_for(req, &retval);
+	if (retval != EOK) {
+		rc = retval;
+		goto error;
 	}
 
 error:
-	if (vols != NULL)
-		free(vols);
 	return rc;
 }
 
@@ -551,6 +509,28 @@ const char *hr_get_layout_str(hr_layout_t layout)
 		return "RAID-5 Rotating Parity N with Data Continuation";
 	default:
 		return "Invalid RAID layout";
+	}
+}
+
+/** Get volume level string.
+ *
+ * @param level Levelvalue
+ *
+ * @return Level string
+ */
+const char *hr_get_level_str(hr_level_t level)
+{
+	switch (level) {
+	case HR_LVL_0:
+		return "stripe (RAID 0)";
+	case HR_LVL_1:
+		return "mirror (RAID 1)";
+	case HR_LVL_4:
+		return "dedicated parity (RAID 4)";
+	case HR_LVL_5:
+		return "distributed parity (RAID 5)";
+	default:
+		return "Invalid RAID level";
 	}
 }
 
