@@ -77,6 +77,12 @@ static const char usage_str[] =
     "\n"
     "  -s, --state                               Display state of active volumes.\n"
     "\n"
+    "level can be one of:\n"
+    "  0 | stripe | striping |\n"
+    "  1 | mirror | mirroring |\n"
+    "  4 | parity_dedicated |\n"
+    "  5 | parity | parity_distributed\n"
+    "\n"
     "Example usage:\n"
     "\t\thrctl --create hr0 --level 5 disk1 disk2 disk3\n"
     "\t\thrctl -c hr0 -l 5 disk1 disk2 disk3\n"
@@ -310,12 +316,25 @@ static int create_from_argv(hr_t *hr, int argc, char **argv)
 	}
 
 	const char *level_str = argv[optind++];
-	if (str_size(level_str) != 1 && !isdigit(level_str[0])) {
-		printf(NAME ": unknown level \"%s\"\n", level_str);
-		goto error;
+	if (str_size(level_str) == 1 && isdigit(level_str[0])) {
+		vol_config->level = strtol(level_str, NULL, 10);
+	} else {
+		if (str_cmp(level_str, "mirror") == 0 ||
+		    str_cmp(level_str, "mirroring") == 0) {
+			vol_config->level = HR_LVL_1;
+		} else if (str_cmp(level_str, "stripe") == 0 ||
+		    str_cmp(level_str, "striping") == 0) {
+			vol_config->level = HR_LVL_0;
+		} else if (str_cmp(level_str, "parity") == 0 ||
+		    str_cmp(level_str, "parity_distributed") == 0) {
+			vol_config->level = HR_LVL_5;
+		} else if (str_cmp(level_str, "parity_dedicated") == 0) {
+			vol_config->level = HR_LVL_4;
+		} else {
+			printf(NAME ": unknown level \"%s\"\n", level_str);
+			goto error;
+		}
 	}
-
-	vol_config->level = strtol(level_str, NULL, 10);
 
 	errno_t rc = fill_config_devs(argc, argv, vol_config);
 	if (rc != EOK)
