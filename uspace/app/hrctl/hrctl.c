@@ -52,7 +52,8 @@ static errno_t fill_config_devs(int, char **, hr_config_t *);
 static errno_t get_vol_configs_from_sif(const char *, hr_config_t **, size_t *);
 
 static const char usage_str[] =
-    "Usage: hrctl [OPTION]...\n"
+    NAME ": HelenOS RAID configuration and management utility.\n"
+    "Usage: " NAME " [OPTION]...\n"
     "\n"
     "Options:\n"
     "  -h, --help                                Display this message and exit.\n"
