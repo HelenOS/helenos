@@ -61,7 +61,7 @@ static errno_t meta_softraid_get_block(service_id_t, void **);
 static errno_t meta_softraid_write_block(service_id_t, const void *);
 static bool meta_softraid_has_valid_magic(const void *);
 static bool meta_softraid_compare_uuids(const void *, const void *);
-static void meta_softraid_inc_counter(void *);
+static void meta_softraid_inc_counter(hr_volume_t *);
 static errno_t meta_softraid_save(hr_volume_t *, bool);
 static const char *meta_softraid_get_devname(const void *);
 static hr_level_t meta_softraid_get_level(const void *);
@@ -418,11 +418,15 @@ static bool meta_softraid_compare_uuids(const void *m1_v, const void *m2_v)
 	return false;
 }
 
-static void meta_softraid_inc_counter(void *md_v)
+static void meta_softraid_inc_counter(hr_volume_t *vol)
 {
-	struct sr_metadata *md = md_v;
+	fibril_mutex_lock(&vol->md_lock);
+
+	struct sr_metadata *md = vol->in_mem_md;
 
 	md->ssd_ondisk++;
+
+	fibril_mutex_unlock(&vol->md_lock);
 }
 
 static errno_t meta_softraid_save(hr_volume_t *vol, bool with_state_callback)

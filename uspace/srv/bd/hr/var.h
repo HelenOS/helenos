@@ -100,6 +100,12 @@ typedef struct hr_volume {
 
 	_Atomic bool state_dirty; /* dirty state */
 
+	/*
+	 * used to increment metadata counter on first write,
+	 * allowing non-destructive read-only access
+	 */
+	_Atomic bool data_dirty;
+
 	/* XXX: atomic_uint_least64_t? */
 	_Atomic uint64_t rebuild_blk; /* rebuild position */
 	_Atomic int open_cnt; /* open/close() counter */

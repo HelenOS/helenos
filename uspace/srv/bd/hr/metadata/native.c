@@ -62,7 +62,7 @@ static errno_t meta_native_write_block(service_id_t, const void *);
 static errno_t meta_native_erase_block(service_id_t);
 static bool meta_native_has_valid_magic(const void *);
 static bool meta_native_compare_uuids(const void *, const void *);
-static void meta_native_inc_counter(void *);
+static void meta_native_inc_counter(hr_volume_t *);
 static errno_t meta_native_save(hr_volume_t *, bool);
 static const char *meta_native_get_devname(const void *);
 static hr_level_t meta_native_get_level(const void *);
@@ -364,11 +364,15 @@ static bool meta_native_compare_uuids(const void *m1p, const void *m2p)
 	return false;
 }
 
-static void meta_native_inc_counter(void *md_v)
+static void meta_native_inc_counter(hr_volume_t *vol)
 {
-	hr_metadata_t *md = md_v;
+	fibril_mutex_lock(&vol->md_lock);
+
+	hr_metadata_t *md = vol->in_mem_md;
 
 	md->counter++;
+
+	fibril_mutex_unlock(&vol->md_lock);
 }
 
 /*
@@ -408,7 +412,7 @@ static errno_t meta_native_save(hr_volume_t *vol, bool with_state_callback)
 		md->index = i;
 		meta_native_encode(md, md_block);
 		rc = meta_native_write_block(ext->svc_id, md_block);
-		if (with_state_callback && rc != EOK)
+		if (rc != EOK && with_state_callback)
 			vol->hr_ops.ext_state_cb(vol, i, rc);
 	}
 

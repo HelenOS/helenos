@@ -53,7 +53,7 @@ typedef struct hr_superblock_ops {
 	errno_t (*erase_block)(service_id_t);
 	bool (*has_valid_magic)(const void *);
 	bool (*compare_uuids)(const void *, const void *);
-	void (*inc_counter)(void *);
+	void (*inc_counter)(hr_volume_t *);
 	errno_t (*save)(hr_volume_t *, bool);
 	const char *(*get_devname)(const void *);
 	hr_level_t (*get_level)(const void *);

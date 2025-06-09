@@ -61,7 +61,7 @@ static errno_t meta_gstripe_get_block(service_id_t, void **);
 static errno_t meta_gstripe_write_block(service_id_t, const void *);
 static bool meta_gstripe_has_valid_magic(const void *);
 static bool meta_gstripe_compare_uuids(const void *, const void *);
-static void meta_gstripe_inc_counter(void *);
+static void meta_gstripe_inc_counter(hr_volume_t *);
 static errno_t meta_gstripe_save(hr_volume_t *, bool);
 static const char *meta_gstripe_get_devname(const void *);
 static hr_level_t meta_gstripe_get_level(const void *);
@@ -285,9 +285,9 @@ static bool meta_gstripe_compare_uuids(const void *md1_v, const void *md2_v)
 	return false;
 }
 
-static void meta_gstripe_inc_counter(void *md_v)
+static void meta_gstripe_inc_counter(hr_volume_t *vol)
 {
-	(void)md_v;
+	(void)vol;
 }
 
 static errno_t meta_gstripe_save(hr_volume_t *vol, bool with_state_callback)

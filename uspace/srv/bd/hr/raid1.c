@@ -55,6 +55,7 @@
 #include "util.h"
 #include "var.h"
 
+static void hr_raid1_vol_state_eval_forced(hr_volume_t *);
 static size_t hr_raid1_count_good_extents(hr_volume_t *, uint64_t, size_t,
     uint64_t);
 static errno_t hr_raid1_bd_op(hr_bd_op_type_t, bd_srv_t *, aoff64_t, size_t,
@@ -104,9 +105,7 @@ errno_t hr_raid1_create(hr_volume_t *new_volume)
 	new_volume->hr_bds.ops = &hr_raid1_bd_ops;
 	new_volume->hr_bds.sarg = new_volume;
 
-	/* force volume state update */
-	hr_mark_vol_state_dirty(new_volume);
-	hr_raid1_vol_state_eval(new_volume);
+	hr_raid1_vol_state_eval_forced(new_volume);
 
 	fibril_rwlock_read_lock(&new_volume->states_lock);
 	hr_vol_state_t state = new_volume->state;
@@ -154,16 +153,46 @@ void hr_raid1_vol_state_eval(hr_volume_t *vol)
 
 	bool exp = true;
 
-	/* TODO: could also wrap this */
 	if (!atomic_compare_exchange_strong(&vol->state_dirty, &exp, false))
 		return;
 
-	fibril_mutex_lock(&vol->md_lock);
+	vol->meta_ops->inc_counter(vol);
+	(void)vol->meta_ops->save(vol, WITH_STATE_CALLBACK);
 
-	vol->meta_ops->inc_counter(vol->in_mem_md);
-	/* XXX: save right away */
+	hr_raid1_vol_state_eval_forced(vol);
+}
 
-	fibril_mutex_unlock(&vol->md_lock);
+void hr_raid1_ext_state_cb(hr_volume_t *vol, size_t extent,
+    errno_t rc)
+{
+	HR_DEBUG("%s()", __func__);
+
+	if (rc == EOK)
+		return;
+
+	assert(fibril_rwlock_is_locked(&vol->extents_lock));
+
+	fibril_rwlock_write_lock(&vol->states_lock);
+
+	switch (rc) {
+	case ENOMEM:
+		hr_update_ext_state(vol, extent, HR_EXT_INVALID);
+		break;
+	case ENOENT:
+		hr_update_ext_state(vol, extent, HR_EXT_MISSING);
+		break;
+	default:
+		hr_update_ext_state(vol, extent, HR_EXT_FAILED);
+	}
+
+	hr_mark_vol_state_dirty(vol);
+
+	fibril_rwlock_write_unlock(&vol->states_lock);
+}
+
+static void hr_raid1_vol_state_eval_forced(hr_volume_t *vol)
+{
+	HR_DEBUG("%s()", __func__);
 
 	fibril_rwlock_read_lock(&vol->extents_lock);
 	fibril_rwlock_read_lock(&vol->states_lock);
@@ -206,34 +235,6 @@ void hr_raid1_vol_state_eval(hr_volume_t *vol)
 			fibril_rwlock_write_unlock(&vol->states_lock);
 		}
 	}
-}
-
-void hr_raid1_ext_state_cb(hr_volume_t *vol, size_t extent,
-    errno_t rc)
-{
-	HR_DEBUG("%s()", __func__);
-
-	if (rc == EOK)
-		return;
-
-	assert(fibril_rwlock_is_locked(&vol->extents_lock));
-
-	fibril_rwlock_write_lock(&vol->states_lock);
-
-	switch (rc) {
-	case ENOMEM:
-		hr_update_ext_state(vol, extent, HR_EXT_INVALID);
-		break;
-	case ENOENT:
-		hr_update_ext_state(vol, extent, HR_EXT_MISSING);
-		break;
-	default:
-		hr_update_ext_state(vol, extent, HR_EXT_FAILED);
-	}
-
-	hr_mark_vol_state_dirty(vol);
-
-	fibril_rwlock_write_unlock(&vol->states_lock);
 }
 
 static errno_t hr_raid1_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
@@ -327,6 +328,11 @@ static errno_t hr_raid1_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 
 	if (vol_state == HR_VOL_FAULTY || vol_state == HR_VOL_NONE)
 		return EIO;
+
+	if (!vol->data_dirty && type == HR_BD_WRITE) {
+		vol->meta_ops->inc_counter(vol);
+		vol->data_dirty = true;
+	}
 
 	if (type == HR_BD_READ || type == HR_BD_WRITE)
 		if (size < cnt * vol->bsize)
@@ -542,7 +548,7 @@ static errno_t hr_raid1_rebuild(void *arg)
 
 	fibril_rwlock_write_unlock(&vol->states_lock);
 
-	rc = vol->meta_ops->save(vol, WITH_STATE_CALLBACK);
+	(void)vol->meta_ops->save(vol, WITH_STATE_CALLBACK);
 
 end:
 	if (rc != EOK) {

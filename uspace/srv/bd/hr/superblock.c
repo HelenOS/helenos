@@ -49,11 +49,11 @@
 #include "util.h"
 #include "var.h"
 
+#include "metadata/native.h"
+
 #include "metadata/foreign/geom/g_mirror.h"
 #include "metadata/foreign/geom/g_stripe.h"
 #include "metadata/foreign/softraid/softraidvar.h"
-
-#include "metadata/native.h"
 
 extern hr_superblock_ops_t metadata_native_ops;
 extern hr_superblock_ops_t metadata_gmirror_ops;

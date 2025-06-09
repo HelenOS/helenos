@@ -61,7 +61,7 @@ static errno_t meta_gmirror_get_block(service_id_t, void **);
 static errno_t meta_gmirror_write_block(service_id_t, const void *);
 static bool meta_gmirror_has_valid_magic(const void *);
 static bool meta_gmirror_compare_uuids(const void *, const void *);
-static void meta_gmirror_inc_counter(void *);
+static void meta_gmirror_inc_counter(hr_volume_t *);
 static errno_t meta_gmirror_save(hr_volume_t *, bool);
 static const char *meta_gmirror_get_devname(const void *);
 static hr_level_t meta_gmirror_get_level(const void *);
@@ -283,12 +283,16 @@ static bool meta_gmirror_compare_uuids(const void *m1_v, const void *m2_v)
 	return false;
 }
 
-static void meta_gmirror_inc_counter(void *md_v)
+static void meta_gmirror_inc_counter(hr_volume_t *vol)
 {
-	struct g_mirror_metadata *md = md_v;
+	fibril_mutex_lock(&vol->md_lock);
+
+	struct g_mirror_metadata *md = vol->in_mem_md;
 
 	/* XXX: probably md_genid and not md_syncid is incremented */
 	md->md_genid++;
+
+	fibril_mutex_unlock(&vol->md_lock);
 }
 
 static errno_t meta_gmirror_save(hr_volume_t *vol, bool with_state_callback)

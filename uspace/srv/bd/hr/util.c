@@ -150,8 +150,9 @@ errno_t hr_create_vol_struct(hr_volume_t **rvol, hr_level_t level,
 	list_initialize(&vol->range_lock_list);
 	fibril_mutex_initialize(&vol->range_lock_list_lock);
 
-	atomic_init(&vol->rebuild_blk, 0);
 	atomic_init(&vol->state_dirty, false);
+	atomic_init(&vol->data_dirty, false);
+	atomic_init(&vol->rebuild_blk, 0);
 	atomic_init(&vol->open_cnt, 0);
 
 	*rvol = vol;
@@ -856,44 +857,13 @@ static errno_t hr_util_assemble_from_matching_list(list_t *list,
 
 	meta_ops->init_meta2vol(list, vol);
 
-	/*
-	 * TODO: something like mark md dirty or whatever
-	 *	- probably will be handled by each md type differently,
-	 *	  by specific function pointers
-	 *	- deal with this when foreign md will be handled
-	 *
-	 * XXX: if thats the only thing that can change in metadata
-	 * during volume runtime, then whatever, but if more
-	 * things will need to be synced, think of something more clever
-	 *
-	 * TODO: remove from here and increment it the "first" time (if nothing
-	 * happens - no state changes, no rebuild, etc) - only after the first
-	 * write... but for now leave it here
-	 */
-	(void)vol->meta_ops->inc_counter(vol->in_mem_md);
-
 	rc = vol->hr_ops.create(vol);
 	if (rc != EOK)
 		goto error;
 
-	/*
-	 * XXX: register it here
-	 * ... if it fails on EEXIST try different name... like + 1 on the end
-	 *
-	 * or have metadata edit utility as a part of hrctl..., or create
-	 * the original name + 4 random characters, tell the user that the device
-	 * was created with this new name, and add a option to hrctl to rename
-	 * an active array, and then write the new dirty metadata...
-	 *
-	 * or just refuse to assemble a name that is already used...
-	 *
-	 * TODO: discuss
-	 */
 	rc = hr_register_volume(vol);
 	if (rc != EOK)
 		goto error;
-
-	(void)vol->meta_ops->save(vol, WITH_STATE_CALLBACK);
 
 	fibril_rwlock_write_lock(&hr_volumes_lock);
 	list_append(&vol->lvolumes, &hr_volumes);
