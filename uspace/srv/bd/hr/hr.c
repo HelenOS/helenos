@@ -341,11 +341,11 @@ static void hr_fail_extent_srv(ipc_call_t *icall)
 	HR_DEBUG("%s()", __func__);
 
 	service_id_t svc_id;
-	size_t fail_extent;
+	size_t extent_idx_to_fail;
 	hr_volume_t *vol;
 
 	svc_id = (service_id_t)ipc_get_arg1(icall);
-	fail_extent = (size_t)ipc_get_arg2(icall);
+	extent_idx_to_fail = (size_t)ipc_get_arg2(icall);
 
 	vol = hr_get_volume(svc_id);
 	if (vol == NULL) {
@@ -353,10 +353,12 @@ static void hr_fail_extent_srv(ipc_call_t *icall)
 		return;
 	}
 
+	hr_extent_t *ext = &vol->extents[extent_idx_to_fail];
+
 	fibril_rwlock_read_lock(&vol->extents_lock);
 	fibril_rwlock_write_lock(&vol->states_lock);
 
-	switch (vol->extents[fail_extent].state) {
+	switch (ext->state) {
 	case HR_EXT_NONE:
 	case HR_EXT_MISSING:
 	case HR_EXT_FAILED:
@@ -365,7 +367,8 @@ static void hr_fail_extent_srv(ipc_call_t *icall)
 		async_answer_0(icall, EINVAL);
 		return;
 	default:
-		hr_update_ext_state(vol, fail_extent, HR_EXT_FAILED);
+		hr_update_ext_state(vol, extent_idx_to_fail, HR_EXT_FAILED);
+		(void)vol->meta_ops->erase_block(ext->svc_id);
 		hr_mark_vol_state_dirty(vol);
 	}
 
