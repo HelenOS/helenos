@@ -152,7 +152,6 @@ void hr_raid1_vol_state_eval(hr_volume_t *vol)
 	HR_DEBUG("%s()", __func__);
 
 	bool exp = true;
-
 	if (!atomic_compare_exchange_strong(&vol->state_dirty, &exp, false))
 		return;
 
@@ -329,9 +328,12 @@ static errno_t hr_raid1_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 	if (vol_state == HR_VOL_FAULTY || vol_state == HR_VOL_NONE)
 		return EIO;
 
-	if (!vol->data_dirty && type == HR_BD_WRITE) {
+	/* increment metadata counter only on first write */
+	bool exp = false;
+	if (type == HR_BD_WRITE &&
+	    atomic_compare_exchange_strong(&vol->data_dirty, &exp, true)) {
 		vol->meta_ops->inc_counter(vol);
-		vol->data_dirty = true;
+		vol->meta_ops->save(vol, WITH_STATE_CALLBACK);
 	}
 
 	if (type == HR_BD_READ || type == HR_BD_WRITE)
@@ -495,6 +497,13 @@ static errno_t hr_raid1_rebuild(void *arg)
 	 * rebuild cannot be triggered while ongoing rebuild
 	 */
 	fibril_rwlock_read_lock(&vol->extents_lock);
+
+	/* increment metadata counter only on first write */
+	bool exp = false;
+	if (atomic_compare_exchange_strong(&vol->data_dirty, &exp, true)) {
+		vol->meta_ops->inc_counter(vol);
+		vol->meta_ops->save(vol, WITH_STATE_CALLBACK);
+	}
 
 	hr_range_lock_t *rl = NULL;
 
