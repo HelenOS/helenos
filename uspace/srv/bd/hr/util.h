@@ -44,15 +44,6 @@
 #include "superblock.h"
 #include "var.h"
 
-struct dev_list_member {
-	link_t link;
-	service_id_t svc_id;
-	void *md;
-	bool inited;
-	bool md_present;
-	bool fini;
-};
-
 #define HR_DEBUG(format, ...) \
     log_msg(LOG_DEFAULT, LVL_DEBUG, format, ##__VA_ARGS__)
 
@@ -64,6 +55,26 @@ struct dev_list_member {
 
 #define HR_ERROR(format, ...) \
     log_msg(LOG_DEFAULT, LVL_ERROR, format, ##__VA_ARGS__)
+
+struct dev_list_member {
+	link_t link;
+	service_id_t svc_id;
+	void *md;
+	bool inited;
+	bool md_present;
+	bool fini;
+};
+
+typedef struct hr_range_lock {
+	link_t link;
+	fibril_mutex_t lock;
+	hr_volume_t *vol; /* back-pointer to volume */
+	uint64_t off; /* start of the range */
+	uint64_t len; /* length of the range */
+
+	size_t pending; /* prot. by vol->range_lock_list_lock */
+	bool ignore; /* prot. by vol->range_lock_list_lock */
+} hr_range_lock_t;
 
 extern errno_t hr_create_vol_struct(hr_volume_t **, hr_level_t, const char *,
     hr_metadata_type_t);

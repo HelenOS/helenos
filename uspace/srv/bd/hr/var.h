@@ -122,17 +122,6 @@ typedef enum {
 #define	WITH_STATE_CALLBACK true
 #define	NO_STATE_CALLBACK false
 
-typedef struct hr_range_lock {
-	link_t link;
-	fibril_mutex_t lock;
-	hr_volume_t *vol; /* back-pointer to volume */
-	uint64_t off; /* start of the range */
-	uint64_t len; /* length of the range */
-
-	size_t pending; /* prot. by vol->range_lock_list_lock */
-	bool ignore; /* prot. by vol->range_lock_list_lock */
-} hr_range_lock_t;
-
 extern errno_t hr_raid0_create(hr_volume_t *);
 extern errno_t hr_raid1_create(hr_volume_t *);
 extern errno_t hr_raid5_create(hr_volume_t *);
