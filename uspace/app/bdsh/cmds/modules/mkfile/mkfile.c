@@ -26,6 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <abi/ipc/ipc.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,7 +48,7 @@
 #include "cmds.h"
 
 /** Number of bytes to write at a time */
-#define BUFFER_SIZE 16384
+#define BUFFER_SIZE DATA_XFER_LIMIT
 
 static const char *cmdname = "mkfile";
 
