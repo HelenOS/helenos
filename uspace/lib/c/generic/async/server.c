@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
@@ -954,7 +955,7 @@ static void handle_call(ipc_call_t *call)
 		// TODO: Currently ignores all ports but the first one.
 		void *data;
 		async_port_handler_t handler =
-		    async_get_port_handler(iface, 0, &data);
+		    async_get_interface_handler(iface, 0, &data);
 
 		async_new_connection(conn, call->task_id, call, handler, data);
 		return;
