@@ -259,6 +259,7 @@ foreach l : libs
 			if install_shared_lib
 				install_files += [[ 'lib', _shared_lib.full_path(), _libname ]]
 				install_deps += [ _shared_lib ]
+				exported_devel_files += [ 'sharedlib', _shared_lib, _libname ]
 			endif
 
 			if install_shared_lib and install_debug_files
@@ -287,7 +288,6 @@ foreach l : libs
 				include_directories: includes,
 				dependencies: _shared_deps,
 			)
-			exported_devel_files += [ 'sharedlib', _shared_lib, _libname ]
 		endif
 
 		_static_lib = static_library(l, src,
