@@ -476,6 +476,7 @@ static errno_t system_startup(void)
 
 	srv_start("/srv/bd/vbd");
 	srv_start("/srv/volsrv");
+	srv_start("/srv/bd/hr");
 
 	init_sysvol();
 

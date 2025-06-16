@@ -30,6 +30,7 @@
 srvs = [
 	'audio/hound',
 	'bd/file_bd',
+	'bd/hr',
 	'bd/rd',
 	'bd/vbd',
 	'clipboard',
