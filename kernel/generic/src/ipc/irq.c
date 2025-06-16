@@ -294,15 +294,15 @@ static void irq_hash_out(irq_t *irq)
 	irq_spinlock_unlock(&irq_uspace_hash_table_lock, true);
 }
 
-static void irq_destroy(void *arg)
+static void irq_destroy(kobject_t *arg)
 {
-	irq_t *irq = (irq_t *) arg;
+	irq_kobject_t *kobj = (irq_kobject_t *) arg;
 
-	irq_hash_out(irq);
+	irq_hash_out(&kobj->irq);
 
 	/* Free up the IRQ code and associated structures. */
-	code_free(irq->notif_cfg.code);
-	slab_free(irq_cache, irq);
+	code_free(kobj->irq.notif_cfg.code);
+	slab_free(irq_cache, kobj);
 }
 
 kobject_ops_t irq_kobject_ops = {
@@ -349,18 +349,15 @@ errno_t ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
 		return rc;
 	}
 
-	irq_t *irq = (irq_t *) slab_alloc(irq_cache, FRAME_ATOMIC);
-	if (!irq) {
+	irq_kobject_t *kobj = slab_alloc(irq_cache, FRAME_ATOMIC);
+	if (!kobj) {
 		cap_free(TASK, handle);
 		return ENOMEM;
 	}
 
-	kobject_t *kobject = kobject_alloc(FRAME_ATOMIC);
-	if (!kobject) {
-		cap_free(TASK, handle);
-		slab_free(irq_cache, irq);
-		return ENOMEM;
-	}
+	kobject_initialize(&kobj->kobject, KOBJECT_TYPE_IRQ);
+
+	irq_t *irq = &kobj->irq;
 
 	irq_initialize(irq);
 	irq->inr = inr;
@@ -384,8 +381,7 @@ errno_t ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
 	irq_spinlock_unlock(&irq->lock, false);
 	irq_spinlock_unlock(&irq_uspace_hash_table_lock, true);
 
-	kobject_initialize(kobject, KOBJECT_TYPE_IRQ, irq);
-	cap_publish(TASK, handle, kobject);
+	cap_publish(TASK, handle, &kobj->kobject);
 
 	return EOK;
 }
@@ -404,9 +400,9 @@ errno_t ipc_irq_unsubscribe(answerbox_t *box, cap_irq_handle_t handle)
 	if (!kobj)
 		return ENOENT;
 
-	assert(kobj->irq->notif_cfg.answerbox == box);
+	assert(irq_from_kobject(kobj)->notif_cfg.answerbox == box);
 
-	irq_hash_out(kobj->irq);
+	irq_hash_out(irq_from_kobject(kobj));
 
 	kobject_put(kobj);
 	cap_free(TASK, handle);

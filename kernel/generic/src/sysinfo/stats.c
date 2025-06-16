@@ -383,7 +383,7 @@ static void *get_stats_threads(struct sysinfo_item *item, size_t *size,
  */
 static bool produce_stats_ipcc_cb(cap_t *cap, void *arg)
 {
-	phone_t *phone = cap->kobject->phone;
+	phone_t *phone = (phone_t *) cap->kobject;
 	ipccs_state_t *state = (ipccs_state_t *) arg;
 
 	if (state->counting) {
