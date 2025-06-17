@@ -75,6 +75,30 @@ extern loc_srv_t *hr_srv;
 extern list_t hr_volumes;
 extern fibril_rwlock_t hr_volumes_lock;
 
+/*
+ * malloc() wrapper that behaves like
+ * FreeBSD malloc(9) with M_WAITOK flag.
+ *
+ * Return value is never NULL.
+ */
+void *malloc_waitok(size_t size)
+{
+	void *ret;
+	while ((ret = malloc(size)) == NULL)
+		fibril_usleep(MSEC2USEC(250)); /* sleep 250ms */
+
+	return ret;
+}
+
+void *calloc_waitok(size_t nmemb, size_t size)
+{
+	void *ret;
+	while ((ret = calloc(nmemb, size)) == NULL)
+		fibril_usleep(MSEC2USEC(250)); /* sleep 250ms */
+
+	return ret;
+}
+
 errno_t hr_create_vol_struct(hr_volume_t **rvol, hr_level_t level,
     const char *devname, hr_metadata_type_t metadata_type)
 {
