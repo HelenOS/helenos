@@ -51,6 +51,7 @@
 #include <types/common.h>
 
 #include "fge.h"
+#include "util.h"
 
 static void *hr_fpool_make_storage(hr_fpool_t *, ssize_t *);
 static void hr_fpool_group_epilogue(hr_fpool_t *);
@@ -63,7 +64,6 @@ static ssize_t hr_fpool_get_free_slot(hr_fpool_t *);
 hr_fpool_t *hr_fpool_create(size_t fibril_cnt, size_t max_wus,
     size_t wu_storage_size)
 {
-	/* TODO: allow wu_storage_size to be 0 (we want to save mem) */
 	assert(max_wus > 0 && wu_storage_size > 0);
 
 	void *bitmap_data = NULL;
@@ -101,6 +101,7 @@ hr_fpool_t *hr_fpool_create(size_t fibril_cnt, size_t max_wus,
 	for (size_t i = 0; i < fibril_cnt; i++) {
 		result->fibrils[i] = fibril_create(fge_fibril, result);
 		fibril_start(result->fibrils[i]);
+		/* fibril_detach(result->fibrils[i]); */
 	}
 
 	return result;
@@ -138,16 +139,7 @@ hr_fgroup_t *hr_fgroup_create(hr_fpool_t *parent, size_t wu_cnt)
 {
 	assert(wu_cnt > 0);
 
-	/*
-	 * XXX: we can also get rid of this malloc() call,
-	 * somewhat...
-	 *
-	 * Have some fgroups also pre-allocated for maximum
-	 * pre-allocation power :-)
-	 */
-	hr_fgroup_t *result = malloc(sizeof(hr_fgroup_t));
-	if (result == NULL)
-		return NULL;
+	hr_fgroup_t *result = malloc_waitok(sizeof(hr_fgroup_t));
 
 	result->reserved_cnt = 0;
 	result->own_mem = NULL;
@@ -168,18 +160,14 @@ hr_fgroup_t *hr_fgroup_create(hr_fpool_t *parent, size_t wu_cnt)
 		 * the fallback storage.
 		 */
 		size_t taking = parent->wu_storage_free_count;
-		result->own_mem = malloc(parent->wu_size * (wu_cnt - taking));
-		if (result->own_mem == NULL)
-			goto bad;
+		result->own_mem = malloc_waitok(parent->wu_size * (wu_cnt - taking));
 		result->reserved_cnt = taking;
 		parent->wu_storage_free_count = 0;
 	}
 
 	if (result->reserved_cnt > 0) {
 		result->memslots =
-		    malloc(sizeof(size_t) * result->reserved_cnt);
-		if (result->memslots == NULL)
-			goto bad;
+		    malloc_waitok(sizeof(size_t) * result->reserved_cnt);
 	}
 
 	fibril_mutex_unlock(&parent->lock);
@@ -197,18 +185,6 @@ hr_fgroup_t *hr_fgroup_create(hr_fpool_t *parent, size_t wu_cnt)
 	fibril_condvar_initialize(&result->all_done);
 
 	return result;
-
-bad:
-	parent->wu_storage_free_count += result->reserved_cnt;
-	fibril_mutex_unlock(&parent->lock);
-
-	if (result->memslots != NULL)
-		free(result->memslots);
-	if (result->own_mem != NULL)
-		free(result->own_mem);
-	free(result);
-
-	return NULL;
 }
 
 void *hr_fgroup_alloc(hr_fgroup_t *group)
@@ -217,6 +193,8 @@ void *hr_fgroup_alloc(hr_fgroup_t *group)
 
 	fibril_mutex_lock(&group->lock);
 
+	assert(group->submitted < group->wu_cnt);
+
 	if (group->reserved_avail > 0) {
 		ssize_t memslot;
 		storage = hr_fpool_make_storage(group->pool, &memslot);
@@ -224,6 +202,7 @@ void *hr_fgroup_alloc(hr_fgroup_t *group)
 		group->reserved_avail--;
 		group->memslots[group->submitted] = memslot;
 	} else {
+		assert(group->own_mem != NULL);
 		storage =
 		    group->own_mem + group->pool->wu_size * group->own_used;
 		group->own_used++;
