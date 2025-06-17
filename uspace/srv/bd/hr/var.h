@@ -104,9 +104,8 @@ typedef struct hr_volume {
 	 * used to increment metadata counter on first write,
 	 * allowing non-destructive read-only access
 	 */
-	_Atomic bool data_dirty;
+	_Atomic bool first_write;
 
-	/* XXX: atomic_uint_least64_t? */
 	_Atomic uint64_t rebuild_blk; /* rebuild position */
 	_Atomic int open_cnt; /* open/close() counter */
 	hr_vol_state_t state; /* volume state */

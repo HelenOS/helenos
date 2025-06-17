@@ -151,7 +151,7 @@ errno_t hr_create_vol_struct(hr_volume_t **rvol, hr_level_t level,
 	fibril_mutex_initialize(&vol->range_lock_list_lock);
 
 	atomic_init(&vol->state_dirty, false);
-	atomic_init(&vol->data_dirty, false);
+	atomic_init(&vol->first_write, false);
 	atomic_init(&vol->rebuild_blk, 0);
 	atomic_init(&vol->open_cnt, 0);
 
@@ -396,9 +396,14 @@ errno_t hr_check_ba_range(hr_volume_t *vol, size_t cnt, uint64_t ba)
 	return EOK;
 }
 
-void hr_add_ba_offset(hr_volume_t *vol, uint64_t *ba)
+void hr_add_data_offset(hr_volume_t *vol, uint64_t *ba)
 {
 	*ba = *ba + vol->data_offset;
+}
+
+void hr_sub_data_offset(hr_volume_t *vol, uint64_t *ba)
+{
+	*ba = *ba - vol->data_offset;
 }
 
 void hr_update_ext_state(hr_volume_t *vol, size_t ext_idx, hr_ext_state_t s)

@@ -161,15 +161,14 @@ void hr_raid1_vol_state_eval(hr_volume_t *vol)
 	hr_raid1_vol_state_eval_forced(vol);
 }
 
-void hr_raid1_ext_state_cb(hr_volume_t *vol, size_t extent,
-    errno_t rc)
+void hr_raid1_ext_state_cb(hr_volume_t *vol, size_t extent, errno_t rc)
 {
 	HR_DEBUG("%s()", __func__);
 
+	assert(fibril_rwlock_is_locked(&vol->extents_lock));
+
 	if (rc == EOK)
 		return;
-
-	assert(fibril_rwlock_is_locked(&vol->extents_lock));
 
 	fibril_rwlock_write_lock(&vol->states_lock);
 
@@ -218,7 +217,10 @@ static void hr_raid1_vol_state_eval_forced(hr_volume_t *vol)
 
 		if (old_state != HR_VOL_REBUILD) {
 			/* XXX: allow REBUILD on INVALID extents */
-			if (vol->hotspare_no > 0) {
+			fibril_mutex_lock(&vol->hotspare_lock);
+			size_t hs_no = vol->hotspare_no;
+			fibril_mutex_unlock(&vol->hotspare_lock);
+			if (hs_no > 0) {
 				fid_t fib = fibril_create(hr_raid1_rebuild,
 				    vol);
 				if (fib == 0)
@@ -321,6 +323,9 @@ static errno_t hr_raid1_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 	size_t i;
 	uint64_t rebuild_blk;
 
+	if (size < cnt * vol->bsize)
+		return EINVAL;
+
 	fibril_rwlock_read_lock(&vol->states_lock);
 	hr_vol_state_t vol_state = vol->state;
 	fibril_rwlock_read_unlock(&vol->states_lock);
@@ -331,22 +336,18 @@ static errno_t hr_raid1_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 	/* increment metadata counter only on first write */
 	bool exp = false;
 	if (type == HR_BD_WRITE &&
-	    atomic_compare_exchange_strong(&vol->data_dirty, &exp, true)) {
+	    atomic_compare_exchange_strong(&vol->first_write, &exp, true)) {
 		vol->meta_ops->inc_counter(vol);
 		vol->meta_ops->save(vol, WITH_STATE_CALLBACK);
 	}
-
-	if (type == HR_BD_READ || type == HR_BD_WRITE)
-		if (size < cnt * vol->bsize)
-			return EINVAL;
 
 	rc = hr_check_ba_range(vol, cnt, ba);
 	if (rc != EOK)
 		return rc;
 
 	/* allow full dev sync */
-	if (type != HR_BD_SYNC || ba != 0)
-		hr_add_ba_offset(vol, &ba);
+	if (!(type == HR_BD_SYNC && ba == 0 && cnt == 0))
+		hr_add_data_offset(vol, &ba);
 
 	/*
 	 * extent order has to be locked for the whole IO duration,
@@ -490,7 +491,7 @@ static errno_t hr_raid1_rebuild(void *arg)
 
 	size_t cnt;
 	uint64_t ba = 0;
-	hr_add_ba_offset(vol, &ba);
+	hr_add_data_offset(vol, &ba);
 
 	/*
 	 * XXX: this is useless here after simplified DI, because
@@ -500,7 +501,7 @@ static errno_t hr_raid1_rebuild(void *arg)
 
 	/* increment metadata counter only on first write */
 	bool exp = false;
-	if (atomic_compare_exchange_strong(&vol->data_dirty, &exp, true)) {
+	if (atomic_compare_exchange_strong(&vol->first_write, &exp, true)) {
 		vol->meta_ops->inc_counter(vol);
 		vol->meta_ops->save(vol, WITH_STATE_CALLBACK);
 	}
