@@ -326,8 +326,8 @@ static errno_t fge_fibril(void *arg)
 		} else {
 			fibril_mutex_lock(&group->lock);
 			group->finished_fail++;
-			if (rc == ENOMEM)
-				group->final_errno = ENOMEM;
+			if (rc == EAGAIN)
+				group->final_errno = EAGAIN;
 			fibril_mutex_unlock(&group->lock);
 		}
 

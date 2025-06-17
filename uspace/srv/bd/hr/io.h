@@ -51,6 +51,10 @@ typedef struct hr_io {
 errno_t hr_io_worker(void *);
 errno_t hr_io_worker_basic(void *);
 
+extern errno_t hr_write_direct(service_id_t, uint64_t, size_t, const void *);
+extern errno_t hr_read_direct(service_id_t, uint64_t, size_t, void *);
+extern errno_t hr_sync_cache(service_id_t, uint64_t, size_t);
+
 #endif
 
 /** @}

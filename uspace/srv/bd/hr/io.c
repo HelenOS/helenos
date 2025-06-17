@@ -46,6 +46,47 @@
 
 static errno_t exec_io_op(hr_io_t *);
 
+/** Wrapper for block_write_direct(), never returns ENOMEM */
+errno_t hr_write_direct(service_id_t service_id, uint64_t ba, size_t cnt,
+    const void *data)
+{
+	errno_t rc;
+	while ((rc = block_write_direct(service_id, ba, cnt, data)) == ENOMEM)
+		fibril_usleep(MSEC2USEC(250)); /* sleep 250ms */
+
+	if (rc == EAGAIN)
+		rc = EIO;
+
+	return rc;
+}
+
+/** Wrapper for block_read_direct(), never returns ENOMEM */
+errno_t hr_read_direct(service_id_t service_id, uint64_t ba, size_t cnt,
+    void *data)
+{
+	errno_t rc;
+	while ((rc = block_read_direct(service_id, ba, cnt, data)) == ENOMEM)
+		fibril_usleep(MSEC2USEC(250)); /* sleep 250ms */
+
+	if (rc == EAGAIN)
+		rc = EIO;
+
+	return rc;
+}
+
+/** Wrapper for block_sync_cache(), never returns ENOMEM */
+errno_t hr_sync_cache(service_id_t service_id, uint64_t ba, size_t cnt)
+{
+	errno_t rc;
+	while ((rc = block_sync_cache(service_id, ba, cnt)) == ENOMEM)
+		fibril_usleep(MSEC2USEC(250)); /* sleep 250ms */
+
+	if (rc == EAGAIN)
+		rc = EIO;
+
+	return rc;
+}
+
 errno_t hr_io_worker(void *arg)
 {
 	hr_io_t *io = arg;
