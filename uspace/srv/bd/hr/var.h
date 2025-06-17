@@ -113,7 +113,6 @@ typedef struct hr_volume {
 } hr_volume_t;
 
 typedef enum {
-	HR_BD_SYNC,
 	HR_BD_READ,
 	HR_BD_WRITE
 } hr_bd_op_type_t;

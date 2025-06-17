@@ -252,45 +252,15 @@ static errno_t hr_raid0_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 	const uint8_t *data_write = src;
 	uint8_t *data_read = dst;
 
+	if (size < cnt * vol->bsize)
+		return EINVAL;
+
 	fibril_rwlock_read_lock(&vol->states_lock);
 	if (vol->state != HR_VOL_ONLINE) {
 		fibril_rwlock_read_unlock(&vol->states_lock);
 		return EIO;
 	}
 	fibril_rwlock_read_unlock(&vol->states_lock);
-
-	/* propagate sync */
-	if (type == HR_BD_SYNC && ba == 0 && cnt == 0) {
-		hr_fgroup_t *group = hr_fgroup_create(vol->fge,
-		    vol->extent_no);
-		if (group == NULL)
-			return ENOMEM;
-
-		for (size_t i = 0; i < vol->extent_no; i++) {
-			hr_io_t *io = hr_fgroup_alloc(group);
-			io->extent = i;
-			io->ba = ba;
-			io->cnt = cnt;
-			io->type = type;
-			io->vol = vol;
-
-			hr_fgroup_submit(group, hr_io_worker, io);
-		}
-
-		size_t bad;
-		rc = hr_fgroup_wait(group, NULL, &bad);
-		if (rc == ENOMEM)
-			return ENOMEM;
-
-		if (bad > 0)
-			return EIO;
-
-		return EOK;
-	}
-
-	if (type == HR_BD_READ || type == HR_BD_WRITE)
-		if (size < cnt * vol->bsize)
-			return EINVAL;
 
 	rc = hr_check_ba_range(vol, cnt, ba);
 	if (rc != EOK)
@@ -333,10 +303,8 @@ static errno_t hr_raid0_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 		if (left == 0)
 			break;
 
-		if (type == HR_BD_READ)
-			data_read += len;
-		else if (type == HR_BD_WRITE)
-			data_write += len;
+		data_read += len;
+		data_write += len;
 
 		strip_off = 0;
 		extent++;

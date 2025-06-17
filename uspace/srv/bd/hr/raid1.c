@@ -346,9 +346,7 @@ static errno_t hr_raid1_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 	if (rc != EOK)
 		return rc;
 
-	/* allow full dev sync */
-	if (!(type == HR_BD_SYNC && ba == 0 && cnt == 0))
-		hr_add_data_offset(vol, &ba);
+	hr_add_data_offset(vol, &ba);
 
 	/*
 	 * extent order has to be locked for the whole IO duration,
