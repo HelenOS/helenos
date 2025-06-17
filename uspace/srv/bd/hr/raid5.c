@@ -179,9 +179,6 @@ void hr_raid5_ext_state_cb(hr_volume_t *vol, size_t extent, errno_t rc)
 	fibril_rwlock_write_lock(&vol->states_lock);
 
 	switch (rc) {
-	case ENOMEM:
-		hr_update_ext_state(vol, extent, HR_EXT_INVALID);
-		break;
 	case ENOENT:
 		hr_update_ext_state(vol, extent, HR_EXT_MISSING);
 		break;

@@ -523,9 +523,7 @@ void hr_range_lock_acquire_noalloc(hr_range_lock_t *rl, hr_volume_t *vol,
 hr_range_lock_t *hr_range_lock_acquire(hr_volume_t *vol, uint64_t ba,
     uint64_t cnt)
 {
-	hr_range_lock_t *rl = malloc(sizeof(hr_range_lock_t));
-	if (rl == NULL)
-		return NULL;
+	hr_range_lock_t *rl = malloc_waitok(sizeof(hr_range_lock_t));
 
 	return hr_range_lock_acquire_internal(rl, vol, ba, cnt);
 }

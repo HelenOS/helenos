@@ -173,9 +173,6 @@ void hr_raid1_ext_state_cb(hr_volume_t *vol, size_t extent, errno_t rc)
 	fibril_rwlock_write_lock(&vol->states_lock);
 
 	switch (rc) {
-	case ENOMEM:
-		hr_update_ext_state(vol, extent, HR_EXT_INVALID);
-		break;
 	case ENOENT:
 		hr_update_ext_state(vol, extent, HR_EXT_MISSING);
 		break;
@@ -371,15 +368,8 @@ static errno_t hr_raid1_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 				continue;
 			}
 
-			rc = block_read_direct(vol->extents[i].svc_id, ba, cnt,
+			rc = hr_read_direct(vol->extents[i].svc_id, ba, cnt,
 			    data_read);
-
-			if (rc == ENOMEM && i + 1 == vol->extent_no)
-				goto end;
-
-			if (rc == ENOMEM)
-				continue;
-
 			if (rc != EOK) {
 				hr_raid1_ext_state_cb(vol, i, rc);
 			} else {
@@ -388,15 +378,8 @@ static errno_t hr_raid1_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 			}
 		}
 		break;
-	case HR_BD_SYNC:
 	case HR_BD_WRITE:
-		if (type == HR_BD_WRITE) {
-			rl = hr_range_lock_acquire(vol, ba, cnt);
-			if (rl == NULL) {
-				rc = ENOMEM;
-				goto end;
-			}
-		}
+		rl = hr_range_lock_acquire(vol, ba, cnt);
 
 		fibril_rwlock_read_lock(&vol->states_lock);
 
@@ -407,13 +390,6 @@ static errno_t hr_raid1_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 		    rebuild_blk);
 
 		hr_fgroup_t *group = hr_fgroup_create(vol->fge, good);
-		if (group == NULL) {
-			if (type == HR_BD_WRITE)
-				hr_range_lock_release(rl);
-			rc = ENOMEM;
-			fibril_rwlock_read_unlock(&vol->states_lock);
-			goto end;
-		}
 
 		for (i = 0; i < vol->extent_no; i++) {
 			if (vol->extents[i].state != HR_EXT_ONLINE &&
@@ -445,13 +421,11 @@ static errno_t hr_raid1_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 
 		(void)hr_fgroup_wait(group, &successful, NULL);
 
-		if (type == HR_BD_WRITE)
-			hr_range_lock_release(rl);
+		hr_range_lock_release(rl);
 
 		break;
 	default:
-		rc = EINVAL;
-		goto end;
+		assert(0);
 	}
 
 	if (successful > 0)
@@ -459,7 +433,6 @@ static errno_t hr_raid1_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 	else
 		rc = EIO;
 
-end:
 	fibril_rwlock_read_unlock(&vol->extents_lock);
 
 	hr_raid1_vol_state_eval(vol);

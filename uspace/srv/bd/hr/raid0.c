@@ -279,8 +279,6 @@ static errno_t hr_raid0_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 	size_t span = end_strip_no - strip_no + 1;
 
 	hr_fgroup_t *group = hr_fgroup_create(vol->fge, span);
-	if (group == NULL)
-		return ENOMEM;
 
 	while (left != 0) {
 		phys_block = stripe * strip_size + strip_off;
@@ -315,9 +313,7 @@ static errno_t hr_raid0_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 	}
 
 	size_t bad;
-	rc = hr_fgroup_wait(group, NULL, &bad);
-	if (rc == ENOMEM && type == HR_BD_READ)
-		return ENOMEM;
+	(void)hr_fgroup_wait(group, NULL, &bad);
 
 	if (bad > 0)
 		return EIO;

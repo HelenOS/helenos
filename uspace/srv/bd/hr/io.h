@@ -41,7 +41,7 @@
 #include "util.h"
 
 typedef struct hr_io {
-	hr_bd_op_type_t type; /* read/write/sync */
+	hr_bd_op_type_t type; /* read/write */
 	uint64_t ba;
 	uint64_t cnt;
 	void *data_read;
@@ -66,7 +66,6 @@ extern errno_t hr_read_direct(service_id_t, uint64_t, size_t, void *);
 extern errno_t hr_sync_cache(service_id_t, uint64_t, size_t);
 
 extern errno_t hr_io_worker(void *);
-extern errno_t hr_io_worker_basic(void *);
 
 extern errno_t hr_io_raid5_basic_reader(void *);
 extern errno_t hr_io_raid5_reader(void *);
