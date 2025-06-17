@@ -303,7 +303,7 @@ static size_t hr_raid1_count_good_extents(hr_volume_t *vol, uint64_t ba,
 	for (size_t i = 0; i < vol->extent_no; i++) {
 		if (vol->extents[i].state == HR_EXT_ONLINE ||
 		    (vol->extents[i].state == HR_EXT_REBUILD &&
-		    ba < rebuild_blk)) {
+		    rebuild_blk >= ba)) {
 			count++;
 		}
 	}
@@ -419,7 +419,7 @@ static errno_t hr_raid1_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 		for (i = 0; i < vol->extent_no; i++) {
 			if (vol->extents[i].state != HR_EXT_ONLINE &&
 			    (vol->extents[i].state != HR_EXT_REBUILD ||
-			    ba >= rebuild_blk)) {
+			    ba > rebuild_blk)) {
 				/*
 				 * When the extent is being rebuilt,
 				 * we only write to the part that is already
