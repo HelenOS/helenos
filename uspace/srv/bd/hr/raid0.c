@@ -314,7 +314,7 @@ static errno_t hr_raid0_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 		phys_block = stripe * strip_size + strip_off;
 		cnt = min(left, strip_size - strip_off);
 		len = vol->bsize * cnt;
-		hr_add_ba_offset(vol, &phys_block);
+		hr_add_data_offset(vol, &phys_block);
 
 		hr_io_t *io = hr_fgroup_alloc(group);
 		io->extent = extent;
