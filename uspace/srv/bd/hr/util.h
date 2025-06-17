@@ -110,6 +110,7 @@ extern void hr_range_lock_release(hr_range_lock_t *);
 extern errno_t hr_util_try_assemble(hr_config_t *, size_t *);
 extern errno_t hr_util_add_hotspare(hr_volume_t *, service_id_t);
 extern void hr_raid5_xor(void *, const void *, size_t);
+extern errno_t hr_sync_extents(hr_volume_t *);
 
 #endif
 

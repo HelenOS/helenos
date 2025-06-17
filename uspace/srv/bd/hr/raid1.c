@@ -262,7 +262,9 @@ static errno_t hr_raid1_bd_close(bd_srv_t *bd)
 
 static errno_t hr_raid1_bd_sync_cache(bd_srv_t *bd, aoff64_t ba, size_t cnt)
 {
-	return hr_raid1_bd_op(HR_BD_SYNC, bd, ba, cnt, NULL, NULL, 0);
+	hr_volume_t *vol = bd->srvs->sarg;
+
+	return hr_sync_extents(vol);
 }
 
 static errno_t hr_raid1_bd_read_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
@@ -309,7 +311,6 @@ static size_t hr_raid1_count_good_extents(hr_volume_t *vol, uint64_t ba,
 	}
 
 	return count;
-
 }
 
 static errno_t hr_raid1_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,

@@ -353,10 +353,10 @@ static void hr_fail_extent_srv(ipc_call_t *icall)
 		return;
 	}
 
-	hr_extent_t *ext = &vol->extents[extent_idx_to_fail];
-
 	fibril_rwlock_read_lock(&vol->extents_lock);
 	fibril_rwlock_write_lock(&vol->states_lock);
+
+	hr_extent_t *ext = &vol->extents[extent_idx_to_fail];
 
 	switch (ext->state) {
 	case HR_EXT_NONE:

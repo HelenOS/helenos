@@ -1099,5 +1099,37 @@ void hr_raid5_xor(void *dst, const void *src, size_t size)
 		*d++ ^= *s++;
 }
 
+errno_t hr_sync_extents(hr_volume_t *vol)
+{
+	errno_t rc = EOK;
+
+	fibril_rwlock_read_lock(&vol->extents_lock);
+	for (size_t e = 0; e < vol->extent_no; e++) {
+		fibril_rwlock_read_lock(&vol->states_lock);
+		hr_ext_state_t s = vol->extents[e].state;
+		fibril_rwlock_read_unlock(&vol->states_lock);
+
+		service_id_t svc_id = vol->extents[e].svc_id;
+
+		if (s == HR_EXT_ONLINE || s == HR_EXT_REBUILD) {
+			errno_t rc = hr_sync_cache(svc_id, 0, 0);
+			if (rc != EOK && rc != ENOTSUP)
+				vol->hr_ops.ext_state_cb(vol, e, rc);
+		}
+	}
+	fibril_rwlock_read_unlock(&vol->extents_lock);
+
+	vol->hr_ops.vol_state_eval(vol);
+
+	fibril_rwlock_read_lock(&vol->states_lock);
+	hr_vol_state_t s = vol->state;
+	fibril_rwlock_read_unlock(&vol->states_lock);
+
+	if (s == HR_VOL_FAULTY)
+		rc = EIO;
+
+	return rc;
+}
+
 /** @}
  */

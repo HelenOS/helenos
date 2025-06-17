@@ -218,8 +218,9 @@ static errno_t hr_raid5_bd_close(bd_srv_t *bd)
 
 static errno_t hr_raid5_bd_sync_cache(bd_srv_t *bd, aoff64_t ba, size_t cnt)
 {
-	/* XXX */
-	return EOK;
+	hr_volume_t *vol = bd->srvs->sarg;
+
+	return hr_sync_extents(vol);
 }
 
 static errno_t hr_raid5_bd_read_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt,
