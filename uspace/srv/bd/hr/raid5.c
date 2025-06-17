@@ -49,23 +49,19 @@
 #include <stdlib.h>
 #include <str_error.h>
 
+#include "io.h"
+#include "parity_stripe.h"
 #include "superblock.h"
 #include "util.h"
 #include "var.h"
 
-static errno_t hr_raid5_vol_usable(hr_volume_t *);
-static ssize_t hr_raid5_get_bad_ext(hr_volume_t *);
-static errno_t hr_raid5_update_vol_state(hr_volume_t *);
-static void xor(void *, const void *, size_t);
+static void hr_raid5_vol_state_eval_forced(hr_volume_t *);
 
-static errno_t hr_raid5_read_degraded(hr_volume_t *, uint64_t, uint64_t,
-    void *, size_t);
-static errno_t hr_raid5_write(hr_volume_t *, uint64_t, uint64_t, aoff64_t,
-    const void *, size_t);
-static errno_t hr_raid5_write_parity(hr_volume_t *, uint64_t, uint64_t,
-    uint64_t, const void *, size_t);
-static errno_t hr_raid5_bd_op(hr_bd_op_type_t, bd_srv_t *, aoff64_t, size_t,
-    void *, const void *, size_t);
+static size_t hr_raid5_parity_extent(hr_level_t, hr_layout_t, size_t,
+    uint64_t);
+static size_t hr_raid5_data_extent(hr_level_t, hr_layout_t, size_t, uint64_t,
+    uint64_t);
+
 static errno_t hr_raid5_rebuild(void *);
 
 /* bdops */
@@ -103,21 +99,20 @@ errno_t hr_raid5_create(hr_volume_t *new_volume)
 		return EINVAL;
 	}
 
-	fibril_rwlock_write_lock(&new_volume->states_lock);
-
-	errno_t rc = hr_raid5_update_vol_state(new_volume);
-	if (rc != EOK) {
-		HR_NOTE("\"%s\": unusable state, not creating\n",
-		    new_volume->devname);
-		fibril_rwlock_write_unlock(&new_volume->states_lock);
-		return rc;
-	}
-
 	bd_srvs_init(&new_volume->hr_bds);
 	new_volume->hr_bds.ops = &hr_raid5_bd_ops;
 	new_volume->hr_bds.sarg = new_volume;
 
-	fibril_rwlock_write_unlock(&new_volume->states_lock);
+	hr_raid5_vol_state_eval_forced(new_volume);
+
+	fibril_rwlock_read_lock(&new_volume->states_lock);
+	hr_vol_state_t state = new_volume->state;
+	fibril_rwlock_read_unlock(&new_volume->states_lock);
+	if (state == HR_VOL_FAULTY || state == HR_VOL_NONE) {
+		HR_NOTE("\"%s\": unusable state, not creating\n",
+		    new_volume->devname);
+		return EINVAL;
+	}
 
 	return EOK;
 }
@@ -132,14 +127,10 @@ errno_t hr_raid5_init(hr_volume_t *vol)
 	if (vol->level != HR_LVL_5 && vol->level != HR_LVL_4)
 		return EINVAL;
 
-	uint64_t total_blkno = vol->truncated_blkno * vol->extent_no;
-
 	vol->data_offset = vol->meta_ops->get_data_offset();
 
-	vol->data_blkno = total_blkno;
-	/* count md blocks */
-	vol->data_blkno -= vol->meta_ops->get_size() * vol->extent_no;
-	vol->data_blkno -= vol->truncated_blkno; /* count parity */
+	uint64_t single_sz = vol->truncated_blkno - vol->meta_ops->get_size();
+	vol->data_blkno = single_sz * (vol->extent_no - 1);
 
 	vol->strip_size = HR_STRIP_SIZE;
 
@@ -153,52 +144,54 @@ errno_t hr_raid5_init(hr_volume_t *vol)
 
 void hr_raid5_vol_state_eval(hr_volume_t *vol)
 {
-	fibril_mutex_lock(&vol->lock);
-	fibril_rwlock_write_lock(&vol->states_lock);
-	(void)hr_raid5_update_vol_state(vol);
-	fibril_rwlock_write_unlock(&vol->states_lock);
-	fibril_mutex_unlock(&vol->lock);
+	HR_DEBUG("%s()", __func__);
+
+	bool exp = true;
+	if (!atomic_compare_exchange_strong(&vol->state_dirty, &exp, false))
+		return;
+
+	vol->meta_ops->inc_counter(vol);
+	(void)vol->meta_ops->save(vol, WITH_STATE_CALLBACK);
+
+	hr_raid5_vol_state_eval_forced(vol);
 }
 
 errno_t hr_raid5_add_hotspare(hr_volume_t *vol, service_id_t hotspare)
 {
 	HR_DEBUG("%s()", __func__);
 
-	fibril_mutex_lock(&vol->lock);
-
 	errno_t rc = hr_util_add_hotspare(vol, hotspare);
-	if (rc != EOK)
-		goto end;
 
-	/*
-	 * If the volume is degraded, start rebuild right away.
-	 */
-	if (vol->state == HR_VOL_DEGRADED) {
-		HR_DEBUG("hr_raid5_add_hotspare(): volume in DEGRADED state, "
-		    "spawning new rebuild fibril\n");
-		fid_t fib = fibril_create(hr_raid5_rebuild, vol);
-		if (fib == 0) {
-			fibril_mutex_unlock(&vol->hotspare_lock);
-			fibril_mutex_unlock(&vol->lock);
-			return ENOMEM;
-		}
-		fibril_start(fib);
-		fibril_detach(fib);
-	}
-
-end:
-	fibril_mutex_unlock(&vol->lock);
+	hr_raid5_vol_state_eval(vol);
 
 	return rc;
 }
 
-void hr_raid5_ext_state_cb(hr_volume_t *vol, size_t extent,
-    errno_t rc)
+void hr_raid5_ext_state_cb(hr_volume_t *vol, size_t extent, errno_t rc)
 {
-	if (rc == ENOENT)
+	HR_DEBUG("%s()", __func__);
+
+	assert(fibril_rwlock_is_locked(&vol->extents_lock));
+
+	if (rc == EOK)
+		return;
+
+	fibril_rwlock_write_lock(&vol->states_lock);
+
+	switch (rc) {
+	case ENOMEM:
+		hr_update_ext_state(vol, extent, HR_EXT_INVALID);
+		break;
+	case ENOENT:
 		hr_update_ext_state(vol, extent, HR_EXT_MISSING);
-	else if (rc != EOK)
+		break;
+	default:
 		hr_update_ext_state(vol, extent, HR_EXT_FAILED);
+	}
+
+	hr_mark_vol_state_dirty(vol);
+
+	fibril_rwlock_write_unlock(&vol->states_lock);
 }
 
 static errno_t hr_raid5_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
@@ -225,19 +218,382 @@ static errno_t hr_raid5_bd_close(bd_srv_t *bd)
 
 static errno_t hr_raid5_bd_sync_cache(bd_srv_t *bd, aoff64_t ba, size_t cnt)
 {
-	return hr_raid5_bd_op(HR_BD_SYNC, bd, ba, cnt, NULL, NULL, 0);
+	/* XXX */
+	return EOK;
 }
 
-static errno_t hr_raid5_bd_read_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
-    void *buf, size_t size)
+static errno_t hr_raid5_bd_read_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt,
+    void *data_read, size_t size)
 {
-	return hr_raid5_bd_op(HR_BD_READ, bd, ba, cnt, buf, NULL, size);
+	hr_volume_t *vol = bd->srvs->sarg;
+	errno_t rc;
+
+	if (size < cnt * vol->bsize)
+		return EINVAL;
+
+	fibril_rwlock_read_lock(&vol->states_lock);
+	hr_vol_state_t vol_state = vol->state;
+	fibril_rwlock_read_unlock(&vol->states_lock);
+
+	if (vol_state == HR_VOL_FAULTY || vol_state == HR_VOL_NONE)
+		return EIO;
+
+	rc = hr_check_ba_range(vol, cnt, ba);
+	if (rc != EOK)
+		return rc;
+
+	uint64_t strip_size = vol->strip_size / vol->bsize; /* in blocks */
+	uint64_t strip_no = ba / strip_size;
+
+	/* calculate number of stripes touched */
+	uint64_t last_ba = ba + cnt - 1;
+	uint64_t end_strip_no = last_ba / strip_size;
+	uint64_t start_stripe = strip_no / (vol->extent_no - 1);
+	uint64_t end_stripe = end_strip_no / (vol->extent_no - 1);
+	size_t stripes_cnt = end_stripe - start_stripe + 1;
+
+	hr_stripe_t *stripes = hr_create_stripes(vol, stripes_cnt, false);
+	if (stripes == NULL)
+		return ENOMEM;
+
+	/*
+	 * Pre-allocate range locks, because after group creation and
+	 * firing off IO requests there is no easy consistent ENOMEM error
+	 * path.
+	 */
+	hr_range_lock_t **rlps = malloc_waitok(stripes_cnt * sizeof(*rlps));
+	for (size_t i = 0; i < stripes_cnt; i++)
+		rlps[i] = malloc_waitok(sizeof(**rlps));
+
+	/*
+	 * extent order has to be locked for the whole IO duration,
+	 * so that workers have consistent targets
+	 */
+	fibril_rwlock_read_lock(&vol->extents_lock);
+
+	for (uint64_t s = start_stripe; s <= end_stripe; s++) {
+		uint64_t relative = s - start_stripe;
+		hr_range_lock_acquire_noalloc(rlps[relative], vol, s, 1);
+	}
+
+	uint64_t phys_block, len;
+	size_t left;
+
+	hr_layout_t layout = vol->layout;
+	hr_level_t level = vol->level;
+
+	/* parity extent */
+	size_t p_extent = hr_raid5_parity_extent(level, layout,
+	    vol->extent_no, strip_no);
+
+	uint64_t strip_off = ba % strip_size;
+
+	left = cnt;
+
+	while (left != 0) {
+		if (level == HR_LVL_5) {
+			p_extent = hr_raid5_parity_extent(level, layout,
+			    vol->extent_no, strip_no);
+		}
+
+		size_t extent = hr_raid5_data_extent(level, layout,
+		    vol->extent_no, strip_no, p_extent);
+
+		uint64_t stripe_no = strip_no / (vol->extent_no - 1);
+		size_t relative_si = stripe_no - start_stripe; /* relative stripe index */
+		hr_stripe_t *stripe = &stripes[relative_si];
+		stripe->p_extent = p_extent;
+
+		stripe->strips_touched++;
+
+		phys_block = stripe_no * strip_size + strip_off;
+		cnt = min(left, strip_size - strip_off);
+		len = vol->bsize * cnt;
+		hr_add_data_offset(vol, &phys_block);
+
+		stripe->extent_span[extent].range.start = phys_block;
+		stripe->extent_span[extent].range.end = phys_block + cnt - 1;
+		stripe->extent_span[extent].cnt = cnt;
+		stripe->extent_span[extent].data_read = data_read;
+		stripe->extent_span[extent].strip_off = strip_off;
+
+		data_read += len;
+		left -= cnt;
+		strip_off = 0;
+		strip_no++;
+	}
+
+retry:
+	size_t bad_extent = vol->extent_no;
+
+	uint64_t rebuild_pos = atomic_load_explicit(&vol->rebuild_blk,
+	    memory_order_relaxed);
+
+	fibril_rwlock_read_lock(&vol->states_lock);
+
+	for (size_t e = 0; e < vol->extent_no; e++) {
+		hr_ext_state_t s = vol->extents[e].state;
+		if ((vol->state == HR_VOL_DEGRADED && s != HR_EXT_ONLINE) ||
+		    (s == HR_EXT_REBUILD && rebuild_pos < start_stripe)) {
+			bad_extent = e;
+			break;
+		}
+	}
+
+	fibril_rwlock_read_unlock(&vol->states_lock);
+
+	for (size_t s = 0; s < stripes_cnt; s++) {
+		if (stripes[s].done)
+			continue;
+		execute_stripe(&stripes[s], bad_extent);
+	}
+
+	for (size_t s = 0; s < stripes_cnt; s++) {
+		if (stripes[s].done)
+			continue;
+		wait_for_stripe(&stripes[s]);
+	}
+
+	hr_raid5_vol_state_eval(vol);
+
+	rc = EOK;
+
+	fibril_rwlock_read_lock(&vol->states_lock);
+
+	if (vol->state == HR_VOL_FAULTY) {
+		fibril_rwlock_read_unlock(&vol->states_lock);
+		rc = EIO;
+		goto end;
+	}
+
+	fibril_rwlock_read_unlock(&vol->states_lock);
+
+	for (size_t s = 0; s < stripes_cnt; s++)
+		if (stripes[s].rc == EAGAIN)
+			goto retry;
+
+	/* all stripes are done */
+end:
+	fibril_rwlock_read_unlock(&vol->extents_lock);
+
+	for (size_t i = 0; i < stripes_cnt; i++)
+		hr_range_lock_release(rlps[i]);
+
+	hr_destroy_stripes(stripes, stripes_cnt);
+
+	return rc;
 }
 
 static errno_t hr_raid5_bd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
-    const void *data, size_t size)
+    const void *data_write, size_t size)
 {
-	return hr_raid5_bd_op(HR_BD_WRITE, bd, ba, cnt, NULL, data, size);
+	hr_volume_t *vol = bd->srvs->sarg;
+	errno_t rc;
+
+	if (size < cnt * vol->bsize)
+		return EINVAL;
+
+	fibril_rwlock_read_lock(&vol->states_lock);
+	hr_vol_state_t vol_state = vol->state;
+	fibril_rwlock_read_unlock(&vol->states_lock);
+
+	if (vol_state == HR_VOL_FAULTY || vol_state == HR_VOL_NONE)
+		return EIO;
+
+	/* increment metadata counter only on first write */
+	bool exp = false;
+	if (atomic_compare_exchange_strong(&vol->first_write, &exp, true)) {
+		vol->meta_ops->inc_counter(vol);
+		vol->meta_ops->save(vol, WITH_STATE_CALLBACK);
+	}
+
+	rc = hr_check_ba_range(vol, cnt, ba);
+	if (rc != EOK)
+		return rc;
+
+	uint64_t strip_size = vol->strip_size / vol->bsize; /* in blocks */
+	uint64_t strip_no = ba / strip_size;
+
+	/* calculate number of stripes touched */
+	uint64_t last_ba = ba + cnt - 1;
+	uint64_t end_strip_no = last_ba / strip_size;
+	uint64_t start_stripe = strip_no / (vol->extent_no - 1);
+	uint64_t end_stripe = end_strip_no / (vol->extent_no - 1);
+	size_t stripes_cnt = end_stripe - start_stripe + 1;
+
+	hr_stripe_t *stripes = hr_create_stripes(vol, stripes_cnt, true);
+	if (stripes == NULL)
+		return ENOMEM;
+
+	uint64_t stripe_size = strip_size * (vol->extent_no - 1);
+
+	for (uint64_t stripe = start_stripe; stripe <= end_stripe; stripe++) {
+		uint64_t relative_stripe = stripe - start_stripe;
+
+		uint64_t s_start = stripe * stripe_size;
+		uint64_t s_end = s_start + stripe_size - 1;
+
+		uint64_t overlap_start;
+		if (ba > s_start)
+			overlap_start = ba;
+		else
+			overlap_start = s_start;
+
+		uint64_t overlap_end;
+		if (last_ba < s_end)
+			overlap_end = last_ba;
+		else
+			overlap_end = s_end;
+
+		uint64_t start_strip_index =
+		    (overlap_start - s_start) / strip_size;
+		uint64_t end_strip_index = (overlap_end - s_start) / strip_size;
+		size_t strips_touched = end_strip_index - start_strip_index + 1;
+
+		stripes[relative_stripe].strips_touched = strips_touched;
+
+		uint64_t first_offset = (overlap_start - s_start) % strip_size;
+		uint64_t last_offset = (overlap_end - s_start) % strip_size;
+
+		size_t partials = 0;
+		if (first_offset != 0)
+			partials++;
+		if (last_offset != strip_size - 1)
+			partials++;
+		if (start_strip_index == end_strip_index && partials == 2)
+			partials = 1;
+
+		stripes[relative_stripe].strips_touched = strips_touched;
+		stripes[relative_stripe].partial_strips_touched = partials;
+
+		if (strips_touched < (vol->extent_no - 1) / 2)
+			stripes[relative_stripe].subtract = true;
+	}
+
+	/*
+	 * Pre-allocate range locks, because after group creation and
+	 * firing off IO requests there is no easy consistent ENOMEM error
+	 * path.
+	 */
+	hr_range_lock_t **rlps = malloc_waitok(stripes_cnt * sizeof(*rlps));
+	for (size_t i = 0; i < stripes_cnt; i++)
+		rlps[i] = malloc_waitok(sizeof(**rlps));
+
+	/*
+	 * extent order has to be locked for the whole IO duration,
+	 * so that workers have consistent targets
+	 */
+	fibril_rwlock_read_lock(&vol->extents_lock);
+
+	for (uint64_t s = start_stripe; s <= end_stripe; s++) {
+		uint64_t relative = s - start_stripe;
+		hr_range_lock_acquire_noalloc(rlps[relative], vol, s, 1);
+	}
+
+	uint64_t phys_block, len;
+	size_t left;
+
+	hr_layout_t layout = vol->layout;
+	hr_level_t level = vol->level;
+
+	/* parity extent */
+	size_t p_extent = hr_raid5_parity_extent(level, layout,
+	    vol->extent_no, strip_no);
+
+	uint64_t strip_off = ba % strip_size;
+
+	left = cnt;
+
+	while (left != 0) {
+		if (level == HR_LVL_5) {
+			p_extent = hr_raid5_parity_extent(level, layout,
+			    vol->extent_no, strip_no);
+		}
+
+		size_t extent = hr_raid5_data_extent(level, layout,
+		    vol->extent_no, strip_no, p_extent);
+
+		uint64_t stripe_no = strip_no / (vol->extent_no - 1);
+		size_t relative_si = stripe_no - start_stripe; /* relative stripe index */
+		hr_stripe_t *stripe = &stripes[relative_si];
+		stripe->p_extent = p_extent;
+
+		phys_block = stripe_no * strip_size + strip_off;
+		cnt = min(left, strip_size - strip_off);
+		len = vol->bsize * cnt;
+		hr_add_data_offset(vol, &phys_block);
+
+		stripe->extent_span[extent].range.start = phys_block;
+		stripe->extent_span[extent].range.end = phys_block + cnt - 1;
+		stripe->extent_span[extent].cnt = cnt;
+		stripe->extent_span[extent].data_write = data_write;
+		stripe->extent_span[extent].strip_off = strip_off;
+
+		data_write += len;
+		left -= cnt;
+		strip_off = 0;
+		strip_no++;
+	}
+
+retry:
+	size_t bad_extent = vol->extent_no;
+
+	uint64_t rebuild_pos = atomic_load_explicit(&vol->rebuild_blk,
+	    memory_order_relaxed);
+
+	fibril_rwlock_read_lock(&vol->states_lock);
+
+	for (size_t e = 0; e < vol->extent_no; e++) {
+		hr_ext_state_t s = vol->extents[e].state;
+		if ((vol->state == HR_VOL_DEGRADED && s != HR_EXT_ONLINE) ||
+		    (s == HR_EXT_REBUILD && rebuild_pos < start_stripe)) {
+			bad_extent = e;
+			break;
+		}
+	}
+
+	fibril_rwlock_read_unlock(&vol->states_lock);
+
+	for (size_t s = 0; s < stripes_cnt; s++) {
+		if (stripes[s].done)
+			continue;
+		execute_stripe(&stripes[s], bad_extent);
+	}
+
+	for (size_t s = 0; s < stripes_cnt; s++) {
+		if (stripes[s].done)
+			continue;
+		wait_for_stripe(&stripes[s]);
+	}
+
+	hr_raid5_vol_state_eval(vol);
+
+	rc = EOK;
+
+	fibril_rwlock_read_lock(&vol->states_lock);
+
+	if (vol->state == HR_VOL_FAULTY) {
+		fibril_rwlock_read_unlock(&vol->states_lock);
+		rc = EIO;
+		goto end;
+	}
+
+	fibril_rwlock_read_unlock(&vol->states_lock);
+
+	for (size_t s = 0; s < stripes_cnt; s++)
+		if (stripes[s].rc == EAGAIN)
+			goto retry;
+
+	/* all stripes are done */
+end:
+	fibril_rwlock_read_unlock(&vol->extents_lock);
+
+	for (size_t i = 0; i < stripes_cnt; i++)
+		hr_range_lock_release(rlps[i]);
+
+	hr_destroy_stripes(stripes, stripes_cnt);
+
+	return rc;
 }
 
 static errno_t hr_raid5_bd_get_block_size(bd_srv_t *bd, size_t *rsize)
@@ -256,30 +612,13 @@ static errno_t hr_raid5_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
 	return EOK;
 }
 
-static errno_t hr_raid5_vol_usable(hr_volume_t *vol)
+static void hr_raid5_vol_state_eval_forced(hr_volume_t *vol)
 {
-	if (vol->state == HR_VOL_ONLINE ||
-	    vol->state == HR_VOL_DEGRADED ||
-	    vol->state == HR_VOL_REBUILD)
-		return EOK;
-	return EIO;
-}
+	fibril_rwlock_read_lock(&vol->extents_lock);
+	fibril_rwlock_write_lock(&vol->states_lock);
 
-/*
- * Returns (-1) if all extents are online,
- * else returns index of first bad one.
- */
-static ssize_t hr_raid5_get_bad_ext(hr_volume_t *vol)
-{
-	for (size_t i = 0; i < vol->extent_no; i++)
-		if (vol->extents[i].state != HR_EXT_ONLINE)
-			return i;
-	return -1;
-}
+	hr_vol_state_t state = vol->state;
 
-static errno_t hr_raid5_update_vol_state(hr_volume_t *vol)
-{
-	hr_vol_state_t old_state = vol->state;
 	size_t bad = 0;
 	for (size_t i = 0; i < vol->extent_no; i++)
 		if (vol->extents[i].state != HR_EXT_ONLINE)
@@ -287,30 +626,36 @@ static errno_t hr_raid5_update_vol_state(hr_volume_t *vol)
 
 	switch (bad) {
 	case 0:
-		if (old_state != HR_VOL_ONLINE)
+		if (state != HR_VOL_ONLINE)
 			hr_update_vol_state(vol, HR_VOL_ONLINE);
-		return EOK;
+		break;
 	case 1:
-		if (old_state != HR_VOL_DEGRADED &&
-		    old_state != HR_VOL_REBUILD) {
-
+		if (state != HR_VOL_DEGRADED && state != HR_VOL_REBUILD)
 			hr_update_vol_state(vol, HR_VOL_DEGRADED);
 
-			if (vol->hotspare_no > 0) {
+		if (state != HR_VOL_REBUILD) {
+			/* XXX: allow REBUILD on INVALID extents */
+			fibril_mutex_lock(&vol->hotspare_lock);
+			size_t hs_no = vol->hotspare_no;
+			fibril_mutex_unlock(&vol->hotspare_lock);
+			if (hs_no > 0) {
 				fid_t fib = fibril_create(hr_raid5_rebuild,
 				    vol);
 				if (fib == 0)
-					return ENOMEM;
+					break;
 				fibril_start(fib);
 				fibril_detach(fib);
 			}
 		}
-		return EOK;
+		break;
 	default:
-		if (old_state != HR_VOL_FAULTY)
+		if (state != HR_VOL_FAULTY)
 			hr_update_vol_state(vol, HR_VOL_FAULTY);
-		return EIO;
+		break;
 	}
+
+	fibril_rwlock_write_unlock(&vol->states_lock);
+	fibril_rwlock_read_unlock(&vol->extents_lock);
 }
 
 static void xor(void *dst, const void *src, size_t size)
@@ -323,393 +668,65 @@ static void xor(void *dst, const void *src, size_t size)
 		*d++ ^= *s++;
 }
 
-static errno_t hr_raid5_read_degraded(hr_volume_t *vol, uint64_t bad,
-    uint64_t block, void *data, size_t cnt)
+static size_t hr_raid5_parity_extent(hr_level_t level,
+    hr_layout_t layout, size_t extent_no, uint64_t strip_no)
 {
-	errno_t rc;
-	size_t i;
-	void *xorbuf;
-	void *buf;
-	uint64_t len = vol->bsize * cnt;
-
-	xorbuf = malloc(len);
-	if (xorbuf == NULL)
-		return ENOMEM;
-
-	buf = malloc(len);
-	if (buf == NULL) {
-		free(xorbuf);
-		return ENOMEM;
-	}
-
-	/* read all other extents in the stripe */
-	bool first = true;
-	for (i = 0; i < vol->extent_no; i++) {
-		if (i == bad)
-			continue;
-
-		if (first) {
-			rc = block_read_direct(vol->extents[i].svc_id, block,
-			    cnt, xorbuf);
-			if (rc != EOK)
-				goto end;
-
-			first = false;
-		} else {
-			rc = block_read_direct(vol->extents[i].svc_id, block,
-			    cnt, buf);
-			if (rc != EOK)
-				goto end;
-			xor(xorbuf, buf, len);
-		}
-	}
-
-	memcpy(data, xorbuf, len);
-end:
-	free(xorbuf);
-	free(buf);
-	return rc;
-}
-
-static errno_t hr_raid5_write(hr_volume_t *vol, uint64_t p_extent,
-    uint64_t extent, aoff64_t ba, const void *data, size_t cnt)
-{
-	errno_t rc;
-	size_t i;
-	void *xorbuf;
-	void *buf;
-	uint64_t len = vol->bsize * cnt;
-
-	ssize_t bad = hr_raid5_get_bad_ext(vol);
-	if (bad == -1 || (size_t)bad == p_extent) {
-		rc = block_write_direct(vol->extents[extent].svc_id, ba, cnt,
-		    data);
-		if (rc != EOK)
-			return rc;
-		/*
-		 * DEGRADED parity - skip parity write
-		 */
-		if ((size_t)bad == p_extent)
-			return EOK;
-
-		rc = hr_raid5_write_parity(vol, p_extent, extent, ba, data,
-		    cnt);
-		return rc;
-	}
-
-	xorbuf = malloc(len);
-	if (xorbuf == NULL)
-		return ENOMEM;
-
-	buf = malloc(len);
-	if (buf == NULL) {
-		free(xorbuf);
-		return ENOMEM;
-	}
-
-	if (extent == (size_t)bad) {
-		/*
-		 * new parity = read other and xor in new data
-		 *
-		 * write new parity
-		 */
-		bool first = true;
-		for (i = 0; i < vol->extent_no; i++) {
-			if (i == (size_t)bad)
-				continue;
-			if (i == p_extent)
-				continue;
-			if (first) {
-				rc = block_read_direct(vol->extents[i].svc_id,
-				    ba, cnt, xorbuf);
-				if (rc != EOK)
-					goto end;
-
-				first = false;
-			} else {
-				rc = block_read_direct(vol->extents[i].svc_id,
-				    ba, cnt, buf);
-				if (rc != EOK)
-					goto end;
-				xor(xorbuf, buf, len);
-			}
-		}
-		xor(xorbuf, data, len);
-		rc = block_write_direct(vol->extents[p_extent].svc_id, ba, cnt,
-		    xorbuf);
-		if (rc != EOK)
-			goto end;
-	} else {
-		/*
-		 * new parity = xor original data and old parity and new data
-		 *
-		 * write parity, new data
-		 */
-		rc = block_read_direct(vol->extents[extent].svc_id, ba, cnt,
-		    xorbuf);
-		if (rc != EOK)
-			goto end;
-		rc = block_read_direct(vol->extents[p_extent].svc_id, ba, cnt,
-		    buf);
-		if (rc != EOK)
-			goto end;
-
-		xor(xorbuf, buf, len);
-
-		xor(xorbuf, data, len);
-
-		rc = block_write_direct(vol->extents[p_extent].svc_id, ba, cnt,
-		    xorbuf);
-		if (rc != EOK)
-			goto end;
-		rc = block_write_direct(vol->extents[extent].svc_id, ba, cnt,
-		    data);
-		if (rc != EOK)
-			goto end;
-	}
-end:
-	free(xorbuf);
-	free(buf);
-	return rc;
-}
-
-static errno_t hr_raid5_write_parity(hr_volume_t *vol, uint64_t p_extent,
-    uint64_t extent, uint64_t block, const void *data, size_t cnt)
-{
-	errno_t rc;
-	size_t i;
-	void *xorbuf;
-	void *buf;
-	uint64_t len = vol->bsize * cnt;
-
-	xorbuf = malloc(len);
-	if (xorbuf == NULL)
-		return ENOMEM;
-
-	buf = malloc(len);
-	if (buf == NULL) {
-		free(xorbuf);
-		return ENOMEM;
-	}
-
-	bool first = true;
-	for (i = 0; i < vol->extent_no; i++) {
-		if (i == p_extent)
-			continue;
-
-		if (first) {
-			if (i == extent) {
-				memcpy(xorbuf, data, len);
-			} else {
-				rc = block_read_direct(vol->extents[i].svc_id,
-				    block, cnt, xorbuf);
-				if (rc != EOK)
-					goto end;
-			}
-
-			first = false;
-		} else {
-			if (i == extent) {
-				xor(xorbuf, data, len);
-			} else {
-				rc = block_read_direct(vol->extents[i].svc_id,
-				    block, cnt, buf);
-				if (rc != EOK)
-					goto end;
-
-				xor(xorbuf, buf, len);
-			}
-		}
-	}
-
-	rc = block_write_direct(vol->extents[p_extent].svc_id, block, cnt,
-	    xorbuf);
-end:
-	free(xorbuf);
-	free(buf);
-	return rc;
-}
-
-static errno_t hr_raid5_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
-    size_t cnt, void *dst, const void *src, size_t size)
-{
-	hr_volume_t *vol = bd->srvs->sarg;
-	errno_t rc;
-	uint64_t phys_block, len;
-	size_t left;
-	const uint8_t *data_write = src;
-	uint8_t *data_read = dst;
-
-	/* propagate sync */
-	if (type == HR_BD_SYNC && ba == 0 && cnt == 0) {
-		hr_sync_all_extents(vol);
-		rc = hr_raid5_update_vol_state(vol);
-		return rc;
-	}
-
-	if (type == HR_BD_READ || type == HR_BD_WRITE)
-		if (size < cnt * vol->bsize)
-			return EINVAL;
-
-	rc = hr_check_ba_range(vol, cnt, ba);
-	if (rc != EOK)
-		return rc;
-
-	hr_layout_t layout = vol->layout;
-	hr_level_t level = vol->level;
-
-	uint64_t strip_size = vol->strip_size / vol->bsize; /* in blocks */
-	uint64_t stripe = (ba / strip_size); /* stripe number */
-
-	/* parity extent */
-	uint64_t p_extent;
-	if (level == HR_LVL_4 && layout == HR_LAYOUT_RAID4_0) {
-		p_extent = 0;
-	} else if (level == HR_LVL_4 && layout == HR_LAYOUT_RAID4_N) {
-		p_extent = vol->extent_no - 1;
-	} else if (level == HR_LVL_5 && layout == HR_LAYOUT_RAID5_0R) {
-		p_extent = (stripe / (vol->extent_no - 1)) % vol->extent_no;
-	} else if (level == HR_LVL_5 &&
-	    (layout == HR_LAYOUT_RAID5_NR || layout == HR_LAYOUT_RAID5_NC)) {
-		p_extent = (vol->extent_no - 1) -
-		    (stripe / (vol->extent_no - 1)) % vol->extent_no;
-	} else {
-		return EINVAL;
-	}
-
-	uint64_t extent;
-	if (level == HR_LVL_4 && layout == HR_LAYOUT_RAID4_0) {
-		extent = (stripe % (vol->extent_no - 1)) + 1;
-	} else if (level == HR_LVL_4 && layout == HR_LAYOUT_RAID4_N) {
-		extent = stripe % (vol->extent_no - 1);
-	} else if (level == HR_LVL_5 &&
-	    (layout == HR_LAYOUT_RAID5_0R || layout == HR_LAYOUT_RAID5_NR)) {
-		if ((stripe % (vol->extent_no - 1)) < p_extent)
-			extent = stripe % (vol->extent_no - 1);
-		else
-			extent = (stripe % (vol->extent_no - 1)) + 1;
-	} else if (level == HR_LVL_5 && layout == HR_LAYOUT_RAID5_NC) {
-		extent =
-		    ((stripe % (vol->extent_no - 1)) + p_extent + 1) %
-		    vol->extent_no;
-	} else {
-		return EINVAL;
-	}
-
-	uint64_t ext_stripe = stripe / (vol->extent_no - 1); /* stripe level */
-	uint64_t strip_off = ba % strip_size; /* strip offset */
-
-	fibril_mutex_lock(&vol->lock);
-
-	rc = hr_raid5_vol_usable(vol);
-	if (rc != EOK) {
-		fibril_mutex_unlock(&vol->lock);
-		return EIO;
-	}
-
-	left = cnt;
-
-	fibril_rwlock_write_lock(&vol->states_lock);
-	while (left != 0) {
-		phys_block = ext_stripe * strip_size + strip_off;
-		cnt = min(left, strip_size - strip_off);
-		len = vol->bsize * cnt;
-		hr_add_ba_offset(vol, &phys_block);
-		switch (type) {
-		case HR_BD_SYNC:
-			if (vol->extents[extent].state != HR_EXT_ONLINE)
-				break;
-			rc = block_sync_cache(vol->extents[extent].svc_id,
-			    phys_block, cnt);
-			/* allow unsupported sync */
-			if (rc == ENOTSUP)
-				rc = EOK;
-			break;
-		case HR_BD_READ:
-		retry_read:
-			ssize_t bad = hr_raid5_get_bad_ext(vol);
-			if (bad > -1 && extent == (size_t)bad) {
-				rc = hr_raid5_read_degraded(vol, bad,
-				    phys_block, data_read, cnt);
-			} else {
-				rc = block_read_direct(vol->extents[extent].svc_id,
-				    phys_block, cnt, data_read);
-			}
-			data_read += len;
-			break;
-		case HR_BD_WRITE:
-		retry_write:
-			rc = hr_raid5_write(vol, p_extent, extent, phys_block,
-			    data_write, cnt);
-			data_write += len;
-			break;
+	switch (level) {
+	case HR_LVL_4:
+		switch (layout) {
+		case HR_LAYOUT_RAID4_0:
+			return (0);
+		case HR_LAYOUT_RAID4_N:
+			return (extent_no - 1);
 		default:
-			rc = EINVAL;
-			goto error;
+			assert(0 && "invalid layout configuration");
 		}
-
-		if (rc == ENOMEM)
-			goto error;
-
-		hr_raid5_ext_state_cb(vol, extent, rc);
-
-		if (rc != EOK) {
-			rc = hr_raid5_update_vol_state(vol);
-			if (rc == EOK) {
-				/*
-				 * State changed from ONLINE -> DEGRADED,
-				 * rewind and retry
-				 */
-				if (type == HR_BD_WRITE) {
-					data_write -= len;
-					goto retry_write;
-				} else if (type == HR_BD_WRITE) {
-					data_read -= len;
-					goto retry_read;
-				}
-			} else {
-				rc = EIO;
-				goto error;
-			}
+	case HR_LVL_5:
+		switch (layout) {
+		case HR_LAYOUT_RAID5_0R:
+			return ((strip_no / (extent_no - 1)) % extent_no);
+		case HR_LAYOUT_RAID5_NR:
+		case HR_LAYOUT_RAID5_NC:
+			return ((extent_no - 1) -
+			    (strip_no / (extent_no - 1)) % extent_no);
+		default:
+			assert(0 && "invalid layout configuration");
 		}
-
-		left -= cnt;
-		strip_off = 0;
-		stripe++;
-
-		ext_stripe = stripe / (vol->extent_no - 1); /* stripe level */
-
-		if (level == HR_LVL_5 && layout == HR_LAYOUT_RAID5_0R) {
-			p_extent =
-			    (stripe / (vol->extent_no - 1)) % vol->extent_no;
-		} else if (level == HR_LVL_5 &&
-		    (layout == HR_LAYOUT_RAID5_NR || layout == HR_LAYOUT_RAID5_NC)) {
-			p_extent = (vol->extent_no - 1) -
-			    (stripe / (vol->extent_no - 1)) % vol->extent_no;
-		}
-
-		if (level == HR_LVL_4 && layout == HR_LAYOUT_RAID4_0) {
-			extent = (stripe % (vol->extent_no - 1)) + 1;
-		} else if (level == HR_LVL_4 && layout == HR_LAYOUT_RAID4_N) {
-			extent = stripe % (vol->extent_no - 1);
-		} else if (level == HR_LVL_5 &&
-		    (layout == HR_LAYOUT_RAID5_0R || layout == HR_LAYOUT_RAID5_NR)) {
-			if ((stripe % (vol->extent_no - 1)) < p_extent)
-				extent = stripe % (vol->extent_no - 1);
-			else
-				extent = (stripe % (vol->extent_no - 1)) + 1;
-		} else if (level == HR_LVL_5 && layout == HR_LAYOUT_RAID5_NC) {
-			extent =
-			    ((stripe % (vol->extent_no - 1)) + p_extent + 1) %
-			    vol->extent_no;
-		}
+	default:
+		assert(0 && "invalid layout configuration");
 	}
+}
 
-error:
-	(void)hr_raid5_update_vol_state(vol);
-	fibril_rwlock_write_unlock(&vol->states_lock);
-	fibril_mutex_unlock(&vol->lock);
-	return rc;
+static size_t hr_raid5_data_extent(hr_level_t level,
+    hr_layout_t layout, size_t extent_no, uint64_t strip_no, size_t p_extent)
+{
+	switch (level) {
+	case HR_LVL_4:
+		switch (layout) {
+		case HR_LAYOUT_RAID4_0:
+			return ((strip_no % (extent_no - 1)) + 1);
+		case HR_LAYOUT_RAID4_N:
+			return (strip_no % (extent_no - 1));
+		default:
+			assert(0 && "invalid layout configuration");
+		}
+	case HR_LVL_5:
+		switch (layout) {
+		case HR_LAYOUT_RAID5_0R:
+		case HR_LAYOUT_RAID5_NR:
+			if ((strip_no % (extent_no - 1)) < p_extent)
+				return (strip_no % (extent_no - 1));
+			else
+				return ((strip_no % (extent_no - 1)) + 1);
+		case HR_LAYOUT_RAID5_NC:
+			return (((strip_no % (extent_no - 1)) + p_extent + 1) %
+			    extent_no);
+		default:
+			assert(0 && "invalid layout configuration");
+		}
+	default:
+		assert(0 && "invalid layout configuration");
+	}
 }
 
 static errno_t hr_raid5_rebuild(void *arg)
@@ -720,7 +737,6 @@ static errno_t hr_raid5_rebuild(void *arg)
 	errno_t rc = EOK;
 	void *buf = NULL, *xorbuf = NULL;
 
-	fibril_mutex_lock(&vol->lock);
 	fibril_rwlock_read_lock(&vol->extents_lock);
 	fibril_rwlock_write_lock(&vol->states_lock);
 
@@ -784,7 +800,7 @@ static errno_t hr_raid5_rebuild(void *arg)
 	xorbuf = malloc(max_blks * vol->bsize);
 
 	uint64_t ba = 0, cnt;
-	hr_add_ba_offset(vol, &ba);
+	hr_add_data_offset(vol, &ba);
 
 	while (left != 0) {
 		cnt = min(left, max_blks);
@@ -851,20 +867,17 @@ static errno_t hr_raid5_rebuild(void *arg)
 
 	fibril_rwlock_write_unlock(&vol->states_lock);
 	fibril_rwlock_read_unlock(&vol->extents_lock);
-	fibril_mutex_unlock(&vol->lock);
 
 	rc = vol->meta_ops->save(vol, WITH_STATE_CALLBACK);
 
-	fibril_mutex_lock(&vol->lock);
 	fibril_rwlock_read_lock(&vol->extents_lock);
 	fibril_rwlock_write_lock(&vol->states_lock);
 
 end:
-	(void)hr_raid5_update_vol_state(vol);
+	hr_raid5_vol_state_eval_forced(vol);
 
 	fibril_rwlock_write_unlock(&vol->states_lock);
 	fibril_rwlock_read_unlock(&vol->extents_lock);
-	fibril_mutex_unlock(&vol->lock);
 
 	if (buf != NULL)
 		free(buf);

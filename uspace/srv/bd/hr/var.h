@@ -51,6 +51,7 @@
 
 struct hr_volume;
 typedef struct hr_volume hr_volume_t;
+typedef struct hr_stripe hr_stripe_t;
 typedef struct hr_metadata hr_metadata_t;
 typedef struct hr_superblock_ops hr_superblock_ops_t;
 
@@ -68,9 +69,9 @@ typedef struct hr_volume {
 	bd_srvs_t hr_bds; /* block interface to the vol */
 	service_id_t svc_id; /* service id */
 
-	fibril_mutex_t lock; /* XXX: gone after para */
 	list_t range_lock_list; /* list of range locks */
 	fibril_mutex_t range_lock_list_lock; /* range locks list lock */
+
 	hr_fpool_t *fge; /* fibril pool */
 
 	void *in_mem_md;

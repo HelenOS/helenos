@@ -149,7 +149,11 @@ errno_t hr_create_vol_struct(hr_volume_t **rvol, hr_level_t level,
 		goto error;
 	}
 
-	vol->fge = hr_fpool_create(16, 32, sizeof(hr_io_t));
+	if (level == HR_LVL_4 || level == HR_LVL_5)
+		vol->fge = hr_fpool_create(16, 32, sizeof(hr_io_raid5_t));
+	else
+		vol->fge = hr_fpool_create(16, 32, sizeof(hr_io_t));
+
 	if (vol->fge == NULL) {
 		rc = ENOMEM;
 		goto error;
@@ -163,8 +167,6 @@ errno_t hr_create_vol_struct(hr_volume_t **rvol, hr_level_t level,
 	}
 
 	vol->state = HR_VOL_NONE;
-
-	fibril_mutex_initialize(&vol->lock); /* XXX: will remove this */
 
 	fibril_mutex_initialize(&vol->md_lock);
 
@@ -495,34 +497,6 @@ void hr_update_hotspare_svc_id(hr_volume_t *vol, size_t hs_idx,
 	HR_NOTE("\"%s\": changing hotspare no. %zu svc_id: (%" PRIun ") -> "
 	    "(%" PRIun ")\n", vol->devname, hs_idx, old, new);
 	vol->hotspares[hs_idx].svc_id = new;
-}
-
-/*
- * Do a whole sync (ba = 0, cnt = 0) across all extents,
- * and update extent state. *For now*, the caller has to
- * update volume state after the syncs.
- *
- * TODO: add update_vol_state fcn ptr for each raid
- */
-void hr_sync_all_extents(hr_volume_t *vol)
-{
-	errno_t rc;
-
-	fibril_mutex_lock(&vol->lock);
-	for (size_t i = 0; i < vol->extent_no; i++) {
-		if (vol->extents[i].state != HR_EXT_ONLINE)
-			continue;
-		rc = block_sync_cache(vol->extents[i].svc_id, 0, 0);
-		if (rc == ENOMEM || rc == ENOTSUP)
-			continue;
-		if (rc != EOK) {
-			if (rc == ENOENT)
-				hr_update_ext_state(vol, i, HR_EXT_MISSING);
-			else if (rc != EOK)
-				hr_update_ext_state(vol, i, HR_EXT_FAILED);
-		}
-	}
-	fibril_mutex_unlock(&vol->lock);
 }
 
 size_t hr_count_extents(hr_volume_t *vol, hr_ext_state_t state)
@@ -1113,6 +1087,16 @@ errno_t hr_util_add_hotspare(hr_volume_t *vol, service_id_t hotspare)
 error:
 	fibril_mutex_unlock(&vol->hotspare_lock);
 	return rc;
+}
+
+void hr_raid5_xor(void *dst, const void *src, size_t size)
+{
+	size_t i;
+	uint64_t *d = dst;
+	const uint64_t *s = src;
+
+	for (i = 0; i < size / sizeof(uint64_t); ++i)
+		*d++ ^= *s++;
 }
 
 /** @}

@@ -36,24 +36,47 @@
 #ifndef _HR_IO_H
 #define _HR_IO_H
 
+#include "parity_stripe.h"
 #include "var.h"
+#include "util.h"
 
 typedef struct hr_io {
-	hr_bd_op_type_t type;
+	hr_bd_op_type_t type; /* read/write/sync */
 	uint64_t ba;
 	uint64_t cnt;
-	size_t extent;
 	void *data_read;
 	const void *data_write;
-	hr_volume_t *vol;
+	size_t extent; /* extent index */
+	hr_volume_t *vol; /* volume back-pointer */
 } hr_io_t;
 
-errno_t hr_io_worker(void *);
-errno_t hr_io_worker_basic(void *);
+typedef struct hr_io_raid5 {
+	uint64_t ba;
+	uint64_t cnt;
+	void *data_read;
+	const void *data_write;
+	size_t extent;
+	uint64_t strip_off; /* needed for offseting parity commits */
+	hr_stripe_t *stripe;
+	hr_volume_t *vol;
+} hr_io_raid5_t;
 
 extern errno_t hr_write_direct(service_id_t, uint64_t, size_t, const void *);
 extern errno_t hr_read_direct(service_id_t, uint64_t, size_t, void *);
 extern errno_t hr_sync_cache(service_id_t, uint64_t, size_t);
+
+extern errno_t hr_io_worker(void *);
+extern errno_t hr_io_worker_basic(void *);
+
+extern errno_t hr_io_raid5_basic_reader(void *);
+extern errno_t hr_io_raid5_reader(void *);
+extern errno_t hr_io_raid5_basic_writer(void *);
+extern errno_t hr_io_raid5_writer(void *);
+extern errno_t hr_io_raid5_noop_writer(void *);
+extern errno_t hr_io_raid5_parity_getter(void *);
+extern errno_t hr_io_raid5_subtract_writer(void *);
+extern errno_t hr_io_raid5_reconstruct_reader(void *);
+extern errno_t hr_io_raid5_parity_writer(void *);
 
 #endif
 

@@ -38,9 +38,12 @@
 #include <hr.h>
 #include <inttypes.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <str.h>
 #include <str_error.h>
 
 #include "io.h"
+#include "parity_stripe.h"
 #include "util.h"
 #include "var.h"
 
@@ -114,6 +117,210 @@ errno_t hr_io_worker_basic(void *arg)
 	return rc;
 }
 
+errno_t hr_io_raid5_basic_reader(void *arg)
+{
+	errno_t rc;
+
+	hr_io_raid5_t *io = arg;
+
+	size_t ext_idx = io->extent;
+	hr_extent_t *extents = (hr_extent_t *)&io->vol->extents;
+
+	rc = hr_read_direct(extents[ext_idx].svc_id, io->ba, io->cnt,
+	    io->data_read);
+	if (rc != EOK)
+		io->vol->hr_ops.ext_state_cb(io->vol, io->extent, rc);
+
+	return rc;
+}
+
+errno_t hr_io_raid5_reader(void *arg)
+{
+	errno_t rc;
+
+	hr_io_raid5_t *io = arg;
+	hr_stripe_t *stripe = io->stripe;
+
+	size_t ext_idx = io->extent;
+	hr_extent_t *extents = (hr_extent_t *)&io->vol->extents;
+
+	rc = hr_read_direct(extents[ext_idx].svc_id, io->ba, io->cnt,
+	    io->data_read);
+	if (rc != EOK) {
+		hr_stripe_parity_abort(stripe);
+		io->vol->hr_ops.ext_state_cb(io->vol, io->extent, rc);
+	}
+
+	hr_stripe_commit_parity(stripe, io->strip_off, io->data_read,
+	    io->cnt * io->vol->bsize);
+
+	return rc;
+}
+
+errno_t hr_io_raid5_basic_writer(void *arg)
+{
+	errno_t rc;
+
+	hr_io_raid5_t *io = arg;
+
+	size_t ext_idx = io->extent;
+	hr_extent_t *extents = (hr_extent_t *)&io->vol->extents;
+
+	rc = hr_write_direct(extents[ext_idx].svc_id, io->ba, io->cnt,
+	    io->data_write);
+	if (rc != EOK)
+		io->vol->hr_ops.ext_state_cb(io->vol, io->extent, rc);
+
+	return rc;
+}
+
+errno_t hr_io_raid5_writer(void *arg)
+{
+	errno_t rc;
+
+	hr_io_raid5_t *io = arg;
+	hr_stripe_t *stripe = io->stripe;
+
+	size_t ext_idx = io->extent;
+	hr_extent_t *extents = (hr_extent_t *)&io->vol->extents;
+
+	hr_stripe_commit_parity(stripe, io->strip_off, io->data_write,
+	    io->cnt * io->vol->bsize);
+
+	hr_stripe_wait_for_parity_commits(stripe);
+	if (stripe->abort)
+		return EAGAIN;
+
+	rc = hr_write_direct(extents[ext_idx].svc_id, io->ba, io->cnt,
+	    io->data_write);
+	if (rc != EOK)
+		io->vol->hr_ops.ext_state_cb(io->vol, io->extent, rc);
+
+	return rc;
+}
+
+errno_t hr_io_raid5_noop_writer(void *arg)
+{
+	hr_io_raid5_t *io = arg;
+	hr_stripe_t *stripe = io->stripe;
+
+	hr_stripe_commit_parity(stripe, io->strip_off, io->data_write,
+	    io->cnt * io->vol->bsize);
+
+	return EOK;
+}
+
+errno_t hr_io_raid5_parity_getter(void *arg)
+{
+	hr_io_raid5_t *io = arg;
+	hr_stripe_t *stripe = io->stripe;
+	size_t bsize = stripe->vol->bsize;
+
+	hr_stripe_wait_for_parity_commits(stripe);
+	if (stripe->abort)
+		return EAGAIN;
+
+	memcpy(io->data_read, stripe->parity + io->strip_off, io->cnt * bsize);
+
+	return EOK;
+}
+
+errno_t hr_io_raid5_subtract_writer(void *arg)
+{
+	errno_t rc;
+
+	hr_io_raid5_t *io = arg;
+	hr_stripe_t *stripe = io->stripe;
+
+	size_t ext_idx = io->extent;
+	hr_extent_t *extents = (hr_extent_t *)&io->vol->extents;
+
+	uint8_t *data = malloc_waitok(io->cnt * io->vol->bsize);
+
+	rc = hr_read_direct(extents[ext_idx].svc_id, io->ba, io->cnt, data);
+	if (rc != EOK) {
+		io->vol->hr_ops.ext_state_cb(io->vol, io->extent, rc);
+		hr_stripe_parity_abort(stripe);
+		free(data);
+		return rc;
+	}
+
+	fibril_mutex_lock(&stripe->parity_lock);
+
+	hr_raid5_xor(stripe->parity + io->strip_off, data,
+	    io->cnt * io->vol->bsize);
+
+	hr_raid5_xor(stripe->parity + io->strip_off, io->data_write,
+	    io->cnt * io->vol->bsize);
+
+	stripe->ps_added++;
+	fibril_condvar_broadcast(&stripe->ps_added_cv);
+	fibril_mutex_unlock(&stripe->parity_lock);
+
+	hr_stripe_wait_for_parity_commits(stripe);
+	if (stripe->abort)
+		return EAGAIN;
+
+	rc = hr_write_direct(extents[ext_idx].svc_id, io->ba, io->cnt,
+	    io->data_write);
+	if (rc != EOK)
+		io->vol->hr_ops.ext_state_cb(io->vol, io->extent, rc);
+
+	free(data);
+
+	return rc;
+}
+
+errno_t hr_io_raid5_reconstruct_reader(void *arg)
+{
+	errno_t rc;
+
+	hr_io_raid5_t *io = arg;
+	hr_stripe_t *stripe = io->stripe;
+
+	size_t ext_idx = io->extent;
+	hr_extent_t *extents = (hr_extent_t *)&io->vol->extents;
+
+	uint8_t *data = malloc_waitok(io->cnt * io->vol->bsize);
+
+	rc = hr_write_direct(extents[ext_idx].svc_id, io->ba, io->cnt, data);
+	if (rc != EOK) {
+		hr_stripe_parity_abort(stripe);
+		io->vol->hr_ops.ext_state_cb(io->vol, io->extent, rc);
+		free(data);
+		return rc;
+	}
+
+	hr_stripe_commit_parity(stripe, io->strip_off, data,
+	    io->cnt * io->vol->bsize);
+
+	free(data);
+
+	return EOK;
+}
+
+errno_t hr_io_raid5_parity_writer(void *arg)
+{
+	errno_t rc;
+
+	hr_io_raid5_t *io = arg;
+	hr_stripe_t *stripe = io->stripe;
+
+	hr_extent_t *extents = (hr_extent_t *)&io->vol->extents;
+
+	hr_stripe_wait_for_parity_commits(stripe);
+
+	if (stripe->abort)
+		return EAGAIN;
+
+	rc = hr_write_direct(extents[io->extent].svc_id, io->ba, io->cnt,
+	    stripe->parity + io->strip_off);
+	if (rc != EOK)
+		io->vol->hr_ops.ext_state_cb(io->vol, stripe->p_extent, rc);
+
+	return rc;
+}
+
 static errno_t exec_io_op(hr_io_t *io)
 {
 	size_t ext_idx = io->extent;
@@ -153,7 +360,7 @@ static errno_t exec_io_op(hr_io_t *io)
 		    io->cnt, io->data_write);
 		break;
 	default:
-		return EINVAL;
+		assert(0);
 	}
 
 	HR_DEBUG("WORKER (%p) rc: %s\n", io, str_error(rc));
