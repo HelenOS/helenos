@@ -207,7 +207,7 @@ static bool destroy_if(ht_link_t *link, void *arg)
 static void async_delete_port(port_t *port)
 {
 	/* Destroy interfaces */
-	hash_table_apply(&port->interface_hash_table, destroy_if, NULL);
+	hash_table_apply(&port->interface_hash_table, destroy_if, port);
 
 	hash_table_destroy(&port->interface_hash_table);
 	free(port);
