@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -116,7 +116,7 @@ errno_t ethip_iplink_init(ethip_nic_t *nic)
 		goto error;
 	}
 
-	rc = loc_service_register(ethip_srv, svc_name, &sid);
+	rc = loc_service_register(ethip_srv, svc_name, fallback_port_id, &sid);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service %s.", svc_name);
 		goto error;

@@ -571,7 +571,7 @@ error:
 /** Initialize system control service. */
 static errno_t system_srv_init(sys_srv_t *syssrv)
 {
-	port_id_t port;
+	port_id_t port = 0;
 	loc_srv_t *srv = NULL;
 	service_id_t sid = 0;
 	errno_t rc;
@@ -593,7 +593,7 @@ static errno_t system_srv_init(sys_srv_t *syssrv)
 		goto error;
 	}
 
-	rc = loc_service_register(srv, SYSTEM_DEFAULT, &sid);
+	rc = loc_service_register(srv, SYSTEM_DEFAULT, port, &sid);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR,
 		    "Failed registering service: %s.", str_error(rc));
@@ -607,7 +607,8 @@ error:
 		loc_service_unregister(srv, sid);
 	if (srv != NULL)
 		loc_server_unregister(srv);
-	// XXX destroy port
+	if (port != 0)
+		async_port_destroy(port);
 	return rc;
 }
 

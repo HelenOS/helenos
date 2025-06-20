@@ -1045,6 +1045,9 @@ errno_t ddf_fun_wait_stable(ddf_fun_t *fun)
 
 errno_t ddf_driver_main(const driver_t *drv)
 {
+	port_id_t drv_port;
+	port_id_t devman_port;
+
 	/*
 	 * Remember the driver structure - driver_ops will be called by generic
 	 * handler for incoming connections.
@@ -1055,18 +1058,18 @@ errno_t ddf_driver_main(const driver_t *drv)
 	 * Register driver with device manager using generic handler for
 	 * incoming connections.
 	 */
-	port_id_t port;
-	errno_t rc = async_create_port(INTERFACE_DDF_DRIVER, driver_connection_driver,
-	    NULL, &port);
+	errno_t rc = async_create_port(INTERFACE_DDF_DRIVER,
+	    driver_connection_driver, NULL, &drv_port);
 	if (rc != EOK) {
 		printf("Error: Failed to create driver port.\n");
 		return rc;
 	}
 
 	rc = async_create_port(INTERFACE_DDF_DEVMAN, driver_connection_devman,
-	    NULL, &port);
+	    NULL, &devman_port);
 	if (rc != EOK) {
 		printf("Error: Failed to create devman port.\n");
+		async_port_destroy(drv_port);
 		return rc;
 	}
 
@@ -1077,7 +1080,8 @@ errno_t ddf_driver_main(const driver_t *drv)
 		printf("Error: Failed to register driver with device manager "
 		    "(%s).\n", (rc == EEXIST) ? "driver already started" :
 		    str_error(rc));
-
+		async_port_destroy(devman_port);
+		async_port_destroy(drv_port);
 		return rc;
 	}
 
@@ -1085,6 +1089,9 @@ errno_t ddf_driver_main(const driver_t *drv)
 	rc = task_retval(0);
 	if (rc != EOK) {
 		printf("Error: Failed returning task value.\n");
+		// XXX devman_driver_unregister
+		async_port_destroy(devman_port);
+		async_port_destroy(drv_port);
 		return rc;
 	}
 

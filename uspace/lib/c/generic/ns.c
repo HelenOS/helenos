@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
@@ -67,12 +68,16 @@ errno_t service_register(service_t service, iface_t iface,
 	async_exchange_end(exch);
 
 	if (rc != EOK) {
+		async_port_destroy(port);
 		async_forget(req);
 		return rc;
 	}
 
 	errno_t retval;
 	async_wait_for(req, &retval);
+
+	if (rc != EOK)
+		async_port_destroy(port);
 	return rc;
 }
 

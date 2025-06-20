@@ -196,6 +196,23 @@ static port_t *async_new_port(void)
 	return port;
 }
 
+static bool destroy_if(ht_link_t *link, void *arg)
+{
+	port_t *port = (port_t *)arg;
+
+	hash_table_remove_item(&port->interface_hash_table, link);
+	return false;
+}
+
+static void async_delete_port(port_t *port)
+{
+	/* Destroy interfaces */
+	hash_table_apply(&port->interface_hash_table, destroy_if, NULL);
+
+	hash_table_destroy(&port->interface_hash_table);
+	free(port);
+}
+
 errno_t async_create_port_internal(iface_t iface, async_port_handler_t handler,
     void *data, port_id_t *port_id)
 {
@@ -211,12 +228,34 @@ errno_t async_create_port_internal(iface_t iface, async_port_handler_t handler,
 
 	interface = async_new_interface(port, iface, handler, data);
 	if (interface == NULL) {
-		// XXX delete port
+		async_delete_port(port);
 		fibril_rmutex_unlock(&port_mutex);
 		return ENOMEM;
 	}
 
 	*port_id = port->id;
+	fibril_rmutex_unlock(&port_mutex);
+	return EOK;
+}
+
+errno_t async_port_create_interface(port_id_t port_id, iface_t iface,
+    async_port_handler_t handler, void *data)
+{
+	ht_link_t *link;
+	port_t *port;
+	interface_t *interface;
+
+	fibril_rmutex_lock(&port_mutex);
+	link = hash_table_find(&port_hash_table, &port_id);
+	assert(link != NULL);
+	port = hash_table_get_inst(link, port_t, link);
+
+	interface = async_new_interface(port, iface, handler, data);
+	if (interface == NULL) {
+		fibril_rmutex_unlock(&port_mutex);
+		return ENOMEM;
+	}
+
 	fibril_rmutex_unlock(&port_mutex);
 	return EOK;
 }
@@ -303,6 +342,19 @@ async_port_handler_t async_get_interface_handler(iface_t iface,
 	}
 
 	return handler;
+}
+
+void async_port_destroy(port_id_t port_id)
+{
+	ht_link_t *link;
+	port_t *port;
+
+	fibril_rmutex_lock(&port_mutex);
+	link = hash_table_find(&port_hash_table, &port_id);
+	assert(link != NULL);
+	port = hash_table_get_inst(link, port_t, link);
+	async_delete_port(port);
+	fibril_rmutex_unlock(&port_mutex);
 }
 
 /** Initialize the async framework ports.

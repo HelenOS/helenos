@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -193,7 +193,8 @@ PCUT_TEST(open_close)
 	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -223,7 +224,8 @@ PCUT_TEST(window_create_failure)
 	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -281,7 +283,8 @@ PCUT_TEST(window_create_destroy_success)
 	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -338,7 +341,8 @@ PCUT_TEST(window_destroy_failure)
 	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -401,7 +405,8 @@ PCUT_TEST(window_move_req_failure)
 	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -461,7 +466,8 @@ PCUT_TEST(window_move_req_success)
 	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -520,7 +526,8 @@ PCUT_TEST(window_move_failure)
 	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -576,7 +583,8 @@ PCUT_TEST(window_move_success)
 	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -632,7 +640,8 @@ PCUT_TEST(window_get_pos_failure)
 	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -689,7 +698,8 @@ PCUT_TEST(window_get_pos_success)
 	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -748,7 +758,8 @@ PCUT_TEST(window_get_max_rect_failure)
 	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -809,7 +820,8 @@ PCUT_TEST(window_get_max_rect_success)
 	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -876,7 +888,8 @@ PCUT_TEST(window_resize_req_failure)
 	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -939,7 +952,8 @@ PCUT_TEST(window_resize_req_success)
 	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -1001,7 +1015,8 @@ PCUT_TEST(window_resize_failure)
 	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -1066,7 +1081,8 @@ PCUT_TEST(window_resize_success)
 	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -1128,7 +1144,8 @@ PCUT_TEST(window_minimize_failure)
 	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -1178,7 +1195,8 @@ PCUT_TEST(window_minimize_success)
 	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -1228,7 +1246,8 @@ PCUT_TEST(window_maximize_failure)
 	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -1278,7 +1297,8 @@ PCUT_TEST(window_maximize_success)
 	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -1328,7 +1348,8 @@ PCUT_TEST(window_set_cursor_failure)
 	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -1380,7 +1401,8 @@ PCUT_TEST(window_set_cursor_success)
 	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -1433,7 +1455,8 @@ PCUT_TEST(window_set_caption_failure)
 	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -1489,7 +1512,8 @@ PCUT_TEST(window_set_caption_success)
 	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -1545,7 +1569,8 @@ PCUT_TEST(window_get_gc_failure)
 	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -1600,7 +1625,8 @@ PCUT_TEST(window_get_gc_success)
 	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -1661,7 +1687,8 @@ PCUT_TEST(close_event_deliver)
 	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -1728,7 +1755,8 @@ PCUT_TEST(focus_event_deliver)
 	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -1798,7 +1826,8 @@ PCUT_TEST(kbd_event_deliver)
 	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -1877,7 +1906,8 @@ PCUT_TEST(pos_event_deliver)
 	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -1956,7 +1986,8 @@ PCUT_TEST(unfocus_event_deliver)
 	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -2025,7 +2056,8 @@ PCUT_TEST(get_info_failure)
 	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -2061,7 +2093,8 @@ PCUT_TEST(get_info_success)
 	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);

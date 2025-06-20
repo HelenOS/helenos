@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -360,7 +360,8 @@ int main(int argc, char *argv[])
 		return rc;
 	}
 
-	rc = loc_service_register(srv, SERVICE_NAME_IPC_TEST, &svc_id);
+	rc = loc_service_register(srv, SERVICE_NAME_IPC_TEST, fallback_port_id,
+	    &svc_id);
 	if (rc != EOK) {
 		loc_server_unregister(srv);
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service. (%s)\n",

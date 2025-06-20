@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -73,7 +73,8 @@ static errno_t vbds_init(void)
 		return EEXIST;
 	}
 
-	rc = loc_service_register(vbds_srv, SERVICE_NAME_VBD, &ctl_sid);
+	rc = loc_service_register(vbds_srv, SERVICE_NAME_VBD,
+	    fallback_port_id, &ctl_sid);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service: %s.", str_error(rc));
 		return EEXIST;

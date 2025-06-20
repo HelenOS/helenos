@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2012 Vojtech Horky
  * All rights reserved.
  *
@@ -756,7 +756,7 @@ static void remcons_new_conn(tcp_listener_t *lst, tcp_conn_t *conn)
 	telnet_user_add(user);
 
 	errno_t rc = loc_service_register(remcons_srv, user->service_name,
-	    &user->service_id);
+	    fallback_port_id, &user->service_id);
 	if (rc != EOK) {
 		telnet_user_error(user, "Unable to register %s with loc: %s.",
 		    user->service_name, str_error(rc));

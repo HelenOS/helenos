@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -127,7 +127,7 @@ PCUT_TEST(set_clip_rect_failure)
 	rc = loc_server_register(test_ipcgfx_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_ipcgfx_svc, &sid);
+	rc = loc_service_register(srv, test_ipcgfx_svc, fallback_port_id, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	sess = loc_service_connect(sid, INTERFACE_GC, 0);
@@ -179,7 +179,7 @@ PCUT_TEST(set_clip_rect_success)
 	rc = loc_server_register(test_ipcgfx_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_ipcgfx_svc, &sid);
+	rc = loc_service_register(srv, test_ipcgfx_svc, fallback_port_id, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	sess = loc_service_connect(sid, INTERFACE_GC, 0);
@@ -231,7 +231,7 @@ PCUT_TEST(set_clip_rect_null_success)
 	rc = loc_server_register(test_ipcgfx_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_ipcgfx_svc, &sid);
+	rc = loc_service_register(srv, test_ipcgfx_svc, fallback_port_id, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	sess = loc_service_connect(sid, INTERFACE_GC, 0);
@@ -277,7 +277,7 @@ PCUT_TEST(set_color_failure)
 	rc = loc_server_register(test_ipcgfx_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_ipcgfx_svc, &sid);
+	rc = loc_service_register(srv, test_ipcgfx_svc, fallback_port_id, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	sess = loc_service_connect(sid, INTERFACE_GC, 0);
@@ -329,7 +329,7 @@ PCUT_TEST(set_color_success)
 	rc = loc_server_register(test_ipcgfx_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_ipcgfx_svc, &sid);
+	rc = loc_service_register(srv, test_ipcgfx_svc, fallback_port_id, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	sess = loc_service_connect(sid, INTERFACE_GC, 0);
@@ -381,7 +381,7 @@ PCUT_TEST(fill_rect_failure)
 	rc = loc_server_register(test_ipcgfx_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_ipcgfx_svc, &sid);
+	rc = loc_service_register(srv, test_ipcgfx_svc, fallback_port_id, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	sess = loc_service_connect(sid, INTERFACE_GC, 0);
@@ -433,7 +433,7 @@ PCUT_TEST(fill_rect_success)
 	rc = loc_server_register(test_ipcgfx_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_ipcgfx_svc, &sid);
+	rc = loc_service_register(srv, test_ipcgfx_svc, fallback_port_id, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	sess = loc_service_connect(sid, INTERFACE_GC, 0);
@@ -484,7 +484,7 @@ PCUT_TEST(update_failure)
 	rc = loc_server_register(test_ipcgfx_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_ipcgfx_svc, &sid);
+	rc = loc_service_register(srv, test_ipcgfx_svc, fallback_port_id, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	sess = loc_service_connect(sid, INTERFACE_GC, 0);
@@ -527,7 +527,7 @@ PCUT_TEST(update_success)
 	rc = loc_server_register(test_ipcgfx_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_ipcgfx_svc, &sid);
+	rc = loc_service_register(srv, test_ipcgfx_svc, fallback_port_id, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	sess = loc_service_connect(sid, INTERFACE_GC, 0);
@@ -572,7 +572,7 @@ PCUT_TEST(bitmap_create_failure)
 	rc = loc_server_register(test_ipcgfx_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_ipcgfx_svc, &sid);
+	rc = loc_service_register(srv, test_ipcgfx_svc, fallback_port_id, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	sess = loc_service_connect(sid, INTERFACE_GC, 0);
@@ -633,7 +633,7 @@ PCUT_TEST(bitmap_create_destroy_success)
 	rc = loc_server_register(test_ipcgfx_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_ipcgfx_svc, &sid);
+	rc = loc_service_register(srv, test_ipcgfx_svc, fallback_port_id, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	sess = loc_service_connect(sid, INTERFACE_GC, 0);
@@ -699,7 +699,7 @@ PCUT_TEST(bitmap_destroy_failure)
 	rc = loc_server_register(test_ipcgfx_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_ipcgfx_svc, &sid);
+	rc = loc_service_register(srv, test_ipcgfx_svc, fallback_port_id, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	sess = loc_service_connect(sid, INTERFACE_GC, 0);
@@ -754,7 +754,7 @@ PCUT_TEST(bitmap_create_dout_failure)
 	rc = loc_server_register(test_ipcgfx_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_ipcgfx_svc, &sid);
+	rc = loc_service_register(srv, test_ipcgfx_svc, fallback_port_id, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	sess = loc_service_connect(sid, INTERFACE_GC, 0);
@@ -816,7 +816,7 @@ PCUT_TEST(bitmap_create_dout_success)
 	rc = loc_server_register(test_ipcgfx_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_ipcgfx_svc, &sid);
+	rc = loc_service_register(srv, test_ipcgfx_svc, fallback_port_id, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	sess = loc_service_connect(sid, INTERFACE_GC, 0);
@@ -885,7 +885,7 @@ PCUT_TEST(bitmap_render_failure)
 	rc = loc_server_register(test_ipcgfx_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_ipcgfx_svc, &sid);
+	rc = loc_service_register(srv, test_ipcgfx_svc, fallback_port_id, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	sess = loc_service_connect(sid, INTERFACE_GC, 0);
@@ -955,7 +955,7 @@ PCUT_TEST(bitmap_render_success)
 	rc = loc_server_register(test_ipcgfx_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_ipcgfx_svc, &sid);
+	rc = loc_service_register(srv, test_ipcgfx_svc, fallback_port_id, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	sess = loc_service_connect(sid, INTERFACE_GC, 0);
@@ -1024,7 +1024,7 @@ PCUT_TEST(bitmap_get_alloc)
 	rc = loc_server_register(test_ipcgfx_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_ipcgfx_svc, &sid);
+	rc = loc_service_register(srv, test_ipcgfx_svc, fallback_port_id, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	sess = loc_service_connect(sid, INTERFACE_GC, 0);

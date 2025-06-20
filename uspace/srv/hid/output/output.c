@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
@@ -487,7 +487,7 @@ int main(int argc, char *argv[])
 	}
 
 	service_id_t service_id;
-	rc = loc_service_register(srv, argv[1], &service_id);
+	rc = loc_service_register(srv, argv[1], fallback_port_id, &service_id);
 	if (rc != EOK) {
 		loc_server_unregister(srv);
 

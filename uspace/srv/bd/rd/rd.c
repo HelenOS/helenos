@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2007 Michal Konopa
  * Copyright (c) 2007 Martin Jelen
  * Copyright (c) 2007 Peter Majer
@@ -186,7 +186,8 @@ static bool rd_init(void)
 	}
 
 	service_id_t service_id;
-	ret = loc_service_register(srv, "bd/initrd", &service_id);
+	ret = loc_service_register(srv, "bd/initrd", fallback_port_id,
+	    &service_id);
 	if (ret != EOK) {
 		printf("%s: Unable to register device service\n", NAME);
 		return false;

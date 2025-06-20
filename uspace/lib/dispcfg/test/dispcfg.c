@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -59,7 +59,8 @@ PCUT_TEST(open_close)
 	rc = loc_server_register(test_dispcfg_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_dispcfg_svc, &sid);
+	rc = loc_service_register(srv, test_dispcfg_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = dispcfg_open(test_dispcfg_svc, NULL, NULL, &dispcfg);
@@ -88,7 +89,8 @@ PCUT_TEST(get_seat_list_failure)
 	rc = loc_server_register(test_dispcfg_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_dispcfg_svc, &sid);
+	rc = loc_service_register(srv, test_dispcfg_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = dispcfg_open(test_dispcfg_svc, NULL, NULL, &dispcfg);
@@ -124,7 +126,8 @@ PCUT_TEST(get_seat_list_success)
 	rc = loc_server_register(test_dispcfg_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_dispcfg_svc, &sid);
+	rc = loc_service_register(srv, test_dispcfg_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = dispcfg_open(test_dispcfg_svc, NULL, NULL, &dispcfg);
@@ -173,7 +176,8 @@ PCUT_TEST(get_seat_info_failure)
 	rc = loc_server_register(test_dispcfg_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_dispcfg_svc, &sid);
+	rc = loc_service_register(srv, test_dispcfg_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = dispcfg_open(test_dispcfg_svc, NULL, NULL, &dispcfg);
@@ -212,7 +216,8 @@ PCUT_TEST(get_seat_info_success)
 	rc = loc_server_register(test_dispcfg_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_dispcfg_svc, &sid);
+	rc = loc_service_register(srv, test_dispcfg_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = dispcfg_open(test_dispcfg_svc, NULL, NULL, &dispcfg);
@@ -257,7 +262,8 @@ PCUT_TEST(seat_create_failure)
 	rc = loc_server_register(test_dispcfg_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_dispcfg_svc, &sid);
+	rc = loc_service_register(srv, test_dispcfg_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = dispcfg_open(test_dispcfg_svc, NULL, NULL, &dispcfg);
@@ -297,7 +303,8 @@ PCUT_TEST(seat_create_success)
 	rc = loc_server_register(test_dispcfg_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_dispcfg_svc, &sid);
+	rc = loc_service_register(srv, test_dispcfg_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = dispcfg_open(test_dispcfg_svc, NULL, NULL, &dispcfg);
@@ -337,7 +344,8 @@ PCUT_TEST(seat_delete_failure)
 	rc = loc_server_register(test_dispcfg_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_dispcfg_svc, &sid);
+	rc = loc_service_register(srv, test_dispcfg_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = dispcfg_open(test_dispcfg_svc, NULL, NULL, &dispcfg);
@@ -375,7 +383,8 @@ PCUT_TEST(seat_delete_success)
 	rc = loc_server_register(test_dispcfg_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_dispcfg_svc, &sid);
+	rc = loc_service_register(srv, test_dispcfg_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = dispcfg_open(test_dispcfg_svc, NULL, NULL, &dispcfg);
@@ -414,7 +423,8 @@ PCUT_TEST(dev_assign_failure)
 	rc = loc_server_register(test_dispcfg_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_dispcfg_svc, &sid);
+	rc = loc_service_register(srv, test_dispcfg_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = dispcfg_open(test_dispcfg_svc, NULL, NULL, &dispcfg);
@@ -455,7 +465,8 @@ PCUT_TEST(dev_assign_success)
 	rc = loc_server_register(test_dispcfg_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_dispcfg_svc, &sid);
+	rc = loc_service_register(srv, test_dispcfg_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = dispcfg_open(test_dispcfg_svc, NULL, NULL, &dispcfg);
@@ -495,7 +506,8 @@ PCUT_TEST(dev_unassign_failure)
 	rc = loc_server_register(test_dispcfg_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_dispcfg_svc, &sid);
+	rc = loc_service_register(srv, test_dispcfg_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = dispcfg_open(test_dispcfg_svc, NULL, NULL, &dispcfg);
@@ -533,7 +545,8 @@ PCUT_TEST(dev_unassign_success)
 	rc = loc_server_register(test_dispcfg_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_dispcfg_svc, &sid);
+	rc = loc_service_register(srv, test_dispcfg_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = dispcfg_open(test_dispcfg_svc, NULL, NULL, &dispcfg);
@@ -572,7 +585,8 @@ PCUT_TEST(get_asgn_dev_list_failure)
 	rc = loc_server_register(test_dispcfg_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_dispcfg_svc, &sid);
+	rc = loc_service_register(srv, test_dispcfg_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = dispcfg_open(test_dispcfg_svc, NULL, NULL, &dispcfg);
@@ -611,7 +625,8 @@ PCUT_TEST(get_asgn_dev_list_success)
 	rc = loc_server_register(test_dispcfg_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_dispcfg_svc, &sid);
+	rc = loc_service_register(srv, test_dispcfg_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = dispcfg_open(test_dispcfg_svc, NULL, NULL, &dispcfg);
@@ -660,7 +675,8 @@ PCUT_TEST(seat_added_deliver)
 	rc = loc_server_register(test_dispcfg_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_dispcfg_svc, &sid);
+	rc = loc_service_register(srv, test_dispcfg_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = dispcfg_open(test_dispcfg_svc, &test_dispcfg_cb, &resp, &dispcfg);
@@ -709,7 +725,8 @@ PCUT_TEST(seat_removed_deliver)
 	rc = loc_server_register(test_dispcfg_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_dispcfg_svc, &sid);
+	rc = loc_service_register(srv, test_dispcfg_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = dispcfg_open(test_dispcfg_svc, &test_dispcfg_cb, &resp, &dispcfg);

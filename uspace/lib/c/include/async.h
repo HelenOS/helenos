@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
@@ -98,6 +99,10 @@ typedef enum {
 	EXCHANGE_PARALLEL = 2
 } exch_mgmt_t;
 
+enum {
+	fallback_port_id = 0
+};
+
 /** Forward declarations */
 struct async_exch;
 struct async_sess;
@@ -133,6 +138,9 @@ extern void async_put_client_data_by_id(task_id_t);
 
 extern errno_t async_create_port(iface_t, async_port_handler_t, void *,
     port_id_t *);
+extern void async_port_destroy(port_id_t);
+extern errno_t async_port_create_interface(port_id_t, iface_t,
+    async_port_handler_t, void *);
 extern void async_set_fallback_port_handler(async_port_handler_t, void *);
 extern errno_t async_create_callback_port(async_exch_t *, iface_t, sysarg_t,
     sysarg_t, async_port_handler_t, void *, port_id_t *);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2013 Jakub Jermar
  * All rights reserved.
  *
@@ -377,7 +377,7 @@ static errno_t slip_init(const char *svcstr, const char *linkstr)
 		return ENOENT;
 	}
 
-	rc = loc_service_register(srv, linkstr, &linksid);
+	rc = loc_service_register(srv, linkstr, fallback_port_id, &linksid);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR,
 		    "Failed to register service %s",

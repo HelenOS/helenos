@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2012 Petr Koupy
  * All rights reserved.
  *
@@ -1114,7 +1114,7 @@ errno_t terminal_create(const char *display_spec, sysarg_t width,
 	snprintf(vc, LOC_NAME_MAXLEN, "%s/%" PRIu64, NAMESPACE,
 	    task_get_id());
 
-	rc = loc_service_register(term->srv, vc, &term->dsid);
+	rc = loc_service_register(term->srv, vc, fallback_port_id, &term->dsid);
 	if (rc != EOK) {
 		printf("Error registering service.\n");
 		rc = EIO;

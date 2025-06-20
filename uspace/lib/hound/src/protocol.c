@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2012 Jan Vesely
  * All rights reserved.
  *
@@ -745,7 +745,8 @@ errno_t hound_server_register(const char *name, service_id_t *id)
 	if (rc != EOK)
 		return rc;
 
-	rc = loc_service_register(hound_srv, HOUND_SERVICE, id);
+	rc = loc_service_register(hound_srv, HOUND_SERVICE,
+	    fallback_port_id, id);
 	if (rc != EOK) {
 		loc_server_unregister(hound_srv);
 		return rc;

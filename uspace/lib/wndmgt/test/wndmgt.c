@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -124,7 +124,7 @@ PCUT_TEST(open_close)
 	rc = loc_server_register(test_wndmgt_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_wndmgt_svc, &sid);
+	rc = loc_service_register(srv, test_wndmgt_svc, fallback_port_id, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = wndmgt_open(test_wndmgt_svc, NULL, NULL, &wndmgt);
@@ -153,7 +153,7 @@ PCUT_TEST(get_window_list_failure)
 	rc = loc_server_register(test_wndmgt_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_wndmgt_svc, &sid);
+	rc = loc_service_register(srv, test_wndmgt_svc, fallback_port_id, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = wndmgt_open(test_wndmgt_svc, NULL, NULL, &wndmgt);
@@ -189,7 +189,7 @@ PCUT_TEST(get_window_list_success)
 	rc = loc_server_register(test_wndmgt_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_wndmgt_svc, &sid);
+	rc = loc_service_register(srv, test_wndmgt_svc, fallback_port_id, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = wndmgt_open(test_wndmgt_svc, NULL, NULL, &wndmgt);
@@ -238,7 +238,7 @@ PCUT_TEST(get_window_info_failure)
 	rc = loc_server_register(test_wndmgt_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_wndmgt_svc, &sid);
+	rc = loc_service_register(srv, test_wndmgt_svc, fallback_port_id, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = wndmgt_open(test_wndmgt_svc, NULL, NULL, &wndmgt);
@@ -277,7 +277,7 @@ PCUT_TEST(get_window_info_success)
 	rc = loc_server_register(test_wndmgt_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_wndmgt_svc, &sid);
+	rc = loc_service_register(srv, test_wndmgt_svc, fallback_port_id, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = wndmgt_open(test_wndmgt_svc, NULL, NULL, &wndmgt);
@@ -327,7 +327,7 @@ PCUT_TEST(activate_window_failure)
 	rc = loc_server_register(test_wndmgt_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_wndmgt_svc, &sid);
+	rc = loc_service_register(srv, test_wndmgt_svc, fallback_port_id, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = wndmgt_open(test_wndmgt_svc, NULL, NULL, &wndmgt);
@@ -368,7 +368,7 @@ PCUT_TEST(activate_window_success)
 	rc = loc_server_register(test_wndmgt_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_wndmgt_svc, &sid);
+	rc = loc_service_register(srv, test_wndmgt_svc, fallback_port_id, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = wndmgt_open(test_wndmgt_svc, NULL, NULL, &wndmgt);
@@ -408,7 +408,7 @@ PCUT_TEST(close_window_failure)
 	rc = loc_server_register(test_wndmgt_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_wndmgt_svc, &sid);
+	rc = loc_service_register(srv, test_wndmgt_svc, fallback_port_id, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = wndmgt_open(test_wndmgt_svc, NULL, NULL, &wndmgt);
@@ -446,7 +446,7 @@ PCUT_TEST(close_window_success)
 	rc = loc_server_register(test_wndmgt_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_wndmgt_svc, &sid);
+	rc = loc_service_register(srv, test_wndmgt_svc, fallback_port_id, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = wndmgt_open(test_wndmgt_svc, NULL, NULL, &wndmgt);
@@ -483,7 +483,7 @@ PCUT_TEST(window_added_deliver)
 	rc = loc_server_register(test_wndmgt_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_wndmgt_svc, &sid);
+	rc = loc_service_register(srv, test_wndmgt_svc, fallback_port_id, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = wndmgt_open(test_wndmgt_svc, &test_wndmgt_cb, &resp, &wndmgt);
@@ -532,7 +532,7 @@ PCUT_TEST(window_removed_deliver)
 	rc = loc_server_register(test_wndmgt_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_wndmgt_svc, &sid);
+	rc = loc_service_register(srv, test_wndmgt_svc, fallback_port_id, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = wndmgt_open(test_wndmgt_svc, &test_wndmgt_cb, &resp, &wndmgt);
@@ -581,7 +581,7 @@ PCUT_TEST(window_changed_deliver)
 	rc = loc_server_register(test_wndmgt_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_wndmgt_svc, &sid);
+	rc = loc_service_register(srv, test_wndmgt_svc, fallback_port_id, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = wndmgt_open(test_wndmgt_svc, &test_wndmgt_cb, &resp, &wndmgt);

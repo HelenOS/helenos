@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2006 Josef Cejka
  * All rights reserved.
  *
@@ -908,7 +908,7 @@ int main(int argc, char **argv)
 	}
 
 	service_id_t service_id;
-	rc = loc_service_register(srv, argv[1], &service_id);
+	rc = loc_service_register(srv, argv[1], fallback_port_id, &service_id);
 	if (rc != EOK) {
 		printf("%s: Unable to register service %s\n", NAME, argv[1]);
 		return rc;

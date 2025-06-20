@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -638,7 +638,7 @@ errno_t tbarcfg_listener_create(const char *nchan, void (*cb)(void *),
 	task_id_t taskid;
 	char *svcname = NULL;
 	category_id_t catid;
-	port_id_t port;
+	port_id_t port = 0;
 	int rv;
 	errno_t rc;
 
@@ -666,7 +666,7 @@ errno_t tbarcfg_listener_create(const char *nchan, void (*cb)(void *),
 		goto error;
 	}
 
-	rc = loc_service_register(srv, svcname, &svcid);
+	rc = loc_service_register(srv, svcname, port, &svcid);
 	if (rc != EOK)
 		goto error;
 
@@ -687,6 +687,8 @@ error:
 		loc_server_unregister(srv);
 	if (svcname != NULL)
 		free(svcname);
+	if (port != 0)
+		async_port_destroy(port);
 	return rc;
 }
 

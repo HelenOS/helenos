@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -85,7 +85,7 @@ PCUT_TEST(open_close)
 	rc = loc_server_register(test_ddev_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_ddev_svc, &sid);
+	rc = loc_service_register(srv, test_ddev_svc, fallback_port_id, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ddev_open(test_ddev_svc, &ddev);
@@ -114,7 +114,7 @@ PCUT_TEST(dev_get_gc_failure)
 	rc = loc_server_register(test_ddev_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_ddev_svc, &sid);
+	rc = loc_service_register(srv, test_ddev_svc, fallback_port_id, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ddev_open(test_ddev_svc, &ddev);
@@ -150,7 +150,7 @@ PCUT_TEST(dev_get_gc_success)
 	rc = loc_server_register(test_ddev_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_ddev_svc, &sid);
+	rc = loc_service_register(srv, test_ddev_svc, fallback_port_id, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ddev_open(test_ddev_svc, &ddev);
@@ -195,7 +195,7 @@ PCUT_TEST(dev_get_info_failure)
 	rc = loc_server_register(test_ddev_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_ddev_svc, &sid);
+	rc = loc_service_register(srv, test_ddev_svc, fallback_port_id, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ddev_open(test_ddev_svc, &ddev);
@@ -228,7 +228,7 @@ PCUT_TEST(dev_get_info_success)
 	rc = loc_server_register(test_ddev_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_ddev_svc, &sid);
+	rc = loc_service_register(srv, test_ddev_svc, fallback_port_id, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ddev_open(test_ddev_svc, &ddev);

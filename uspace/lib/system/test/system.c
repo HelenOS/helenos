@@ -92,7 +92,7 @@ PCUT_TEST(open_close)
 	rc = loc_server_register(test_system_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_system_svc, &sid);
+	rc = loc_service_register(srv, test_system_svc, fallback_port_id, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = system_open(test_system_svc, NULL, NULL, &system);
@@ -120,7 +120,7 @@ PCUT_TEST(poweroff_failure)
 	rc = loc_server_register(test_system_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_system_svc, &sid);
+	rc = loc_service_register(srv, test_system_svc, fallback_port_id, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = system_open(test_system_svc, NULL, NULL, &system);
@@ -155,7 +155,7 @@ PCUT_TEST(poweroff_success)
 	rc = loc_server_register(test_system_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_system_svc, &sid);
+	rc = loc_service_register(srv, test_system_svc, fallback_port_id, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = system_open(test_system_svc, NULL, NULL, &system);
@@ -190,7 +190,7 @@ PCUT_TEST(restart_failure)
 	rc = loc_server_register(test_system_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_system_svc, &sid);
+	rc = loc_service_register(srv, test_system_svc, fallback_port_id, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = system_open(test_system_svc, NULL, NULL, &system);
@@ -225,7 +225,7 @@ PCUT_TEST(restart_success)
 	rc = loc_server_register(test_system_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_system_svc, &sid);
+	rc = loc_service_register(srv, test_system_svc, fallback_port_id, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = system_open(test_system_svc, NULL, NULL, &system);
@@ -262,7 +262,7 @@ PCUT_TEST(shutdown_complete)
 	rc = loc_server_register(test_system_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_system_svc, &sid);
+	rc = loc_service_register(srv, test_system_svc, fallback_port_id, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = system_open(test_system_svc, &test_system_cb, &resp, &system);
@@ -306,7 +306,7 @@ PCUT_TEST(shutdown_failed)
 	rc = loc_server_register(test_system_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_system_svc, &sid);
+	rc = loc_service_register(srv, test_system_svc, fallback_port_id, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = system_open(test_system_svc, &test_system_cb, &resp, &system);
