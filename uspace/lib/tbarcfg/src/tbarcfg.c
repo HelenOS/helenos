@@ -670,6 +670,9 @@ errno_t tbarcfg_listener_create(const char *nchan, void (*cb)(void *),
 	if (rc != EOK)
 		goto error;
 
+	free(svcname);
+	svcname = NULL;
+
 	rc = loc_category_get_id(nchan, &catid, 0);
 	if (rc != EOK)
 		goto error;
@@ -678,6 +681,9 @@ errno_t tbarcfg_listener_create(const char *nchan, void (*cb)(void *),
 	if (rc != EOK)
 		goto error;
 
+	lst->portid = port;
+	lst->srv = srv;
+	lst->svcid = svcid;
 	*rlst = lst;
 	return EOK;
 error:
@@ -698,6 +704,9 @@ error:
  */
 void tbarcfg_listener_destroy(tbarcfg_listener_t *lst)
 {
+	loc_service_unregister(lst->srv, lst->svcid);
+	loc_server_unregister(lst->srv);
+	async_port_destroy(lst->portid);
 	free(lst);
 }
 
