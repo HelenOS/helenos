@@ -389,7 +389,7 @@ errno_t hr_register_volume(hr_volume_t *vol)
 	category_id_t cat_id;
 	const char *devname = vol->devname;
 
-	rc = loc_service_register(hr_srv, devname, &new_id);
+	rc = loc_service_register(hr_srv, devname, fallback_port_id, &new_id);
 	if (rc != EOK) {
 		HR_ERROR("unable to register device \"%s\": %s\n",
 		    devname, str_error(rc));

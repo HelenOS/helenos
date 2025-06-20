@@ -646,7 +646,8 @@ int main(int argc, char **argv)
 		return EEXIST;
 	}
 
-	rc = loc_service_register(hr_srv, SERVICE_NAME_HR, &ctl_sid);
+	rc = loc_service_register(hr_srv, SERVICE_NAME_HR, fallback_port_id,
+	    &ctl_sid);
 	if (rc != EOK) {
 		HR_ERROR("failed registering service: %s", str_error(rc));
 		return EEXIST;
