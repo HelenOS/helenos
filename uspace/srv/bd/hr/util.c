@@ -531,8 +531,6 @@ hr_range_lock_t *hr_range_lock_acquire(hr_volume_t *vol, uint64_t ba,
 static hr_range_lock_t *hr_range_lock_acquire_internal(hr_range_lock_t *rl,
     hr_volume_t *vol, uint64_t ba, uint64_t cnt)
 {
-	printf("hr_range_lock_acquire_internal got: 0x%p\n", rl);
-
 	rl->vol = vol;
 	rl->off = ba;
 	rl->len = cnt;
