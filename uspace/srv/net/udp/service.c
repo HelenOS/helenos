@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -656,7 +656,8 @@ errno_t udp_service_init(void)
 		return EIO;
 	}
 
-	rc = loc_service_register(srv, SERVICE_NAME_UDP, &sid);
+	rc = loc_service_register(srv, SERVICE_NAME_UDP, fallback_port_id,
+	    &sid);
 	if (rc != EOK) {
 		loc_server_unregister(srv);
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service.");

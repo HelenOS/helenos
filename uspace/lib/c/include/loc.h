@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,7 +48,8 @@ extern void loc_exchange_end(async_exch_t *);
 
 extern errno_t loc_server_register(const char *, loc_srv_t **);
 extern void loc_server_unregister(loc_srv_t *);
-extern errno_t loc_service_register(loc_srv_t *, const char *, service_id_t *);
+extern errno_t loc_service_register(loc_srv_t *, const char *, port_id_t,
+    service_id_t *);
 extern errno_t loc_service_unregister(loc_srv_t *, service_id_t);
 extern errno_t loc_service_add_to_cat(loc_srv_t *, service_id_t, category_id_t);
 

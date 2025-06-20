@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2007 Josef Cejka
  * All rights reserved.
  *
@@ -257,15 +257,16 @@ void loc_server_unregister(loc_srv_t *srv)
  *
  * @param srv Server object
  * @param fqsn Fully qualified service name
+ * @param portid ID of port providing the service
  * @param sid  Service ID of new service
  *
  */
 errno_t loc_service_register(loc_srv_t *srv, const char *fqsn,
-    service_id_t *sid)
+    port_id_t portid, service_id_t *sid)
 {
 	async_exch_t *exch = async_exchange_begin(srv->sess);
 	ipc_call_t answer;
-	aid_t req = async_send_0(exch, LOC_SERVICE_REGISTER, &answer);
+	aid_t req = async_send_1(exch, LOC_SERVICE_REGISTER, portid, &answer);
 	errno_t retval = async_data_write_start(exch, fqsn, str_size(fqsn));
 
 	if (retval != EOK) {

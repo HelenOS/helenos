@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
@@ -58,11 +59,11 @@ typedef struct {
 	/** Interface ID */
 	iface_t iface;
 
-	/** Interface ports */
-	hash_table_t port_hash_table;
+	/** Interface connection handler */
+	async_port_handler_t handler;
 
-	/** Next available port ID */
-	port_id_t port_id_avail;
+	/** Client data */
+	void *data;
 } interface_t;
 
 /* Port data */
@@ -72,11 +73,8 @@ typedef struct {
 	/** Port ID */
 	port_id_t id;
 
-	/** Port connection handler */
-	async_port_handler_t handler;
-
-	/** Client data */
-	void *data;
+	/** Port interfaces */
+	hash_table_t interface_hash_table;
 } port_t;
 
 /** Default fallback fibril function.
@@ -97,9 +95,11 @@ static async_port_handler_t fallback_port_handler =
     default_fallback_port_handler;
 static void *fallback_port_data = NULL;
 
-/** Futex guarding the interface hash table. */
-static fibril_rmutex_t interface_mutex;
-static hash_table_t interface_hash_table;
+/** Futex guarding the port hash table. */
+static fibril_rmutex_t port_mutex;
+static hash_table_t port_hash_table;
+/** Next available port ID */
+static port_id_t port_id_avail = 0;
 
 static size_t interface_key_hash(const void *key)
 {
@@ -157,46 +157,60 @@ static const hash_table_ops_t port_hash_table_ops = {
 	.remove_callback = NULL
 };
 
-static interface_t *async_new_interface(iface_t iface)
+static interface_t *async_new_interface(port_t *port, iface_t iface,
+    async_port_handler_t handler, void *data)
 {
 	interface_t *interface =
 	    (interface_t *) malloc(sizeof(interface_t));
 	if (!interface)
 		return NULL;
-
-	bool ret = hash_table_create(&interface->port_hash_table, 0, 0,
-	    &port_hash_table_ops);
-	if (!ret) {
-		free(interface);
-		return NULL;
-	}
-
 	interface->iface = iface;
-	interface->port_id_avail = 0;
+	interface->handler = handler;
+	interface->data = data;
 
-	hash_table_insert(&interface_hash_table, &interface->link);
+	hash_table_insert(&port->interface_hash_table, &interface->link);
 
 	return interface;
 }
 
-static port_t *async_new_port(interface_t *interface,
-    async_port_handler_t handler, void *data)
+static port_t *async_new_port(void)
 {
 	// TODO: Move the malloc out of critical section.
 	port_t *port = (port_t *) malloc(sizeof(port_t));
 	if (!port)
 		return NULL;
 
-	port_id_t id = interface->port_id_avail;
-	interface->port_id_avail++;
+	bool ret = hash_table_create(&port->interface_hash_table, 0, 0,
+	    &interface_hash_table_ops);
+	if (!ret) {
+		free(port);
+		return NULL;
+	}
+
+	port_id_t id = port_id_avail;
+	port_id_avail++;
 
 	port->id = id;
-	port->handler = handler;
-	port->data = data;
-
-	hash_table_insert(&interface->port_hash_table, &port->link);
+	hash_table_insert(&port_hash_table, &port->link);
 
 	return port;
+}
+
+static bool destroy_if(ht_link_t *link, void *arg)
+{
+	port_t *port = (port_t *)arg;
+
+	hash_table_remove_item(&port->interface_hash_table, link);
+	return false;
+}
+
+static void async_delete_port(port_t *port)
+{
+	/* Destroy interfaces */
+	hash_table_apply(&port->interface_hash_table, destroy_if, port);
+
+	hash_table_destroy(&port->interface_hash_table);
+	free(port);
 }
 
 errno_t async_create_port_internal(iface_t iface, async_port_handler_t handler,
@@ -204,29 +218,45 @@ errno_t async_create_port_internal(iface_t iface, async_port_handler_t handler,
 {
 	interface_t *interface;
 
-	fibril_rmutex_lock(&interface_mutex);
+	fibril_rmutex_lock(&port_mutex);
 
-	ht_link_t *link = hash_table_find(&interface_hash_table, &iface);
-	if (link)
-		interface = hash_table_get_inst(link, interface_t, link);
-	else
-		interface = async_new_interface(iface);
-
-	if (!interface) {
-		fibril_rmutex_unlock(&interface_mutex);
+	port_t *port = async_new_port();
+	if (port == NULL) {
+		fibril_rmutex_unlock(&port_mutex);
 		return ENOMEM;
 	}
 
-	port_t *port = async_new_port(interface, handler, data);
-	if (!port) {
-		fibril_rmutex_unlock(&interface_mutex);
+	interface = async_new_interface(port, iface, handler, data);
+	if (interface == NULL) {
+		async_delete_port(port);
+		fibril_rmutex_unlock(&port_mutex);
 		return ENOMEM;
 	}
 
 	*port_id = port->id;
+	fibril_rmutex_unlock(&port_mutex);
+	return EOK;
+}
 
-	fibril_rmutex_unlock(&interface_mutex);
+errno_t async_port_create_interface(port_id_t port_id, iface_t iface,
+    async_port_handler_t handler, void *data)
+{
+	ht_link_t *link;
+	port_t *port;
+	interface_t *interface;
 
+	fibril_rmutex_lock(&port_mutex);
+	link = hash_table_find(&port_hash_table, &port_id);
+	assert(link != NULL);
+	port = hash_table_get_inst(link, port_t, link);
+
+	interface = async_new_interface(port, iface, handler, data);
+	if (interface == NULL) {
+		fibril_rmutex_unlock(&port_mutex);
+		return ENOMEM;
+	}
+
+	fibril_rmutex_unlock(&port_mutex);
 	return EOK;
 }
 
@@ -247,58 +277,99 @@ void async_set_fallback_port_handler(async_port_handler_t handler, void *data)
 	fallback_port_data = data;
 }
 
-static port_t *async_find_port(iface_t iface, port_id_t port_id)
+typedef struct {
+	iface_t iface;
+	interface_t *interface;
+} find_if_port_t;
+
+static bool find_if_port(ht_link_t *link, void *arg)
 {
-	port_t *port = NULL;
+	find_if_port_t *fip = (find_if_port_t *)arg;
+	port_t *port;
+	interface_t *interface;
 
-	fibril_rmutex_lock(&interface_mutex);
+	(void)arg;
+	port = hash_table_get_inst(link, port_t, link);
 
-	ht_link_t *link = hash_table_find(&interface_hash_table, &iface);
-	if (link) {
-		interface_t *interface =
-		    hash_table_get_inst(link, interface_t, link);
-
-		link = hash_table_find(&interface->port_hash_table, &port_id);
-		if (link)
-			port = hash_table_get_inst(link, port_t, link);
+	ht_link_t *ilink = hash_table_find(&port->interface_hash_table,
+	    &fip->iface);
+	if (ilink) {
+		interface = hash_table_get_inst(ilink, interface_t,
+		    link);
+		fip->interface = interface;
+		return false;
 	}
 
-	fibril_rmutex_unlock(&interface_mutex);
-
-	return port;
+	return true;
 }
 
-async_port_handler_t async_get_port_handler(iface_t iface, port_id_t port_id,
-    void **data)
+static interface_t *async_find_interface(iface_t iface, port_id_t port_id)
+{
+	interface_t *interface = NULL;
+	find_if_port_t fip;
+
+	(void)port_id; // XXX !!!
+
+	fibril_rmutex_lock(&port_mutex);
+
+	/*
+	 * XXX Find any port implementing that interface. In reality we should
+	 * only look at port with ID port_id - but server.c does not
+	 * provide us with a correct port ID
+	 */
+
+	fip.iface = iface;
+	fip.interface = NULL;
+	hash_table_apply(&port_hash_table, find_if_port, (void *)&fip);
+	interface = fip.interface;
+
+	fibril_rmutex_unlock(&port_mutex);
+	return interface;
+}
+
+async_port_handler_t async_get_interface_handler(iface_t iface,
+    port_id_t port_id, void **data)
 {
 	assert(data);
 
 	async_port_handler_t handler = fallback_port_handler;
 	*data = fallback_port_data;
 
-	port_t *port = async_find_port(iface, port_id);
-	if (port) {
-		handler = port->handler;
-		*data = port->data;
+	interface_t *interface = async_find_interface(iface, port_id);
+	if (interface != NULL) {
+		handler = interface->handler;
+		*data = interface->data;
 	}
 
 	return handler;
 }
 
-/** Initialize the async framework.
+void async_port_destroy(port_id_t port_id)
+{
+	ht_link_t *link;
+	port_t *port;
+
+	fibril_rmutex_lock(&port_mutex);
+	link = hash_table_find(&port_hash_table, &port_id);
+	assert(link != NULL);
+	port = hash_table_get_inst(link, port_t, link);
+	async_delete_port(port);
+	fibril_rmutex_unlock(&port_mutex);
+}
+
+/** Initialize the async framework ports.
  *
  */
 void __async_ports_init(void)
 {
-	if (fibril_rmutex_initialize(&interface_mutex) != EOK)
+	if (fibril_rmutex_initialize(&port_mutex) != EOK)
 		abort();
 
-	if (!hash_table_create(&interface_hash_table, 0, 0,
-	    &interface_hash_table_ops))
+	if (!hash_table_create(&port_hash_table, 0, 0, &port_hash_table_ops))
 		abort();
 }
 
 void __async_ports_fini(void)
 {
-	fibril_rmutex_destroy(&interface_mutex);
+	fibril_rmutex_destroy(&port_mutex);
 }

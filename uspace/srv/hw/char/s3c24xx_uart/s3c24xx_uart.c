@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -102,7 +102,8 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-	rc = loc_service_register(srv, NAMESPACE "/" NAME, &uart->service_id);
+	rc = loc_service_register(srv, NAMESPACE "/" NAME, fallback_port_id,
+	    &uart->service_id);
 	if (rc != EOK) {
 		// XXX s3c24xx_uart_fini(uart);
 		free(uart);

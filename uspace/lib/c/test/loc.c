@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -50,11 +50,13 @@ PCUT_TEST(server_register)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	// XXX Without a unique name this is not reentrant
-	rc = loc_service_register(sa, "test/libc-service-a", &svca);
+	rc = loc_service_register(sa, "test/libc-service-a",
+	    fallback_port_id, &svca);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	// XXX Without a unique name this is not reentrant
-	rc = loc_service_register(sb, "test/libc-service-b", &svcb);
+	rc = loc_service_register(sb, "test/libc-service-b",
+	    fallback_port_id, &svcb);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = loc_service_get_name(svca, &na);

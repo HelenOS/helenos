@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2012 Petr Jerman
  * All rights reserved.
  *
@@ -31,6 +32,7 @@
  */
 
 #include <as.h>
+#include <bd_srv.h>
 #include <errno.h>
 #include <stdio.h>
 #include <ddf/interrupt.h>
@@ -38,7 +40,6 @@
 #include <device/hw_res.h>
 #include <device/hw_res_parsed.h>
 #include <pci_dev_iface.h>
-#include <ahci_iface.h>
 #include "ahci.h"
 #include "ahci_hw.h"
 #include "ahci_sata.h"
@@ -108,11 +109,8 @@
 		.cmd = CMD_ACCEPT \
 	}
 
-static errno_t get_sata_device_name(ddf_fun_t *, size_t, char *);
-static errno_t get_num_blocks(ddf_fun_t *, uint64_t *);
-static errno_t get_block_size(ddf_fun_t *, size_t *);
-static errno_t read_blocks(ddf_fun_t *, uint64_t, size_t, void *);
-static errno_t write_blocks(ddf_fun_t *, uint64_t, size_t, void *);
+static errno_t ahci_read_blocks(sata_dev_t *, uint64_t, size_t, void *);
+static errno_t ahci_write_blocks(sata_dev_t *, uint64_t, size_t, void *);
 
 static errno_t ahci_identify_device(sata_dev_t *);
 static errno_t ahci_set_highest_ultra_dma_mode(sata_dev_t *);
@@ -130,20 +128,22 @@ static void ahci_get_model_name(uint16_t *, char *);
 static fibril_mutex_t sata_devices_count_lock;
 static int sata_devices_count = 0;
 
-/*
- * AHCI Interface
- */
+static errno_t ahci_bd_open(bd_srvs_t *, bd_srv_t *);
+static errno_t ahci_bd_close(bd_srv_t *);
+static errno_t ahci_bd_read_blocks(bd_srv_t *, aoff64_t, size_t, void *, size_t);
+static errno_t ahci_bd_write_blocks(bd_srv_t *, aoff64_t, size_t, const void *, size_t);
+static errno_t ahci_bd_get_block_size(bd_srv_t *, size_t *);
+static errno_t ahci_bd_get_num_blocks(bd_srv_t *, aoff64_t *);
 
-static ahci_iface_t ahci_interface = {
-	.get_sata_device_name = &get_sata_device_name,
-	.get_num_blocks = &get_num_blocks,
-	.get_block_size = &get_block_size,
-	.read_blocks = &read_blocks,
-	.write_blocks = &write_blocks
-};
+static void ahci_bd_connection(ipc_call_t *, void *);
 
-static ddf_dev_ops_t ahci_ops = {
-	.interfaces[AHCI_DEV_IFACE] = &ahci_interface
+static bd_ops_t ahci_bd_ops = {
+	.open = ahci_bd_open,
+	.close = ahci_bd_close,
+	.read_blocks = ahci_bd_read_blocks,
+	.write_blocks = ahci_bd_write_blocks,
+	.get_block_size = ahci_bd_get_block_size,
+	.get_num_blocks = ahci_bd_get_num_blocks
 };
 
 static driver_ops_t driver_ops = {
@@ -155,74 +155,25 @@ static driver_t ahci_driver = {
 	.driver_ops = &driver_ops
 };
 
-/** Get SATA structure from DDF function. */
-static sata_dev_t *fun_sata_dev(ddf_fun_t *fun)
+/** Get SATA structure from block device service structure. */
+static sata_dev_t *bd_srv_sata(bd_srv_t *bd)
 {
-	return ddf_fun_data_get(fun);
+	return (sata_dev_t *) bd->srvs->sarg;
 }
 
-/** Get SATA device name.
+/** Read data blocks from SATA device.
  *
- * @param fun                  Device function handling the call.
- * @param sata_dev_name_length Length of the sata_dev_name buffer.
- * @param sata_dev_name        Buffer for SATA device name.
- *
- * @return EOK.
- *
- */
-static errno_t get_sata_device_name(ddf_fun_t *fun,
-    size_t sata_dev_name_length, char *sata_dev_name)
-{
-	sata_dev_t *sata = fun_sata_dev(fun);
-	str_cpy(sata_dev_name, sata_dev_name_length, sata->model);
-	return EOK;
-}
-
-/** Get Number of blocks in SATA device.
- *
- * @param fun    Device function handling the call.
- * @param blocks Return number of blocks in SATA device.
- *
- * @return EOK.
- *
- */
-static errno_t get_num_blocks(ddf_fun_t *fun, uint64_t *num_blocks)
-{
-	sata_dev_t *sata = fun_sata_dev(fun);
-	*num_blocks = sata->blocks;
-	return EOK;
-}
-
-/** Get SATA device block size.
- *
- * @param fun        Device function handling the call.
- * @param block_size Return block size.
- *
- * @return EOK.
- *
- */
-static errno_t get_block_size(ddf_fun_t *fun, size_t *block_size)
-{
-	sata_dev_t *sata = fun_sata_dev(fun);
-	*block_size = sata->block_size;
-	return EOK;
-}
-
-/** Read data blocks into SATA device.
- *
- * @param fun      Device function handling the call.
+ * @param sata     SATA device
  * @param blocknum Number of first block.
  * @param count    Number of blocks to read.
  * @param buf      Buffer for data.
  *
- * @return EOK if succeed, error code otherwise
+ * @return EOK on success, error code otherwise
  *
  */
-static errno_t read_blocks(ddf_fun_t *fun, uint64_t blocknum,
+static errno_t ahci_read_blocks(sata_dev_t *sata, uint64_t blocknum,
     size_t count, void *buf)
 {
-	sata_dev_t *sata = fun_sata_dev(fun);
-
 	uintptr_t phys;
 	void *ibuf = AS_AREA_ANY;
 	errno_t rc = dmamem_map_anonymous(sata->block_size, DMAMEM_4GiB,
@@ -251,21 +202,18 @@ static errno_t read_blocks(ddf_fun_t *fun, uint64_t blocknum,
 	return rc;
 }
 
-/** Write data blocks into SATA device.
+/** Write data blocks to SATA device.
  *
- * @param fun      Device function handling the call.
+ * @param sata     SATA device
  * @param blocknum Number of first block.
  * @param count    Number of blocks to write.
  * @param buf      Buffer with data.
  *
- * @return EOK if succeed, error code otherwise
- *
+ * @return EOK on success, error code otherwise
  */
-static errno_t write_blocks(ddf_fun_t *fun, uint64_t blocknum,
+static errno_t ahci_write_blocks(sata_dev_t *sata, uint64_t blocknum,
     size_t count, void *buf)
 {
-	sata_dev_t *sata = fun_sata_dev(fun);
-
 	uintptr_t phys;
 	void *ibuf = AS_AREA_ANY;
 	errno_t rc = dmamem_map_anonymous(sata->block_size, DMAMEM_4GiB,
@@ -289,6 +237,68 @@ static errno_t write_blocks(ddf_fun_t *fun, uint64_t blocknum,
 	dmamem_unmap_anonymous(ibuf);
 
 	return rc;
+}
+
+/** Open device. */
+static errno_t ahci_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
+{
+	return EOK;
+}
+
+/** Close device. */
+static errno_t ahci_bd_close(bd_srv_t *bd)
+{
+	return EOK;
+}
+
+/** Read blocks from partition. */
+static errno_t ahci_bd_read_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
+    void *buf, size_t size)
+{
+	sata_dev_t *sata = bd_srv_sata(bd);
+
+	if (size < cnt * sata->block_size)
+		return EINVAL;
+
+	return ahci_read_blocks(sata, ba, cnt, buf);
+}
+
+/** Write blocks to partition. */
+static errno_t ahci_bd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
+    const void *buf, size_t size)
+{
+	sata_dev_t *sata = bd_srv_sata(bd);
+
+	if (size < cnt * sata->block_size)
+		return EINVAL;
+
+	return ahci_write_blocks(sata, ba, cnt, (void *)buf);
+}
+
+/** Get device block size. */
+static errno_t ahci_bd_get_block_size(bd_srv_t *bd, size_t *rsize)
+{
+	sata_dev_t *sata = bd_srv_sata(bd);
+
+	*rsize = sata->block_size;
+	return EOK;
+}
+
+/** Get number of blocks on device. */
+static errno_t ahci_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
+{
+	sata_dev_t *sata = bd_srv_sata(bd);
+
+	*rnb = sata->blocks;
+	return EOK;
+}
+
+static void ahci_bd_connection(ipc_call_t *icall, void *arg)
+{
+	sata_dev_t *sata;
+
+	sata = (sata_dev_t *) ddf_fun_data_get((ddf_fun_t *)arg);
+	bd_conn(icall, &sata->bds);
 }
 
 /*
@@ -414,7 +424,7 @@ static void ahci_identify_packet_device_cmd(sata_dev_t *sata, uintptr_t phys)
  *
  * @param sata SATA device structure.
  *
- * @return EOK if succeed, error code otherwise.
+ * @return EOK on success, error code otherwise.
  *
  */
 static errno_t ahci_identify_device(sata_dev_t *sata)
@@ -595,7 +605,7 @@ static void ahci_set_mode_cmd(sata_dev_t *sata, uintptr_t phys, uint8_t mode)
  *
  * @param sata SATA device structure.
  *
- * @return EOK if succeed, error code otherwise
+ * @return EOK on success, error code otherwise
  *
  */
 static errno_t ahci_set_highest_ultra_dma_mode(sata_dev_t *sata)
@@ -724,7 +734,7 @@ static void ahci_rb_fpdma_cmd(sata_dev_t *sata, uintptr_t phys,
  * @param phys     Physical address of buffer for sector data.
  * @param blocknum Block number to read.
  *
- * @return EOK if succeed, error code otherwise
+ * @return EOK on success, error code otherwise
  *
  */
 static errno_t ahci_rb_fpdma(sata_dev_t *sata, uintptr_t phys, uint64_t blocknum)
@@ -753,7 +763,7 @@ static errno_t ahci_rb_fpdma(sata_dev_t *sata, uintptr_t phys, uint64_t blocknum
  * @param phys     Physical address of buffer with sector data.
  * @param blocknum Block number to write.
  *
- * @return EOK if succeed, error code otherwise
+ * @return EOK on success, error code otherwise
  *
  */
 static void ahci_wb_fpdma_cmd(sata_dev_t *sata, uintptr_t phys,
@@ -812,7 +822,7 @@ static void ahci_wb_fpdma_cmd(sata_dev_t *sata, uintptr_t phys,
  * @param phys     Physical address of buffer with sector data.
  * @param blocknum Block number to write.
  *
- * @return EOK if succeed, error code otherwise
+ * @return EOK on success, error code otherwise
  *
  */
 static errno_t ahci_wb_fpdma(sata_dev_t *sata, uintptr_t phys, uint64_t blocknum)
@@ -919,7 +929,7 @@ static void ahci_interrupt(ipc_call_t *icall, void *arg)
  *
  * @param port AHCI port structure
  *
- * @return SATA device structure if succeed, NULL otherwise.
+ * @return SATA device structure on success, NULL otherwise.
  *
  */
 static sata_dev_t *ahci_sata_allocate(ahci_dev_t *ahci, volatile ahci_port_t *port)
@@ -1027,13 +1037,14 @@ static void ahci_sata_hw_start(sata_dev_t *sata)
  * @param port     AHCI port structure.
  * @param port_num Number of AHCI port with existing SATA device.
  *
- * @return EOK if succeed, error code otherwise.
+ * @return EOK on success, error code otherwise.
  *
  */
 static errno_t ahci_sata_create(ahci_dev_t *ahci, ddf_dev_t *dev,
     volatile ahci_port_t *port, unsigned int port_num)
 {
 	ddf_fun_t *fun = NULL;
+	bool bound = false;
 	errno_t rc;
 
 	sata_dev_t *sata = ahci_sata_allocate(ahci, port);
@@ -1074,7 +1085,18 @@ static errno_t ahci_sata_create(ahci_dev_t *ahci, ddf_dev_t *dev,
 		goto error;
 	}
 
-	ddf_fun_set_ops(fun, &ahci_ops);
+	fun = sata->fun;
+
+	bd_srvs_init(&sata->bds);
+	sata->bds.ops = &ahci_bd_ops;
+	sata->bds.sarg = (void *)sata;
+
+	/* Set up a connection handler. */
+	ddf_fun_set_conn_handler(fun, ahci_bd_connection);
+
+	ddf_msg(LVL_NOTE, "Device %s - %s, blocks: %" PRIu64
+	    " block_size: %zu\n", sata_dev_name, sata->model, sata->blocks,
+	    sata->block_size);
 
 	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
@@ -1082,9 +1104,20 @@ static errno_t ahci_sata_create(ahci_dev_t *ahci, ddf_dev_t *dev,
 		goto error;
 	}
 
+	bound = true;
+
+	rc = ddf_fun_add_to_category(fun, "disk");
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed adding function %s to category "
+		    "'disk'.", sata_dev_name);
+		goto error;
+	}
+
 	return EOK;
 
 error:
+	if (bound)
+		ddf_fun_unbind(fun);
 	sata->is_invalid_device = true;
 	if (fun != NULL)
 		ddf_fun_destroy(fun);
@@ -1121,7 +1154,7 @@ static void ahci_sata_devices_create(ahci_dev_t *ahci, ddf_dev_t *dev)
  *
  * @param dev DDF device structure.
  *
- * @return AHCI device structure if succeed, NULL otherwise.
+ * @return AHCI device structure on success, NULL otherwise.
  *
  */
 static ahci_dev_t *ahci_ahci_create(ddf_dev_t *dev)
@@ -1245,7 +1278,7 @@ static void ahci_ahci_hw_start(ahci_dev_t *ahci)
  *
  * @param dev DDF device structure.
  *
- * @return EOK if succeed, error code otherwise.
+ * @return EOK on success, error code otherwise.
  *
  */
 static errno_t ahci_dev_add(ddf_dev_t *dev)

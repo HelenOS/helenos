@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -101,7 +101,8 @@ PCUT_TEST(seats_list_populate)
 	rc = loc_server_register(test_dispcfg_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_dispcfg_svc, &sid);
+	rc = loc_service_register(srv, test_dispcfg_svc, fallback_port_id,
+	    &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_cfg_create(UI_DISPLAY_NULL, &dcfg);

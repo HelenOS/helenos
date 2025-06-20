@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,7 @@
 #define _TBARCFG_PRIVATE_TBARCFG_H
 
 #include <adt/list.h>
+#include <loc.h>
 #include <stdbool.h>
 #include <types/tbarcfg/tbarcfg.h>
 
@@ -67,6 +68,12 @@ struct smenu_entry {
 
 /** Taskbar configuration listener */
 typedef struct tbarcfg_listener {
+	/** Async port */
+	port_id_t portid;
+	/** Registered server */
+	loc_srv_t *srv;
+	/** Registered service */
+	service_id_t svcid;
 	/** Notification callback */
 	void (*cb)(void *);
 	/** Callback argument */

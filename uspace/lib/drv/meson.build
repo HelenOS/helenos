@@ -1,4 +1,5 @@
 #
+# Copyright (c) 2025 Jiri Svoboda
 # Copyright (c) 2005 Martin Decky
 # Copyright (c) 2007 Jakub Jermar
 # All rights reserved.
@@ -49,5 +50,4 @@ src = files(
 	'generic/remote_clock_dev.c',
 	'generic/remote_led_dev.c',
 	'generic/remote_battery_dev.c',
-	'generic/remote_ahci.c',
 )

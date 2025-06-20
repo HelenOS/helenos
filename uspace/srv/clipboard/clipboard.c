@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2009 Martin Decky
  * All rights reserved.
  *
@@ -196,7 +196,8 @@ int main(int argc, char *argv[])
 		return rc;
 	}
 
-	rc = loc_service_register(srv, SERVICE_NAME_CLIPBOARD, &svc_id);
+	rc = loc_service_register(srv, SERVICE_NAME_CLIPBOARD,
+	    fallback_port_id, &svc_id);
 	if (rc != EOK) {
 		loc_server_unregister(srv);
 

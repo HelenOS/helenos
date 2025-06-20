@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2012 Petr Jerman
  * All rights reserved.
  *
@@ -30,8 +31,8 @@
  * Header for AHCI driver (AHCI 1.3 specification).
  */
 
-#ifndef __AHCI_HW_H__
-#define __AHCI_HW_H__
+#ifndef AHCI_HW_H
+#define AHCI_HW_H
 
 #include <stdint.h>
 

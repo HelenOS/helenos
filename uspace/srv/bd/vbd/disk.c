@@ -1164,7 +1164,7 @@ static errno_t vbds_part_svc_register(vbds_part_t *part)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "loc_service_register('%s')",
 	    name);
-	rc = loc_service_register(vbds_srv, name, &psid);
+	rc = loc_service_register(vbds_srv, name, fallback_port_id, &psid);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering "
 		    "service %s: %s.", name, str_error(rc));

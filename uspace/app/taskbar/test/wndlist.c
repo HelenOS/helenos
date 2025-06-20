@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -148,7 +148,7 @@ PCUT_TEST(open_wm)
 	rc = loc_server_register(test_wndmgt_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(srv, test_wndmgt_svc, &sid);
+	rc = loc_service_register(srv, test_wndmgt_svc, fallback_port_id, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	/* Create window list and connect it to our test service */

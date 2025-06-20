@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2010 Lenka Trochtova
  * All rights reserved.
  *
@@ -60,7 +60,8 @@ void loc_register_tree_function(fun_node_t *fun, dev_tree_t *tree)
 		return;
 	}
 
-	loc_service_register(devman_srv, loc_pathname, &fun->service_id);
+	loc_service_register(devman_srv, loc_pathname, fallback_port_id,
+	    &fun->service_id);
 
 	tree_add_loc_function(tree, fun);
 

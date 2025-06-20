@@ -87,7 +87,8 @@ static errno_t vol_init(void)
 	}
 
 	service_id_t sid;
-	rc = loc_service_register(srv, SERVICE_NAME_VOLSRV, &sid);
+	rc = loc_service_register(srv, SERVICE_NAME_VOLSRV, fallback_port_id,
+	    &sid);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service: %s.", str_error(rc));
 		rc = EEXIST;

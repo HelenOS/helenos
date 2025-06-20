@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -137,7 +137,8 @@ int main(int argc, char **argv)
 	if (file_bd_init(image_name) != EOK)
 		return -1;
 
-	rc = loc_service_register(srv, device_name, &service_id);
+	rc = loc_service_register(srv, device_name, fallback_port_id,
+	    &service_id);
 	if (rc != EOK) {
 		printf("%s: Unable to register device '%s': %s.\n",
 		    NAME, device_name, str_error(rc));

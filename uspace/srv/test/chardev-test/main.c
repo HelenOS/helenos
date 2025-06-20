@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -141,21 +141,21 @@ int main(int argc, char *argv[])
 	partialx_srvs.sarg = NULL;
 
 	rc = loc_service_register(srv, SERVICE_NAME_CHARDEV_TEST_SMALLX,
-	    &smallx_svc_id);
+	    fallback_port_id, &smallx_svc_id);
 	if (rc != EOK) {
 		printf("%s: Failed registering service.: %s\n", NAME, str_error(rc));
 		goto error;
 	}
 
 	rc = loc_service_register(srv, SERVICE_NAME_CHARDEV_TEST_LARGEX,
-	    &largex_svc_id);
+	    fallback_port_id, &largex_svc_id);
 	if (rc != EOK) {
 		printf("%s: Failed registering service.: %s\n", NAME, str_error(rc));
 		goto error;
 	}
 
 	rc = loc_service_register(srv, SERVICE_NAME_CHARDEV_TEST_PARTIALX,
-	    &partialx_svc_id);
+	    fallback_port_id, &partialx_svc_id);
 	if (rc != EOK) {
 		printf("%s: Failed registering service.: %s\n", NAME, str_error(rc));
 		goto error;

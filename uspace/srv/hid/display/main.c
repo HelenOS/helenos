@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -125,10 +125,7 @@ static errno_t display_srv_init(ds_output_t **routput)
 	ds_seat_t *seat = NULL;
 	ds_output_t *output = NULL;
 	gfx_context_t *gc = NULL;
-	port_id_t disp_port;
-	port_id_t gc_port;
-	port_id_t wm_port;
-	port_id_t dc_port;
+	port_id_t port = 0;
 	loc_srv_t *srv = NULL;
 	service_id_t sid = 0;
 	errno_t rc;
@@ -168,21 +165,22 @@ static errno_t display_srv_init(ds_output_t **routput)
 		goto error;
 
 	rc = async_create_port(INTERFACE_DISPLAY, display_client_conn, disp,
-	    &disp_port);
+	    &port);
 	if (rc != EOK)
 		goto error;
 
-	rc = async_create_port(INTERFACE_GC, display_gc_conn, disp, &gc_port);
+	rc = async_port_create_interface(port, INTERFACE_GC, display_gc_conn,
+	    disp);
 	if (rc != EOK)
 		goto error;
 
-	rc = async_create_port(INTERFACE_WNDMGT, display_wndmgt_conn, disp,
-	    &wm_port);
+	rc = async_port_create_interface(port, INTERFACE_WNDMGT,
+	    display_wndmgt_conn, disp);
 	if (rc != EOK)
 		goto error;
 
-	rc = async_create_port(INTERFACE_DISPCFG, display_dispcfg_conn, disp,
-	    &dc_port);
+	rc = async_port_create_interface(port, INTERFACE_DISPCFG,
+	    display_dispcfg_conn, disp);
 	if (rc != EOK)
 		goto error;
 
@@ -193,7 +191,7 @@ static errno_t display_srv_init(ds_output_t **routput)
 		goto error;
 	}
 
-	rc = loc_service_register(srv, SERVICE_NAME_DISPLAY, &sid);
+	rc = loc_service_register(srv, SERVICE_NAME_DISPLAY, port, &sid);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service: %s.", str_error(rc));
 		rc = EEXIST;
@@ -207,10 +205,8 @@ error:
 		loc_service_unregister(srv, sid);
 	if (srv != NULL)
 		loc_server_unregister(srv);
-	// XXX destroy disp_port
-	// XXX destroy gc_port
-	// XXX destroy wm_port
-	// XXX destroy dc_port
+	if (port != 0)
+		async_port_destroy(port);
 #if 0
 	if (disp->input != NULL)
 		ds_input_close(disp);

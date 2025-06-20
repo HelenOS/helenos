@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -107,25 +107,31 @@ static errno_t inet_init(void)
 	if (rc != EOK)
 		return rc;
 
-	rc = async_create_port(INTERFACE_INETCFG,
-	    inet_cfg_conn, NULL, &port);
-	if (rc != EOK)
+	rc = async_port_create_interface(port, INTERFACE_INETCFG,
+	    inet_cfg_conn, NULL);
+	if (rc != EOK) {
+		async_port_destroy(port);
 		return rc;
+	}
 
-	rc = async_create_port(INTERFACE_INETPING,
-	    inetping_conn, NULL, &port);
-	if (rc != EOK)
+	rc = async_port_create_interface(port, INTERFACE_INETPING,
+	    inetping_conn, NULL);
+	if (rc != EOK) {
+		async_port_destroy(port);
 		return rc;
+	}
 
 	rc = loc_server_register(NAME, &srv);
 	if (rc != EOK) {
+		async_port_destroy(port);
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering server: %s.", str_error(rc));
 		return EEXIST;
 	}
 
 	service_id_t sid;
-	rc = loc_service_register(srv, SERVICE_NAME_INET, &sid);
+	rc = loc_service_register(srv, SERVICE_NAME_INET, port, &sid);
 	if (rc != EOK) {
+		async_port_destroy(port);
 		loc_server_unregister(srv);
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service: %s.", str_error(rc));
 		return EEXIST;
