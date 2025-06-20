@@ -332,7 +332,7 @@ retry:
 	for (size_t e = 0; e < vol->extent_no; e++) {
 		hr_ext_state_t s = vol->extents[e].state;
 		if ((vol->state == HR_VOL_DEGRADED && s != HR_EXT_ONLINE) ||
-		    (s == HR_EXT_REBUILD && rebuild_pos < start_stripe)) {
+		    (s == HR_EXT_REBUILD && end_stripe >= rebuild_pos)) {
 			bad_extent = e;
 			break;
 		}
@@ -544,7 +544,7 @@ retry:
 	for (size_t e = 0; e < vol->extent_no; e++) {
 		hr_ext_state_t s = vol->extents[e].state;
 		if ((vol->state == HR_VOL_DEGRADED && s != HR_EXT_ONLINE) ||
-		    (s == HR_EXT_REBUILD && rebuild_pos < start_stripe)) {
+		    (s == HR_EXT_REBUILD && start_stripe > rebuild_pos)) {
 			bad_extent = e;
 			break;
 		}
