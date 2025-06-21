@@ -76,10 +76,10 @@ typedef struct hr_range_lock {
 	bool ignore; /* prot. by vol->range_lock_list_lock */
 } hr_range_lock_t;
 
-extern void *malloc_waitok(size_t)
+extern void *hr_malloc_waitok(size_t)
     __attribute__((malloc));
 
-extern void *calloc_waitok(size_t, size_t)
+extern void *hr_calloc_waitok(size_t, size_t)
     __attribute__((malloc));
 
 extern errno_t hr_create_vol_struct(hr_volume_t **, hr_level_t, const char *,

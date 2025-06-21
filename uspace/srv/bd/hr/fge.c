@@ -139,7 +139,7 @@ hr_fgroup_t *hr_fgroup_create(hr_fpool_t *parent, size_t wu_cnt)
 {
 	assert(wu_cnt > 0);
 
-	hr_fgroup_t *result = malloc_waitok(sizeof(hr_fgroup_t));
+	hr_fgroup_t *result = hr_malloc_waitok(sizeof(hr_fgroup_t));
 
 	result->reserved_cnt = 0;
 	result->own_mem = NULL;
@@ -160,14 +160,15 @@ hr_fgroup_t *hr_fgroup_create(hr_fpool_t *parent, size_t wu_cnt)
 		 * the fallback storage.
 		 */
 		size_t taking = parent->wu_storage_free_count;
-		result->own_mem = malloc_waitok(parent->wu_size * (wu_cnt - taking));
+		result->own_mem =
+		    hr_malloc_waitok(parent->wu_size * (wu_cnt - taking));
 		result->reserved_cnt = taking;
 		parent->wu_storage_free_count = 0;
 	}
 
 	if (result->reserved_cnt > 0) {
 		result->memslots =
-		    malloc_waitok(sizeof(size_t) * result->reserved_cnt);
+		    hr_malloc_waitok(sizeof(size_t) * result->reserved_cnt);
 	}
 
 	fibril_mutex_unlock(&parent->lock);

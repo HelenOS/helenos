@@ -233,7 +233,7 @@ errno_t hr_io_raid5_subtract_writer(void *arg)
 	size_t ext_idx = io->extent;
 	hr_extent_t *extents = (hr_extent_t *)&io->vol->extents;
 
-	uint8_t *data = malloc_waitok(io->cnt * io->vol->bsize);
+	uint8_t *data = hr_malloc_waitok(io->cnt * io->vol->bsize);
 
 	rc = hr_read_direct(extents[ext_idx].svc_id, io->ba, io->cnt, data);
 	if (rc != EOK) {
@@ -279,7 +279,7 @@ errno_t hr_io_raid5_reconstruct_reader(void *arg)
 	size_t ext_idx = io->extent;
 	hr_extent_t *extents = (hr_extent_t *)&io->vol->extents;
 
-	uint8_t *data = malloc_waitok(io->cnt * io->vol->bsize);
+	uint8_t *data = hr_malloc_waitok(io->cnt * io->vol->bsize);
 
 	rc = hr_write_direct(extents[ext_idx].svc_id, io->ba, io->cnt, data);
 	if (rc != EOK) {

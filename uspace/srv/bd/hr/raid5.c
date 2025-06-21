@@ -259,9 +259,9 @@ static errno_t hr_raid5_bd_read_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt,
 	 * firing off IO requests there is no easy consistent ENOMEM error
 	 * path.
 	 */
-	hr_range_lock_t **rlps = malloc_waitok(stripes_cnt * sizeof(*rlps));
+	hr_range_lock_t **rlps = hr_malloc_waitok(stripes_cnt * sizeof(*rlps));
 	for (size_t i = 0; i < stripes_cnt; i++)
-		rlps[i] = malloc_waitok(sizeof(**rlps));
+		rlps[i] = hr_malloc_waitok(sizeof(**rlps));
 
 	/*
 	 * extent order has to be locked for the whole IO duration,
@@ -473,9 +473,9 @@ static errno_t hr_raid5_bd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
 	 * firing off IO requests there is no easy consistent ENOMEM error
 	 * path.
 	 */
-	hr_range_lock_t **rlps = malloc_waitok(stripes_cnt * sizeof(*rlps));
+	hr_range_lock_t **rlps = hr_malloc_waitok(stripes_cnt * sizeof(*rlps));
 	for (size_t i = 0; i < stripes_cnt; i++)
-		rlps[i] = malloc_waitok(sizeof(**rlps));
+		rlps[i] = hr_malloc_waitok(sizeof(**rlps));
 
 	/*
 	 * extent order has to be locked for the whole IO duration,
