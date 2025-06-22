@@ -624,8 +624,8 @@ static void hr_raid5_vol_state_eval_forced(hr_volume_t *vol)
 
 	switch (bad) {
 	case 0:
-		if (state != HR_VOL_ONLINE)
-			hr_update_vol_state(vol, HR_VOL_ONLINE);
+		if (state != HR_VOL_OPTIMAL)
+			hr_update_vol_state(vol, HR_VOL_OPTIMAL);
 		break;
 	case 1:
 		if (state != HR_VOL_DEGRADED && state != HR_VOL_REBUILD)

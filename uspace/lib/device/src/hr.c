@@ -445,8 +445,8 @@ const char *hr_get_vol_state_str(hr_vol_state_t state)
 	switch (state) {
 	case HR_VOL_NONE:
 		return "NONE/UNKNOWN";
-	case HR_VOL_ONLINE:
-		return "ONLINE";
+	case HR_VOL_OPTIMAL:
+		return "OPTIMAL";
 	case HR_VOL_FAULTY:
 		return "FAULTY";
 	case HR_VOL_DEGRADED:

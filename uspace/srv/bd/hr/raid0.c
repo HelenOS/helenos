@@ -91,7 +91,7 @@ errno_t hr_raid0_create(hr_volume_t *new_volume)
 	}
 
 	hr_raid0_vol_state_eval(new_volume);
-	if (new_volume->state != HR_VOL_ONLINE) {
+	if (new_volume->state != HR_VOL_OPTIMAL) {
 		HR_NOTE("\"%s\": unusable state, not creating\n",
 		    new_volume->devname);
 		return EINVAL;
@@ -154,9 +154,9 @@ void hr_raid0_vol_state_eval(hr_volume_t *vol)
 
 	fibril_rwlock_read_unlock(&vol->states_lock);
 
-	if (old_state != HR_VOL_ONLINE) {
+	if (old_state != HR_VOL_OPTIMAL) {
 		fibril_rwlock_write_lock(&vol->states_lock);
-		hr_update_vol_state(vol, HR_VOL_ONLINE);
+		hr_update_vol_state(vol, HR_VOL_OPTIMAL);
 		fibril_rwlock_write_unlock(&vol->states_lock);
 	}
 }
@@ -256,7 +256,7 @@ static errno_t hr_raid0_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 		return EINVAL;
 
 	fibril_rwlock_read_lock(&vol->states_lock);
-	if (vol->state != HR_VOL_ONLINE) {
+	if (vol->state != HR_VOL_OPTIMAL) {
 		fibril_rwlock_read_unlock(&vol->states_lock);
 		return EIO;
 	}

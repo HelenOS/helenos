@@ -65,7 +65,7 @@ typedef enum hr_layout {
 
 typedef enum hr_vol_state {
 	HR_VOL_NONE = 0, /* Unknown/None */
-	HR_VOL_ONLINE, /* optimal */
+	HR_VOL_OPTIMAL, /* optimal */
 	HR_VOL_FAULTY, /* unusable */
 	HR_VOL_DEGRADED, /* not optimal */
 	HR_VOL_REBUILD /* rebuild in progress */

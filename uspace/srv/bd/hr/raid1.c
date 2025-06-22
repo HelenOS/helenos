@@ -227,9 +227,9 @@ static void hr_raid1_vol_state_eval_forced(hr_volume_t *vol)
 			}
 		}
 	} else {
-		if (old_state != HR_VOL_ONLINE) {
+		if (old_state != HR_VOL_OPTIMAL) {
 			fibril_rwlock_write_lock(&vol->states_lock);
-			hr_update_vol_state(vol, HR_VOL_ONLINE);
+			hr_update_vol_state(vol, HR_VOL_OPTIMAL);
 			fibril_rwlock_write_unlock(&vol->states_lock);
 		}
 	}
@@ -525,7 +525,7 @@ static errno_t hr_raid1_rebuild(void *arg)
 	 * function will pick them up, and set the volume
 	 * state accordingly.
 	 */
-	hr_update_vol_state(vol, HR_VOL_ONLINE);
+	hr_update_vol_state(vol, HR_VOL_OPTIMAL);
 	hr_mark_vol_state_dirty(vol);
 
 	fibril_rwlock_write_unlock(&vol->states_lock);
