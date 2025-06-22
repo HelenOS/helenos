@@ -107,16 +107,16 @@ static const char usage_str[] =
     "\t\thrctl -s\n"
     "\n"
     "Notes:\n"
-    "  Volume service names are automatically prepended with \"devices/\" prefix.\n"
     "  Simulating an extent failure with -m volume -f index is dangerous. It marks\n"
-    "  metadata as dirty in other healthy extents, and therefore invalidates\n"
-    "  the specified extent.\n"
-    "  Nested levels have to be created manually, or from config file, but need to\n"
+    "  metadata as dirty in other healthy extents, and zeroes out the superblock\n"
+    "  on the specified extent.\n"
+    "  Nested levels have to be created manually, or from a config file, and need to\n"
     "  be specified as separate volumes.\n"
     "\n"
     "Limitations:\n"
     "\t- volume name must be shorter than 32 characters\n"
-    "\t- automatic assembly and disassembly on nested volumes is UNDEFINED!\n";
+    "\t- no explicit nested levels volume support\n"
+    "\t- automatic assembly and disassembly on nested volumes is undefine!\n";
 
 int main(int argc, char **argv)
 {
