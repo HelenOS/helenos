@@ -128,6 +128,13 @@ int main(int argc, char **argv)
 		goto end;
 	}
 
+	if (argc > 1 &&
+	    ((str_cmp(argv[1], "-h") == 0) ||
+	    str_cmp(argv[1], "--help") == 0)) {
+		usage();
+		return EXIT_SUCCESS;
+	}
+
 	rc = hr_sess_init(&hr);
 	if (rc != EOK) {
 		printf(NAME ": hr server session init failed: %s\n",
@@ -177,6 +184,7 @@ end:
 
 	if (rc != EXIT_SUCCESS)
 		printf(NAME ": use --help to see usage\n");
+
 	return rc;
 }
 
