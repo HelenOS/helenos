@@ -55,6 +55,7 @@ typedef struct hr_superblock_ops {
 	bool (*compare_uuids)(const void *, const void *);
 	void (*inc_counter)(hr_volume_t *);
 	errno_t (*save)(hr_volume_t *, bool);
+	errno_t (*save_ext)(hr_volume_t *, size_t, bool);
 	const char *(*get_devname)(const void *);
 	hr_level_t (*get_level)(const void *);
 	uint64_t (*get_data_offset)(void);

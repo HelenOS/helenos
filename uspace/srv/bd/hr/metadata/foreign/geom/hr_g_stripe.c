@@ -63,6 +63,7 @@ static bool meta_gstripe_has_valid_magic(const void *);
 static bool meta_gstripe_compare_uuids(const void *, const void *);
 static void meta_gstripe_inc_counter(hr_volume_t *);
 static errno_t meta_gstripe_save(hr_volume_t *, bool);
+static errno_t meta_gstripe_save_ext(hr_volume_t *, size_t, bool);
 static const char *meta_gstripe_get_devname(const void *);
 static hr_level_t meta_gstripe_get_level(const void *);
 static uint64_t meta_gstripe_get_data_offset(void);
@@ -83,6 +84,7 @@ hr_superblock_ops_t metadata_gstripe_ops = {
 	.compare_uuids = meta_gstripe_compare_uuids,
 	.inc_counter = meta_gstripe_inc_counter,
 	.save = meta_gstripe_save,
+	.save_ext = meta_gstripe_save_ext,
 	.get_devname = meta_gstripe_get_devname,
 	.get_level = meta_gstripe_get_level,
 	.get_data_offset = meta_gstripe_get_data_offset,
@@ -291,6 +293,14 @@ static void meta_gstripe_inc_counter(hr_volume_t *vol)
 }
 
 static errno_t meta_gstripe_save(hr_volume_t *vol, bool with_state_callback)
+{
+	HR_DEBUG("%s()", __func__);
+
+	return ENOTSUP;
+}
+
+static errno_t meta_gstripe_save_ext(hr_volume_t *vol, size_t ext_idx,
+    bool with_state_callback)
 {
 	HR_DEBUG("%s()", __func__);
 

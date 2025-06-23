@@ -63,6 +63,7 @@ static bool meta_softraid_has_valid_magic(const void *);
 static bool meta_softraid_compare_uuids(const void *, const void *);
 static void meta_softraid_inc_counter(hr_volume_t *);
 static errno_t meta_softraid_save(hr_volume_t *, bool);
+static errno_t meta_softraid_save_ext(hr_volume_t *, size_t, bool);
 static const char *meta_softraid_get_devname(const void *);
 static hr_level_t meta_softraid_get_level(const void *);
 static uint64_t meta_softraid_get_data_offset(void);
@@ -83,6 +84,7 @@ hr_superblock_ops_t metadata_softraid_ops = {
 	.compare_uuids = meta_softraid_compare_uuids,
 	.inc_counter = meta_softraid_inc_counter,
 	.save = meta_softraid_save,
+	.save_ext = meta_softraid_save_ext,
 	.get_devname = meta_softraid_get_devname,
 	.get_level = meta_softraid_get_level,
 	.get_data_offset = meta_softraid_get_data_offset,
@@ -430,6 +432,14 @@ static void meta_softraid_inc_counter(hr_volume_t *vol)
 }
 
 static errno_t meta_softraid_save(hr_volume_t *vol, bool with_state_callback)
+{
+	HR_DEBUG("%s()", __func__);
+
+	return ENOTSUP;
+}
+
+static errno_t meta_softraid_save_ext(hr_volume_t *vol, size_t ext_idx,
+    bool with_state_callback)
 {
 	HR_DEBUG("%s()", __func__);
 

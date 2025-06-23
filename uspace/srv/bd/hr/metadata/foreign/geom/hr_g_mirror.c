@@ -63,6 +63,7 @@ static bool meta_gmirror_has_valid_magic(const void *);
 static bool meta_gmirror_compare_uuids(const void *, const void *);
 static void meta_gmirror_inc_counter(hr_volume_t *);
 static errno_t meta_gmirror_save(hr_volume_t *, bool);
+static errno_t meta_gmirror_save_ext(hr_volume_t *, size_t, bool);
 static const char *meta_gmirror_get_devname(const void *);
 static hr_level_t meta_gmirror_get_level(const void *);
 static uint64_t meta_gmirror_get_data_offset(void);
@@ -83,6 +84,7 @@ hr_superblock_ops_t metadata_gmirror_ops = {
 	.compare_uuids = meta_gmirror_compare_uuids,
 	.inc_counter = meta_gmirror_inc_counter,
 	.save = meta_gmirror_save,
+	.save_ext = meta_gmirror_save_ext,
 	.get_devname = meta_gmirror_get_devname,
 	.get_level = meta_gmirror_get_level,
 	.get_data_offset = meta_gmirror_get_data_offset,
@@ -307,6 +309,14 @@ static errno_t meta_gmirror_save(hr_volume_t *vol, bool with_state_callback)
 	 * metadata for all disks, because of hardcoded provider names and
 	 * more importantly, disk unique ids
 	 */
+
+	return ENOTSUP;
+}
+
+static errno_t meta_gmirror_save_ext(hr_volume_t *vol, size_t ext_idx,
+    bool with_state_callback)
+{
+	HR_DEBUG("%s()", __func__);
 
 	return ENOTSUP;
 }

@@ -64,6 +64,7 @@ static bool meta_native_has_valid_magic(const void *);
 static bool meta_native_compare_uuids(const void *, const void *);
 static void meta_native_inc_counter(hr_volume_t *);
 static errno_t meta_native_save(hr_volume_t *, bool);
+static errno_t meta_native_save_ext(hr_volume_t *, size_t, bool);
 static const char *meta_native_get_devname(const void *);
 static hr_level_t meta_native_get_level(const void *);
 static uint64_t meta_native_get_data_offset(void);
@@ -85,6 +86,7 @@ hr_superblock_ops_t metadata_native_ops = {
 	.compare_uuids = meta_native_compare_uuids,
 	.inc_counter = meta_native_inc_counter,
 	.save = meta_native_save,
+	.save_ext = meta_native_save_ext,
 	.get_devname = meta_native_get_devname,
 	.get_level = meta_native_get_level,
 	.get_data_offset = meta_native_get_data_offset,
@@ -393,43 +395,50 @@ static errno_t meta_native_save(hr_volume_t *vol, bool with_state_callback)
 {
 	HR_DEBUG("%s()", __func__);
 
-	errno_t rc = EOK;
+	fibril_rwlock_read_lock(&vol->extents_lock);
+
+	for (size_t i = 0; i < vol->extent_no; i++)
+		meta_native_save_ext(vol, i, with_state_callback);
+
+	fibril_rwlock_read_unlock(&vol->extents_lock);
+
+	return EOK;
+}
+
+static errno_t meta_native_save_ext(hr_volume_t *vol, size_t ext_idx,
+    bool with_state_callback)
+{
+	HR_DEBUG("%s()", __func__);
+
+	assert(fibril_rwlock_is_locked(&vol->extents_lock));
 
 	void *md_block = hr_calloc_waitok(1, vol->bsize);
 
 	hr_metadata_t *md = (hr_metadata_t *)vol->in_mem_md;
 
-	fibril_rwlock_read_lock(&vol->extents_lock);
+	hr_extent_t *ext = &vol->extents[ext_idx];
+
+	fibril_rwlock_read_lock(&vol->states_lock);
+	hr_ext_state_t s = ext->state;
+	fibril_rwlock_read_unlock(&vol->states_lock);
+
+	if (s != HR_EXT_ONLINE && s != HR_EXT_REBUILD) {
+		return EINVAL;
+	}
 
 	fibril_mutex_lock(&vol->md_lock);
 
-	for (size_t i = 0; i < vol->extent_no; i++) {
-		hr_extent_t *ext = &vol->extents[i];
-
-		fibril_rwlock_read_lock(&vol->states_lock);
-		hr_ext_state_t s = ext->state;
-
-		if (s != HR_EXT_ONLINE && s != HR_EXT_REBUILD) {
-			fibril_rwlock_read_unlock(&vol->states_lock);
-			continue;
-		}
-
-		fibril_rwlock_read_unlock(&vol->states_lock);
-
-		md->index = i;
-		if (s == HR_EXT_REBUILD)
-			md->rebuild_pos = vol->rebuild_blk;
-		else
-			md->rebuild_pos = 0;
-		meta_native_encode(md, md_block);
-		rc = meta_native_write_block(ext->svc_id, md_block);
-		if (rc != EOK && with_state_callback)
-			vol->hr_ops.ext_state_cb(vol, i, rc);
-	}
+	md->index = ext_idx;
+	if (s == HR_EXT_REBUILD)
+		md->rebuild_pos = vol->rebuild_blk;
+	else
+		md->rebuild_pos = 0;
+	meta_native_encode(md, md_block);
+	errno_t rc = meta_native_write_block(ext->svc_id, md_block);
+	if (rc != EOK && with_state_callback)
+		vol->hr_ops.ext_state_cb(vol, ext_idx, rc);
 
 	fibril_mutex_unlock(&vol->md_lock);
-
-	fibril_rwlock_read_unlock(&vol->extents_lock);
 
 	if (with_state_callback)
 		vol->hr_ops.vol_state_eval(vol);

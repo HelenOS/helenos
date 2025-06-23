@@ -818,7 +818,8 @@ static errno_t hr_raid5_rebuild(void *arg)
 		}
 
 		if (written * vol->bsize > HR_REBUILD_SAVE_BYTES) {
-			vol->meta_ops->save(vol, WITH_STATE_CALLBACK);
+			vol->meta_ops->save_ext(vol, rebuild_idx,
+			    WITH_STATE_CALLBACK);
 			written = 0;
 		}
 
