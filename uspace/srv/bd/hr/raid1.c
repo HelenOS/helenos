@@ -152,7 +152,7 @@ void hr_raid1_vol_state_eval(hr_volume_t *vol)
 		return;
 
 	vol->meta_ops->inc_counter(vol);
-	(void)vol->meta_ops->save(vol, WITH_STATE_CALLBACK);
+	vol->meta_ops->save(vol, WITH_STATE_CALLBACK);
 
 	hr_raid1_vol_state_eval_forced(vol);
 }
@@ -193,6 +193,8 @@ static void hr_raid1_vol_state_eval_forced(hr_volume_t *vol)
 
 	size_t invalid_no = hr_count_extents(vol, HR_EXT_INVALID);
 
+	size_t rebuild_no = hr_count_extents(vol, HR_EXT_REBUILD);
+
 	fibril_mutex_lock(&vol->hotspare_lock);
 	size_t hs_no = vol->hotspare_no;
 	fibril_mutex_unlock(&vol->hotspare_lock);
@@ -215,7 +217,7 @@ static void hr_raid1_vol_state_eval_forced(hr_volume_t *vol)
 		}
 
 		if (old_state != HR_VOL_REBUILD) {
-			if (hs_no > 0 || invalid_no > 0) {
+			if (hs_no > 0 || invalid_no > 0 || rebuild_no > 0) {
 				fid_t fib = fibril_create(hr_raid1_rebuild,
 				    vol);
 				if (fib == 0)
@@ -442,10 +444,6 @@ static errno_t hr_raid1_bd_op(hr_bd_op_type_t type, hr_volume_t *vol,
 	return rc;
 }
 
-/*
- * Put the last HOTSPARE extent in place
- * of first that != ONLINE, and start the rebuild.
- */
 static errno_t hr_raid1_rebuild(void *arg)
 {
 	HR_DEBUG("%s()", __func__);
@@ -462,12 +460,12 @@ static errno_t hr_raid1_rebuild(void *arg)
 
 	rebuild_ext = &vol->extents[rebuild_idx];
 
-	size_t left = vol->data_blkno;
+	size_t left = vol->data_blkno - vol->rebuild_blk;
 	size_t max_blks = DATA_XFER_LIMIT / vol->bsize;
 	buf = hr_malloc_waitok(max_blks * vol->bsize);
 
 	size_t cnt;
-	uint64_t ba = 0;
+	uint64_t ba = vol->rebuild_blk;
 	hr_add_data_offset(vol, &ba);
 
 	/*
@@ -486,6 +484,10 @@ static errno_t hr_raid1_rebuild(void *arg)
 
 	hr_range_lock_t *rl = NULL;
 
+	HR_NOTE("\"%s\": REBUILD started on extent no. %zu at block %lu.\n",
+	    vol->devname, rebuild_idx, ba);
+
+	uint64_t written = 0;
 	unsigned int percent, old_percent = 100;
 	while (left != 0) {
 		cnt = min(max_blks, left);
@@ -516,8 +518,14 @@ static errno_t hr_raid1_rebuild(void *arg)
 				    vol->devname, percent);
 		}
 
+		if (written * vol->bsize > HR_REBUILD_SAVE_BYTES) {
+			vol->meta_ops->save(vol, WITH_STATE_CALLBACK);
+			written = 0;
+		}
+
 		hr_range_lock_release(rl);
 
+		written += cnt;
 		ba += cnt;
 		left -= cnt;
 		old_percent = percent;
@@ -530,19 +538,17 @@ static errno_t hr_raid1_rebuild(void *arg)
 
 	hr_update_ext_state(vol, rebuild_idx, HR_EXT_ONLINE);
 
+	atomic_store_explicit(&vol->rebuild_blk, 0, memory_order_relaxed);
+
 	hr_mark_vol_state_dirty(vol);
 
 	fibril_rwlock_write_unlock(&vol->states_lock);
-
-	/* (void)vol->meta_ops->save(vol, WITH_STATE_CALLBACK); */
-
 end:
 	fibril_rwlock_read_unlock(&vol->extents_lock);
 
 	hr_raid1_vol_state_eval(vol);
 
-	if (buf != NULL)
-		free(buf);
+	free(buf);
 
 	return rc;
 }

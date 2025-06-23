@@ -280,7 +280,7 @@ errno_t hr_remove_volume(service_id_t svc_id)
 	fibril_rwlock_write_unlock(&hr_volumes_lock);
 
 	/* save metadata, but we don't care about states anymore */
-	(void)vol->meta_ops->save(vol, NO_STATE_CALLBACK);
+	vol->meta_ops->save(vol, NO_STATE_CALLBACK);
 
 	HR_NOTE("deactivating volume \"%s\"\n", vol->devname);
 
@@ -1116,6 +1116,7 @@ errno_t hr_sync_extents(hr_volume_t *vol)
 errno_t hr_init_rebuild(hr_volume_t *vol, size_t *rebuild_idx)
 {
 	errno_t rc = EOK;
+	size_t bad = vol->extent_no;
 
 	if (vol->level == HR_LVL_0)
 		return EINVAL;
@@ -1124,18 +1125,23 @@ errno_t hr_init_rebuild(hr_volume_t *vol, size_t *rebuild_idx)
 	fibril_rwlock_write_lock(&vol->states_lock);
 	fibril_mutex_lock(&vol->hotspare_lock);
 
-	size_t bad = vol->extent_no;
+	if (vol->state != HR_VOL_DEGRADED) {
+		rc = EINVAL;
+		goto error;
+	}
+
+	size_t rebuild = vol->extent_no;
 	for (size_t i = 0; i < vol->extent_no; i++) {
-		if (vol->extents[i].state != HR_EXT_ONLINE) {
-			bad = i;
+		if (vol->extents[i].state == HR_EXT_REBUILD) {
+			rebuild = i;
 			break;
 		}
 	}
 
-	if (bad == vol->extent_no)
-		rc = EINVAL;
-	else if (vol->state != HR_VOL_DEGRADED)
-		rc = EINVAL;
+	if (rebuild < vol->extent_no) {
+		bad = rebuild;
+		goto init_rebuild;
+	}
 
 	size_t invalid = vol->extent_no;
 	for (size_t i = 0; i < vol->extent_no; i++) {
@@ -1145,33 +1151,39 @@ errno_t hr_init_rebuild(hr_volume_t *vol, size_t *rebuild_idx)
 		}
 	}
 
-	if (invalid < vol->extent_no)
+	if (invalid < vol->extent_no) {
 		bad = invalid;
+		goto init_rebuild;
+	}
 
-	if (bad != invalid && vol->hotspare_no == 0)
+	for (size_t i = 0; i < vol->extent_no; i++) {
+		if (vol->extents[i].state != HR_EXT_ONLINE) {
+			bad = i;
+			break;
+		}
+	}
+
+	if (bad == vol->extent_no || vol->hotspare_no == 0) {
 		rc = EINVAL;
-
-	if (rc != EOK)
 		goto error;
+	}
 
-	if (bad != invalid) {
-		size_t hotspare_idx = vol->hotspare_no - 1;
+	size_t hotspare_idx = vol->hotspare_no - 1;
 
-		hr_ext_state_t hs_state = vol->hotspares[hotspare_idx].state;
-		if (hs_state != HR_EXT_HOTSPARE) {
-			HR_ERROR("hr_raid1_rebuild(): invalid hotspare"
-			    "state \"%s\", aborting rebuild\n",
-			    hr_get_ext_state_str(hs_state));
-			rc = EINVAL;
-			goto error;
-		}
+	hr_ext_state_t hs_state = vol->hotspares[hotspare_idx].state;
+	if (hs_state != HR_EXT_HOTSPARE) {
+		HR_ERROR("hr_raid1_rebuild(): invalid hotspare"
+		    "state \"%s\", aborting rebuild\n",
+		    hr_get_ext_state_str(hs_state));
+		rc = EINVAL;
+		goto error;
+	}
 
-		rc = hr_swap_hs(vol, bad, hotspare_idx);
-		if (rc != EOK) {
-			HR_ERROR("hr_raid1_rebuild(): swapping "
-			    "hotspare failed, aborting rebuild\n");
-			goto error;
-		}
+	rc = hr_swap_hs(vol, bad, hotspare_idx);
+	if (rc != EOK) {
+		HR_ERROR("hr_raid1_rebuild(): swapping "
+		    "hotspare failed, aborting rebuild\n");
+		goto error;
 	}
 
 	hr_extent_t *rebuild_ext = &vol->extents[bad];
@@ -1179,8 +1191,7 @@ errno_t hr_init_rebuild(hr_volume_t *vol, size_t *rebuild_idx)
 	HR_DEBUG("hr_raid1_rebuild(): starting REBUILD on extent no. %zu "
 	    "(%"  PRIun  ")\n", bad, rebuild_ext->svc_id);
 
-	atomic_store_explicit(&vol->rebuild_blk, 0, memory_order_relaxed);
-
+init_rebuild:
 	hr_update_ext_state(vol, bad, HR_EXT_REBUILD);
 	hr_update_vol_state(vol, HR_VOL_REBUILD);
 

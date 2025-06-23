@@ -60,6 +60,8 @@ struct hr_metadata {
 	uint64_t data_offset;
 	uint64_t counter;
 
+	uint64_t rebuild_pos;
+
 	uint32_t version; /* XXX: yet unused */
 	uint32_t extent_no;
 	uint32_t index; /* index of extent in volume */

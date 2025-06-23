@@ -170,10 +170,19 @@ static errno_t meta_native_init_meta2vol(const list_t *list, hr_volume_t *vol)
 		vol->extents[iter_meta->index].svc_id = iter->svc_id;
 		iter->fini = false;
 
-		if (iter_meta->counter == max_counter_val)
-			vol->extents[iter_meta->index].state = HR_EXT_ONLINE;
-		else
-			vol->extents[iter_meta->index].state = HR_EXT_INVALID;
+		hr_ext_state_t final_ext_state = HR_EXT_INVALID;
+		if (iter_meta->counter == max_counter_val) {
+			if (iter_meta->rebuild_pos > 0) {
+				final_ext_state = HR_EXT_REBUILD;
+				vol->rebuild_blk = iter_meta->rebuild_pos;
+				printf("REBUILD SHOULD RESUME at %lu\n",
+				    vol->rebuild_blk);
+			} else {
+				final_ext_state = HR_EXT_ONLINE;
+			}
+		}
+
+		vol->extents[iter_meta->index].state = final_ext_state;
 	}
 
 	for (size_t i = 0; i < vol->extent_no; i++) {
@@ -205,6 +214,7 @@ static void meta_native_encode(void *md_v, void *block)
 	    metadata->truncated_blkno);
 	scratch_md.data_offset = host2uint64_t_le(metadata->data_offset);
 	scratch_md.counter = host2uint64_t_le(metadata->counter);
+	scratch_md.rebuild_pos = host2uint64_t_le(metadata->rebuild_pos);
 	scratch_md.version = host2uint32_t_le(metadata->version);
 	scratch_md.extent_no = host2uint32_t_le(metadata->extent_no);
 	scratch_md.index = host2uint32_t_le(metadata->index);
@@ -239,6 +249,7 @@ static errno_t meta_native_decode(const void *block, void *md_v)
 	    scratch_md.truncated_blkno);
 	metadata->data_offset = uint64_t_le2host(scratch_md.data_offset);
 	metadata->counter = uint64_t_le2host(scratch_md.counter);
+	metadata->rebuild_pos = uint64_t_le2host(scratch_md.rebuild_pos);
 	metadata->version = uint32_t_le2host(scratch_md.version);
 	metadata->extent_no = uint32_t_le2host(scratch_md.extent_no);
 	metadata->index = uint32_t_le2host(scratch_md.index);
@@ -247,6 +258,9 @@ static errno_t meta_native_decode(const void *block, void *md_v)
 	metadata->strip_size = uint32_t_le2host(scratch_md.strip_size);
 	metadata->bsize = uint32_t_le2host(scratch_md.bsize);
 	memcpy(metadata->devname, scratch_md.devname, HR_DEVNAME_LEN);
+
+	if (metadata->version != 1)
+		return EINVAL;
 
 	return EOK;
 }
@@ -393,9 +407,9 @@ static errno_t meta_native_save(hr_volume_t *vol, bool with_state_callback)
 		hr_extent_t *ext = &vol->extents[i];
 
 		fibril_rwlock_read_lock(&vol->states_lock);
+		hr_ext_state_t s = ext->state;
 
-		/* TODO: special case for REBUILD */
-		if (ext->state != HR_EXT_ONLINE) {
+		if (s != HR_EXT_ONLINE && s != HR_EXT_REBUILD) {
 			fibril_rwlock_read_unlock(&vol->states_lock);
 			continue;
 		}
@@ -403,6 +417,10 @@ static errno_t meta_native_save(hr_volume_t *vol, bool with_state_callback)
 		fibril_rwlock_read_unlock(&vol->states_lock);
 
 		md->index = i;
+		if (s == HR_EXT_REBUILD)
+			md->rebuild_pos = vol->rebuild_blk;
+		else
+			md->rebuild_pos = 0;
 		meta_native_encode(md, md_block);
 		rc = meta_native_write_block(ext->svc_id, md_block);
 		if (rc != EOK && with_state_callback)

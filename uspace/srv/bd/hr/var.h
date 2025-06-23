@@ -49,6 +49,13 @@
 #define NAME "hr"
 #define HR_STRIP_SIZE DATA_XFER_LIMIT
 
+/*
+ * During a rebuild operation, we save the rebuild
+ * position this each many bytes. Currently each
+ * 10 MiB.
+ */
+#define HR_REBUILD_SAVE_BYTES (10U * 1024 * 1024)
+
 struct hr_volume;
 typedef struct hr_volume hr_volume_t;
 typedef struct hr_stripe hr_stripe_t;

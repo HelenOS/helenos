@@ -154,9 +154,7 @@ static void hr_create_srv(ipc_call_t *icall)
 	if (rc != EOK)
 		goto error;
 
-	rc = vol->meta_ops->save(vol, WITH_STATE_CALLBACK);
-	if (rc != EOK)
-		goto error;
+	vol->meta_ops->save(vol, WITH_STATE_CALLBACK);
 
 	rc = hr_register_volume(vol);
 	if (rc != EOK)
