@@ -54,8 +54,6 @@
 #include "util.h"
 #include "var.h"
 
-static hr_range_lock_t *hr_range_lock_acquire_internal(hr_range_lock_t *,
-    hr_volume_t *, uint64_t, uint64_t);
 static bool hr_range_lock_overlap(hr_range_lock_t *, hr_range_lock_t *);
 static errno_t hr_add_svc_linked_to_list(list_t *, service_id_t, bool, void *);
 static void free_dev_list_member(struct dev_list_member *);
@@ -514,24 +512,11 @@ size_t hr_count_extents(hr_volume_t *vol, hr_ext_state_t state)
 	return count;
 }
 
-void hr_range_lock_acquire_noalloc(hr_range_lock_t *rl, hr_volume_t *vol,
-    uint64_t ba, uint64_t cnt)
-{
-	assert(rl != NULL);
-	(void)hr_range_lock_acquire_internal(rl, vol, ba, cnt);
-}
-
 hr_range_lock_t *hr_range_lock_acquire(hr_volume_t *vol, uint64_t ba,
     uint64_t cnt)
 {
 	hr_range_lock_t *rl = hr_malloc_waitok(sizeof(hr_range_lock_t));
 
-	return hr_range_lock_acquire_internal(rl, vol, ba, cnt);
-}
-
-static hr_range_lock_t *hr_range_lock_acquire_internal(hr_range_lock_t *rl,
-    hr_volume_t *vol, uint64_t ba, uint64_t cnt)
-{
 	rl->vol = vol;
 	rl->off = ba;
 	rl->len = cnt;

@@ -56,12 +56,10 @@
 #include "var.h"
 
 static void hr_raid5_vol_state_eval_forced(hr_volume_t *);
-
 static size_t hr_raid5_parity_extent(hr_level_t, hr_layout_t, size_t,
     uint64_t);
 static size_t hr_raid5_data_extent(hr_level_t, hr_layout_t, size_t, uint64_t,
     uint64_t);
-
 static errno_t hr_raid5_rebuild(void *);
 
 /* bdops */
@@ -250,18 +248,10 @@ static errno_t hr_raid5_bd_read_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt,
 	uint64_t end_stripe = end_strip_no / (vol->extent_no - 1);
 	size_t stripes_cnt = end_stripe - start_stripe + 1;
 
-	hr_stripe_t *stripes = hr_create_stripes(vol, stripes_cnt, false);
-	if (stripes == NULL)
-		return ENOMEM;
+	hr_stripe_t *stripes = hr_create_stripes(vol, vol->strip_size,
+	    stripes_cnt, false);
 
-	/*
-	 * Pre-allocate range locks, because after group creation and
-	 * firing off IO requests there is no easy consistent ENOMEM error
-	 * path.
-	 */
 	hr_range_lock_t **rlps = hr_malloc_waitok(stripes_cnt * sizeof(*rlps));
-	for (size_t i = 0; i < stripes_cnt; i++)
-		rlps[i] = hr_malloc_waitok(sizeof(**rlps));
 
 	/*
 	 * extent order has to be locked for the whole IO duration,
@@ -271,7 +261,7 @@ static errno_t hr_raid5_bd_read_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt,
 
 	for (uint64_t s = start_stripe; s <= end_stripe; s++) {
 		uint64_t relative = s - start_stripe;
-		hr_range_lock_acquire_noalloc(rlps[relative], vol, s, 1);
+		rlps[relative] = hr_range_lock_acquire(vol, s, 1);
 	}
 
 	uint64_t phys_block, len;
@@ -377,6 +367,8 @@ end:
 	for (size_t i = 0; i < stripes_cnt; i++)
 		hr_range_lock_release(rlps[i]);
 
+	free(rlps);
+
 	hr_destroy_stripes(stripes, stripes_cnt);
 
 	return rc;
@@ -419,9 +411,8 @@ static errno_t hr_raid5_bd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
 	uint64_t end_stripe = end_strip_no / (vol->extent_no - 1);
 	size_t stripes_cnt = end_stripe - start_stripe + 1;
 
-	hr_stripe_t *stripes = hr_create_stripes(vol, stripes_cnt, true);
-	if (stripes == NULL)
-		return ENOMEM;
+	hr_stripe_t *stripes = hr_create_stripes(vol, vol->strip_size,
+	    stripes_cnt, true);
 
 	uint64_t stripe_size = strip_size * (vol->extent_no - 1);
 
@@ -468,14 +459,7 @@ static errno_t hr_raid5_bd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
 			stripes[relative_stripe].subtract = true;
 	}
 
-	/*
-	 * Pre-allocate range locks, because after group creation and
-	 * firing off IO requests there is no easy consistent ENOMEM error
-	 * path.
-	 */
 	hr_range_lock_t **rlps = hr_malloc_waitok(stripes_cnt * sizeof(*rlps));
-	for (size_t i = 0; i < stripes_cnt; i++)
-		rlps[i] = hr_malloc_waitok(sizeof(**rlps));
 
 	/*
 	 * extent order has to be locked for the whole IO duration,
@@ -485,7 +469,7 @@ static errno_t hr_raid5_bd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
 
 	for (uint64_t s = start_stripe; s <= end_stripe; s++) {
 		uint64_t relative = s - start_stripe;
-		hr_range_lock_acquire_noalloc(rlps[relative], vol, s, 1);
+		rlps[relative] = hr_range_lock_acquire(vol, s, 1);
 	}
 
 	uint64_t phys_block, len;
@@ -589,6 +573,8 @@ end:
 	for (size_t i = 0; i < stripes_cnt; i++)
 		hr_range_lock_release(rlps[i]);
 
+	free(rlps);
+
 	hr_destroy_stripes(stripes, stripes_cnt);
 
 	return rc;
@@ -622,6 +608,12 @@ static void hr_raid5_vol_state_eval_forced(hr_volume_t *vol)
 		if (vol->extents[i].state != HR_EXT_ONLINE)
 			bad++;
 
+	size_t invalid_no = hr_count_extents(vol, HR_EXT_INVALID);
+
+	fibril_mutex_lock(&vol->hotspare_lock);
+	size_t hs_no = vol->hotspare_no;
+	fibril_mutex_unlock(&vol->hotspare_lock);
+
 	switch (bad) {
 	case 0:
 		if (state != HR_VOL_OPTIMAL)
@@ -632,11 +624,7 @@ static void hr_raid5_vol_state_eval_forced(hr_volume_t *vol)
 			hr_update_vol_state(vol, HR_VOL_DEGRADED);
 
 		if (state != HR_VOL_REBUILD) {
-			/* XXX: allow REBUILD on INVALID extents */
-			fibril_mutex_lock(&vol->hotspare_lock);
-			size_t hs_no = vol->hotspare_no;
-			fibril_mutex_unlock(&vol->hotspare_lock);
-			if (hs_no > 0) {
+			if (hs_no > 0 || invalid_no > 0) {
 				fid_t fib = fibril_create(hr_raid5_rebuild,
 				    vol);
 				if (fib == 0)
@@ -654,16 +642,6 @@ static void hr_raid5_vol_state_eval_forced(hr_volume_t *vol)
 
 	fibril_rwlock_write_unlock(&vol->states_lock);
 	fibril_rwlock_read_unlock(&vol->extents_lock);
-}
-
-static void xor(void *dst, const void *src, size_t size)
-{
-	size_t i;
-	uint64_t *d = dst;
-	const uint64_t *s = src;
-
-	for (i = 0; i < size / sizeof(uint64_t); ++i)
-		*d++ ^= *s++;
 }
 
 static size_t hr_raid5_parity_extent(hr_level_t level,
@@ -729,118 +707,110 @@ static size_t hr_raid5_data_extent(hr_level_t level,
 
 static errno_t hr_raid5_rebuild(void *arg)
 {
-	HR_DEBUG("hr_raid5_rebuild()\n");
+	HR_DEBUG("%s()", __func__);
 
 	hr_volume_t *vol = arg;
 	errno_t rc = EOK;
+	size_t rebuild_idx;
 	void *buf = NULL, *xorbuf = NULL;
 
-	fibril_rwlock_read_lock(&vol->extents_lock);
-	fibril_rwlock_write_lock(&vol->states_lock);
-
-	if (vol->hotspare_no == 0) {
-		HR_WARN("hr_raid5_rebuild(): no free hotspares on \"%s\", "
-		    "aborting rebuild\n", vol->devname);
-		/* retval isn't checked for now */
-		goto end;
-	}
-
-	size_t bad = vol->extent_no;
-	for (size_t i = 0; i < vol->extent_no; i++) {
-		if (vol->extents[i].state == HR_EXT_FAILED) {
-			bad = i;
-			break;
-		}
-	}
-
-	if (bad == vol->extent_no) {
-		HR_WARN("hr_raid5_rebuild(): no bad extent on \"%s\", "
-		    "aborting rebuild\n", vol->devname);
-		/* retval isn't checked for now */
-		goto end;
-	}
-
-	size_t hotspare_idx = vol->hotspare_no - 1;
-
-	hr_ext_state_t hs_state = vol->hotspares[hotspare_idx].state;
-	if (hs_state != HR_EXT_HOTSPARE) {
-		HR_ERROR("hr_raid5_rebuild(): invalid hotspare state \"%s\", "
-		    "aborting rebuild\n", hr_get_ext_state_str(hs_state));
-		rc = EINVAL;
-		goto end;
-	}
-
-	HR_DEBUG("hr_raid5_rebuild(): swapping in hotspare\n");
-
-	block_fini(vol->extents[bad].svc_id);
-
-	vol->extents[bad].svc_id = vol->hotspares[hotspare_idx].svc_id;
-	hr_update_ext_state(vol, bad, HR_EXT_HOTSPARE);
-
-	vol->hotspares[hotspare_idx].svc_id = 0;
-	fibril_mutex_lock(&vol->hotspare_lock);
-	hr_update_hotspare_state(vol, hotspare_idx, HR_EXT_MISSING);
-	fibril_mutex_unlock(&vol->hotspare_lock);
-
-	vol->hotspare_no--;
-
-	hr_extent_t *rebuild_ext = &vol->extents[bad];
-
-	HR_DEBUG("hr_raid5_rebuild(): starting rebuild on (%" PRIun ")\n",
-	    rebuild_ext->svc_id);
-
-	hr_update_ext_state(vol, bad, HR_EXT_REBUILD);
-	hr_update_vol_state(vol, HR_VOL_REBUILD);
+	rc = hr_init_rebuild(vol, &rebuild_idx);
+	if (rc != EOK)
+		return rc;
 
 	uint64_t max_blks = DATA_XFER_LIMIT / vol->bsize;
 	uint64_t left = vol->data_blkno / (vol->extent_no - 1);
-	buf = malloc(max_blks * vol->bsize);
-	xorbuf = malloc(max_blks * vol->bsize);
+	buf = hr_malloc_waitok(max_blks * vol->bsize);
+	xorbuf = hr_malloc_waitok(max_blks * vol->bsize);
+
+	uint64_t strip_size = vol->strip_size / vol->bsize; /* in blocks */
 
 	uint64_t ba = 0, cnt;
 	hr_add_data_offset(vol, &ba);
 
+	/*
+	 * this is not necessary because a rebuild is
+	 * protected by itself, i.e. there can be only
+	 * one REBUILD at a time
+	 */
+	fibril_rwlock_read_lock(&vol->extents_lock);
+
+	/* increment metadata counter only on first write */
+	bool exp = false;
+	if (atomic_compare_exchange_strong(&vol->first_write, &exp, true)) {
+		vol->meta_ops->inc_counter(vol);
+		vol->meta_ops->save(vol, WITH_STATE_CALLBACK);
+	}
+
+	hr_range_lock_t *rl = NULL;
+	hr_stripe_t *stripe = hr_create_stripes(vol, max_blks * vol->bsize, 1,
+	    false);
+
+	unsigned int percent, old_percent = 100;
 	while (left != 0) {
 		cnt = min(left, max_blks);
 
-		/*
-		 * Almost the same as read_degraded,
-		 * but we don't want to allocate new
-		 * xorbuf each blk rebuild batch.
-		 */
-		bool first = true;
-		for (size_t i = 0; i < vol->extent_no; i++) {
-			if (i == bad)
-				continue;
-			if (first)
-				rc = block_read_direct(vol->extents[i].svc_id,
-				    ba, cnt, xorbuf);
-			else
-				rc = block_read_direct(vol->extents[i].svc_id,
-				    ba, cnt, buf);
-			if (rc != EOK) {
-				hr_raid5_ext_state_cb(vol, i, rc);
-				HR_ERROR("rebuild on \"%s\" (%" PRIun "), "
-				    "failed due to a failed ONLINE extent, "
-				    "number %zu\n",
-				    vol->devname, vol->svc_id, i);
-				goto end;
-			}
+		uint64_t strip_no = ba / strip_size;
+		uint64_t last_ba = ba + cnt - 1;
+		uint64_t end_strip_no = last_ba / strip_size;
+		uint64_t start_stripe = strip_no / (vol->extent_no - 1);
+		uint64_t end_stripe = end_strip_no / (vol->extent_no - 1);
+		size_t stripes_cnt = end_stripe - start_stripe + 1;
 
-			if (!first)
-				xor(xorbuf, buf, cnt * vol->bsize);
-			else
-				first = false;
+		stripe->ps_to_be_added = vol->extent_no - 1;
+		stripe->p_count_final = true;
+
+		hr_fgroup_t *worker_group =
+		    hr_fgroup_create(vol->fge, vol->extent_no);
+
+		rl = hr_range_lock_acquire(vol, start_stripe, stripes_cnt);
+
+		atomic_store_explicit(&vol->rebuild_blk, ba,
+		    memory_order_relaxed);
+
+		for (size_t e = 0; e < vol->extent_no; e++) {
+			if (e == rebuild_idx)
+				continue;
+
+			hr_io_raid5_t *io = hr_fgroup_alloc(worker_group);
+			io->extent = e;
+			io->ba = ba;
+			io->cnt = cnt;
+			io->strip_off = 0;
+			io->vol = vol;
+			io->stripe = stripe;
+
+			hr_fgroup_submit(worker_group,
+			    hr_io_raid5_reconstruct_reader, io);
 		}
 
-		rc = block_write_direct(rebuild_ext->svc_id, ba, cnt, xorbuf);
-		if (rc != EOK) {
-			hr_raid5_ext_state_cb(vol, bad, rc);
-			HR_ERROR("rebuild on \"%s\" (%" PRIun "), failed due to "
-			    "the rebuilt extent number %zu failing\n",
-			    vol->devname, vol->svc_id, bad);
+		hr_io_raid5_t *io = hr_fgroup_alloc(worker_group);
+		io->extent = rebuild_idx;
+		io->ba = ba;
+		io->cnt = cnt;
+		io->strip_off = 0;
+		io->vol = vol;
+		io->stripe = stripe;
+
+		hr_fgroup_submit(worker_group, hr_io_raid5_parity_writer, io);
+
+		size_t failed;
+		(void)hr_fgroup_wait(worker_group, NULL, &failed);
+		if (failed > 0) {
+			hr_range_lock_release(rl);
+			HR_NOTE("\"%s\": REBUILD aborted.\n", vol->devname);
 			goto end;
 		}
+
+		percent = ((ba + cnt) * 100) / vol->data_blkno;
+		if (percent != old_percent) {
+			if (percent % 5 == 0)
+				HR_DEBUG("\"%s\" REBUILD progress: %u%%\n",
+				    vol->devname, percent);
+		}
+
+		hr_range_lock_release(rl);
+		hr_reset_stripe(stripe);
 
 		ba += cnt;
 		left -= cnt;
@@ -849,39 +819,29 @@ static errno_t hr_raid5_rebuild(void *arg)
 		 * Let other IO requests be served
 		 * during rebuild.
 		 */
-
-		/*
-		 * fibril_rwlock_write_unlock(&vol->states_lock);
-		 * fibril_mutex_unlock(&vol->lock);
-		 * fibril_mutex_lock(&vol->lock);
-		 * fibril_rwlock_write_lock(&vol->states_lock);
-		 */
 	}
 
 	HR_DEBUG("hr_raid5_rebuild(): rebuild finished on \"%s\" (%" PRIun "), "
-	    "extent number %zu\n", vol->devname, vol->svc_id, hotspare_idx);
+	    "extent number %zu\n", vol->devname, vol->svc_id, rebuild_idx);
 
-	hr_update_ext_state(vol, bad, HR_EXT_ONLINE);
-
-	fibril_rwlock_write_unlock(&vol->states_lock);
-	fibril_rwlock_read_unlock(&vol->extents_lock);
-
-	rc = vol->meta_ops->save(vol, WITH_STATE_CALLBACK);
-
-	fibril_rwlock_read_lock(&vol->extents_lock);
 	fibril_rwlock_write_lock(&vol->states_lock);
 
-end:
-	hr_raid5_vol_state_eval_forced(vol);
+	hr_update_ext_state(vol, rebuild_idx, HR_EXT_ONLINE);
+
+	hr_mark_vol_state_dirty(vol);
 
 	fibril_rwlock_write_unlock(&vol->states_lock);
+
+	/* (void)vol->meta_ops->save(vol, WITH_STATE_CALLBACK); */
+
+end:
 	fibril_rwlock_read_unlock(&vol->extents_lock);
 
-	if (buf != NULL)
-		free(buf);
+	hr_raid1_vol_state_eval(vol);
 
-	if (xorbuf != NULL)
-		free(xorbuf);
+	hr_destroy_stripes(stripe, 1);
+	free(buf);
+	free(xorbuf);
 
 	return rc;
 }

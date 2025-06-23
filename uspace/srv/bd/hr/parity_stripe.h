@@ -72,6 +72,7 @@ typedef struct hr_stripe {
 
 	fibril_mutex_t parity_lock;
 	uint8_t *parity; /* the actual parity strip */
+	uint64_t parity_size;
 
 	/* parity writers waiting until this many parity commits */
 	size_t ps_to_be_added;
@@ -103,8 +104,9 @@ typedef struct hr_stripe {
 	size_t range_count;
 } hr_stripe_t;
 
-extern hr_stripe_t *hr_create_stripes(hr_volume_t *, size_t, bool);
+extern hr_stripe_t *hr_create_stripes(hr_volume_t *, uint64_t, size_t, bool);
 extern void hr_destroy_stripes(hr_stripe_t *, size_t);
+extern void hr_reset_stripe(hr_stripe_t *);
 extern void hr_stripe_commit_parity(hr_stripe_t *, uint64_t, const void *,
     uint64_t);
 extern void hr_stripe_wait_for_parity_commits(hr_stripe_t *);

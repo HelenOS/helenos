@@ -52,34 +52,26 @@ static void execute_stripe_degraded_good(hr_stripe_t *, size_t);
 static bool hr_stripe_range_non_extension(const range_t *, const range_t *,
     range_t *);
 static size_t hr_stripe_merge_extent_spans(hr_stripe_t *, size_t, range_t [2]);
-static void hr_reset_stripe(hr_stripe_t *);
 static void hr_stripe_extend_range(range_t *, const range_t *);
 static bool hr_ranges_overlap(const range_t *, const range_t *, range_t *);
 
-hr_stripe_t *hr_create_stripes(hr_volume_t *vol, size_t cnt, bool write)
+hr_stripe_t *hr_create_stripes(hr_volume_t *vol, uint64_t strip_size,
+    size_t cnt, bool write)
 {
-	hr_stripe_t *stripes = calloc(cnt, sizeof(*stripes));
-	if (stripes == NULL)
-		return NULL;
+	hr_stripe_t *stripes = hr_calloc_waitok(cnt, sizeof(*stripes));
 
 	for (size_t i = 0; i < cnt; i++) {
 		fibril_mutex_initialize(&stripes[i].parity_lock);
 		fibril_condvar_initialize(&stripes[i].ps_added_cv);
 		stripes[i].vol = vol;
 		stripes[i].write = write;
-		stripes[i].parity = calloc(1, vol->strip_size);
-		if (stripes[i].parity == NULL)
-			goto error;
-		stripes[i].extent_span =
-		    calloc(vol->extent_no, sizeof(*stripes[i].extent_span));
-		if (stripes[i].extent_span == NULL)
-			goto error;
+		stripes[i].parity = hr_calloc_waitok(1, strip_size);
+		stripes[i].parity_size = strip_size;
+		stripes[i].extent_span = hr_calloc_waitok(vol->extent_no,
+		    sizeof(*stripes[i].extent_span));
 	}
 
 	return stripes;
-error:
-	hr_destroy_stripes(stripes, cnt);
-	return NULL;
 }
 
 void hr_destroy_stripes(hr_stripe_t *stripes, size_t cnt)
@@ -95,6 +87,18 @@ void hr_destroy_stripes(hr_stripe_t *stripes, size_t cnt)
 	}
 
 	free(stripes);
+}
+
+void hr_reset_stripe(hr_stripe_t *stripe)
+{
+	memset(stripe->parity, 0, stripe->parity_size);
+	stripe->ps_added = 0;
+	stripe->ps_to_be_added = 0;
+	stripe->p_count_final = false;
+
+	stripe->rc = EOK;
+	stripe->abort = false;
+	stripe->done = false;
 }
 
 void hr_stripe_commit_parity(hr_stripe_t *stripe, uint64_t strip_off,
@@ -875,20 +879,6 @@ static size_t hr_stripe_merge_extent_spans(hr_stripe_t *s, size_t extent_no,
 	}
 
 	return out_count;
-}
-
-static void hr_reset_stripe(hr_stripe_t *stripe)
-{
-	printf("%s\n", __func__);
-
-	memset(stripe->parity, 0, stripe->vol->strip_size);
-	stripe->ps_added = 0;
-	stripe->ps_to_be_added = 0;
-	stripe->p_count_final = false;
-
-	stripe->rc = EOK;
-	stripe->abort = false;
-	stripe->done = false;
 }
 
 /** Extend a range.

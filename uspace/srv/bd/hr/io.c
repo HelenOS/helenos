@@ -314,7 +314,7 @@ errno_t hr_io_raid5_parity_writer(void *arg)
 	rc = hr_write_direct(extents[io->extent].svc_id, io->ba, io->cnt,
 	    stripe->parity + io->strip_off);
 	if (rc != EOK)
-		io->vol->hr_ops.ext_state_cb(io->vol, stripe->p_extent, rc);
+		io->vol->hr_ops.ext_state_cb(io->vol, io->extent, rc);
 
 	return rc;
 }
