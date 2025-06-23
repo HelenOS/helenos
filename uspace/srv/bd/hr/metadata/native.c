@@ -375,20 +375,13 @@ static void meta_native_inc_counter(hr_volume_t *vol)
 	fibril_mutex_unlock(&vol->md_lock);
 }
 
-/*
- * XXX: finish this fcn documentation
- *
- * Returns ENOMEM else EOK
- */
 static errno_t meta_native_save(hr_volume_t *vol, bool with_state_callback)
 {
 	HR_DEBUG("%s()", __func__);
 
 	errno_t rc = EOK;
 
-	void *md_block = calloc(1, vol->bsize);
-	if (md_block == NULL)
-		return ENOMEM;
+	void *md_block = hr_calloc_waitok(1, vol->bsize);
 
 	hr_metadata_t *md = (hr_metadata_t *)vol->in_mem_md;
 
