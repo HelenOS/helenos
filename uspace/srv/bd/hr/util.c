@@ -444,7 +444,7 @@ void hr_update_ext_state(hr_volume_t *vol, size_t ext_idx, hr_ext_state_t s)
 	assert(ext_idx < vol->extent_no);
 
 	hr_ext_state_t old = vol->extents[ext_idx].state;
-	HR_NOTE("\"%s\": changing extent %zu state: %s -> %s\n",
+	HR_DEBUG("\"%s\": changing extent %zu state: %s -> %s\n",
 	    vol->devname, ext_idx, hr_get_ext_state_str(old),
 	    hr_get_ext_state_str(s));
 	vol->extents[ext_idx].state = s;
@@ -458,7 +458,7 @@ void hr_update_hotspare_state(hr_volume_t *vol, size_t hs_idx,
 	assert(hs_idx < vol->hotspare_no);
 
 	hr_ext_state_t old = vol->hotspares[hs_idx].state;
-	HR_NOTE("\"%s\": changing hotspare %zu state: %s -> %s\n",
+	HR_DEBUG("\"%s\": changing hotspare %zu state: %s -> %s\n",
 	    vol->devname, hs_idx, hr_get_ext_state_str(old),
 	    hr_get_ext_state_str(s));
 	vol->hotspares[hs_idx].state = s;
@@ -468,7 +468,7 @@ void hr_update_vol_state(hr_volume_t *vol, hr_vol_state_t new)
 {
 	assert(fibril_rwlock_is_write_locked(&vol->states_lock));
 
-	HR_NOTE("\"%s\": changing volume state: %s -> %s\n", vol->devname,
+	HR_NOTE("\"%s\": volume state changed: %s -> %s\n", vol->devname,
 	    hr_get_vol_state_str(vol->state), hr_get_vol_state_str(new));
 	vol->state = new;
 }
@@ -481,7 +481,7 @@ void hr_update_ext_svc_id(hr_volume_t *vol, size_t ext_idx, service_id_t new)
 	assert(ext_idx < vol->extent_no);
 
 	service_id_t old = vol->extents[ext_idx].svc_id;
-	HR_NOTE("\"%s\": changing extent no. %zu svc_id: (%" PRIun ") -> "
+	HR_DEBUG("\"%s\": changing extent no. %zu svc_id: (%" PRIun ") -> "
 	    "(%" PRIun ")\n", vol->devname, ext_idx, old, new);
 	vol->extents[ext_idx].svc_id = new;
 }
@@ -494,7 +494,7 @@ void hr_update_hotspare_svc_id(hr_volume_t *vol, size_t hs_idx,
 	assert(hs_idx < vol->hotspare_no);
 
 	service_id_t old = vol->hotspares[hs_idx].svc_id;
-	HR_NOTE("\"%s\": changing hotspare no. %zu svc_id: (%" PRIun ") -> "
+	HR_DEBUG("\"%s\": changing hotspare no. %zu svc_id: (%" PRIun ") -> "
 	    "(%" PRIun ")\n", vol->devname, hs_idx, old, new);
 	vol->hotspares[hs_idx].svc_id = new;
 }
