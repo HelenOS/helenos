@@ -68,6 +68,7 @@ static errno_t hr_util_get_matching_md_svcs_list(list_t *, list_t *,
 static errno_t hr_util_assemble_from_matching_list(list_t *,
     hr_metadata_type_t);
 static errno_t hr_fill_svcs_list_from_cfg(hr_config_t *, list_t *);
+static errno_t hr_swap_hs(hr_volume_t *, size_t, size_t);
 
 #define HR_RL_LIST_LOCK(vol) (fibril_mutex_lock(&(vol)->range_lock_list_lock))
 #define HR_RL_LIST_UNLOCK(vol) \
@@ -1125,6 +1126,107 @@ errno_t hr_sync_extents(hr_volume_t *vol)
 		rc = EIO;
 
 	return rc;
+}
+
+errno_t hr_init_rebuild(hr_volume_t *vol, size_t *rebuild_idx)
+{
+	errno_t rc = EOK;
+
+	if (vol->level == HR_LVL_0)
+		return EINVAL;
+
+	fibril_rwlock_write_lock(&vol->extents_lock);
+	fibril_rwlock_write_lock(&vol->states_lock);
+	fibril_mutex_lock(&vol->hotspare_lock);
+
+	size_t bad = vol->extent_no;
+	for (size_t i = 0; i < vol->extent_no; i++) {
+		if (vol->extents[i].state != HR_EXT_ONLINE) {
+			bad = i;
+			break;
+		}
+	}
+
+	if (bad == vol->extent_no)
+		rc = EINVAL;
+	else if (vol->state != HR_VOL_DEGRADED)
+		rc = EINVAL;
+
+	size_t invalid = vol->extent_no;
+	for (size_t i = 0; i < vol->extent_no; i++) {
+		if (vol->extents[i].state == HR_EXT_INVALID) {
+			invalid = i;
+			break;
+		}
+	}
+
+	if (invalid < vol->extent_no)
+		bad = invalid;
+
+	if (bad != invalid && vol->hotspare_no == 0)
+		rc = EINVAL;
+
+	if (rc != EOK)
+		goto error;
+
+	if (bad != invalid) {
+		size_t hotspare_idx = vol->hotspare_no - 1;
+
+		hr_ext_state_t hs_state = vol->hotspares[hotspare_idx].state;
+		if (hs_state != HR_EXT_HOTSPARE) {
+			HR_ERROR("hr_raid1_rebuild(): invalid hotspare"
+			    "state \"%s\", aborting rebuild\n",
+			    hr_get_ext_state_str(hs_state));
+			rc = EINVAL;
+			goto error;
+		}
+
+		rc = hr_swap_hs(vol, bad, hotspare_idx);
+		if (rc != EOK) {
+			HR_ERROR("hr_raid1_rebuild(): swapping "
+			    "hotspare failed, aborting rebuild\n");
+			goto error;
+		}
+	}
+
+	hr_extent_t *rebuild_ext = &vol->extents[bad];
+
+	HR_DEBUG("hr_raid1_rebuild(): starting REBUILD on extent no. %zu "
+	    "(%"  PRIun  ")\n", bad, rebuild_ext->svc_id);
+
+	atomic_store_explicit(&vol->rebuild_blk, 0, memory_order_relaxed);
+
+	hr_update_ext_state(vol, bad, HR_EXT_REBUILD);
+	hr_update_vol_state(vol, HR_VOL_REBUILD);
+
+	*rebuild_idx = bad;
+error:
+	fibril_mutex_unlock(&vol->hotspare_lock);
+	fibril_rwlock_write_unlock(&vol->states_lock);
+	fibril_rwlock_write_unlock(&vol->extents_lock);
+
+	return rc;
+}
+
+static errno_t hr_swap_hs(hr_volume_t *vol, size_t bad, size_t hs)
+{
+	HR_DEBUG("%s()", __func__);
+
+	service_id_t faulty_svc_id = vol->extents[bad].svc_id;
+	service_id_t hs_svc_id = vol->hotspares[hs].svc_id;
+
+	hr_update_ext_svc_id(vol, bad, hs_svc_id);
+	hr_update_ext_state(vol, bad, HR_EXT_HOTSPARE);
+
+	hr_update_hotspare_svc_id(vol, hs, 0);
+	hr_update_hotspare_state(vol, hs, HR_EXT_MISSING);
+
+	vol->hotspare_no--;
+
+	if (faulty_svc_id != 0)
+		block_fini(faulty_svc_id);
+
+	return EOK;
 }
 
 /** @}
