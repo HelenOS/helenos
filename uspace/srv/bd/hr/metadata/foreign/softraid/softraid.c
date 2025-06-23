@@ -75,7 +75,6 @@ sr_meta_print(const struct sr_metadata *m)
 	struct sr_meta_chunk	*mc;
 	struct sr_meta_opt_hdr	*omh;
 
-	/* TODO XXX: use PRI for portability */
 	printf("\tssd_magic 0x%" PRIx64 "\n", m->ssdi.ssd_magic);
 	printf("\tssd_version %" PRId32 "\n", m->ssdi.ssd_version);
 	printf("\tssd_vol_flags 0x%" PRIx32 "\n", m->ssdi.ssd_vol_flags);
