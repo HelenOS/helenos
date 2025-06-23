@@ -47,6 +47,7 @@
 #include <str.h>
 #include <types/uuid.h>
 
+#include "../../../io.h"
 #include "../../../util.h"
 #include "../../../var.h"
 
@@ -223,7 +224,7 @@ static errno_t meta_gstripe_get_block(service_id_t dev, void **rblock)
 	if (block == NULL)
 		return ENOMEM;
 
-	rc = block_read_direct(dev, blkno - 1, 1, block);
+	rc = hr_read_direct(dev, blkno - 1, 1, block);
 	/*
 	 * XXX: here maybe call vol state event or the state callback...
 	 *
@@ -260,7 +261,7 @@ static errno_t meta_gstripe_write_block(service_id_t dev, const void *block)
 	if (blkno < 1)
 		return EINVAL;
 
-	rc = block_write_direct(dev, blkno - 1, 1, block);
+	rc = hr_write_direct(dev, blkno - 1, 1, block);
 
 	return rc;
 }

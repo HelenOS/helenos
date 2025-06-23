@@ -47,6 +47,7 @@
 #include <str.h>
 #include <types/uuid.h>
 
+#include "../../../io.h"
 #include "../../../util.h"
 #include "../../../var.h"
 
@@ -360,7 +361,7 @@ static errno_t meta_softraid_get_block(service_id_t dev, void **rblock)
 	if (block == NULL)
 		return ENOMEM;
 
-	rc = block_read_direct(dev, SR_META_OFFSET, SR_META_SIZE, block);
+	rc = hr_read_direct(dev, SR_META_OFFSET, SR_META_SIZE, block);
 	if (rc != EOK) {
 		free(block);
 		return rc;
@@ -392,7 +393,7 @@ static errno_t meta_softraid_write_block(service_id_t dev, const void *block)
 	if (blkno < SR_META_OFFSET + SR_META_SIZE)
 		return EINVAL;
 
-	rc = block_write_direct(dev, SR_META_OFFSET, SR_META_SIZE, block);
+	rc = hr_write_direct(dev, SR_META_OFFSET, SR_META_SIZE, block);
 
 	return rc;
 }
