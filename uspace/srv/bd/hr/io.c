@@ -281,7 +281,7 @@ errno_t hr_io_raid5_reconstruct_reader(void *arg)
 
 	uint8_t *data = hr_malloc_waitok(io->cnt * io->vol->bsize);
 
-	rc = hr_write_direct(extents[ext_idx].svc_id, io->ba, io->cnt, data);
+	rc = hr_read_direct(extents[ext_idx].svc_id, io->ba, io->cnt, data);
 	if (rc != EOK) {
 		hr_stripe_parity_abort(stripe);
 		io->vol->hr_ops.ext_state_cb(io->vol, io->extent, rc);
