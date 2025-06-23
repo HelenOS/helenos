@@ -58,13 +58,11 @@
 static void hr_raid1_vol_state_eval_forced(hr_volume_t *);
 static size_t hr_raid1_count_good_extents(hr_volume_t *, uint64_t, size_t,
     uint64_t);
-static errno_t hr_raid1_bd_op(hr_bd_op_type_t, bd_srv_t *, aoff64_t, size_t,
+static errno_t hr_raid1_bd_op(hr_bd_op_type_t, hr_volume_t *, aoff64_t, size_t,
     void *, const void *, size_t);
 static errno_t hr_raid1_rebuild(void *);
 static errno_t init_rebuild(hr_volume_t *, size_t *);
 static errno_t swap_hs(hr_volume_t *, size_t, size_t);
-static errno_t hr_raid1_restore_blocks(hr_volume_t *, size_t, uint64_t, size_t,
-    void *);
 
 /* bdops */
 static errno_t hr_raid1_bd_open(bd_srvs_t *, bd_srv_t *);
@@ -195,6 +193,12 @@ static void hr_raid1_vol_state_eval_forced(hr_volume_t *vol)
 	hr_vol_state_t old_state = vol->state;
 	size_t healthy = hr_count_extents(vol, HR_EXT_ONLINE);
 
+	size_t invalid_no = hr_count_extents(vol, HR_EXT_INVALID);
+
+	fibril_mutex_lock(&vol->hotspare_lock);
+	size_t hs_no = vol->hotspare_no;
+	fibril_mutex_unlock(&vol->hotspare_lock);
+
 	fibril_rwlock_read_unlock(&vol->states_lock);
 	fibril_rwlock_read_unlock(&vol->extents_lock);
 
@@ -213,11 +217,7 @@ static void hr_raid1_vol_state_eval_forced(hr_volume_t *vol)
 		}
 
 		if (old_state != HR_VOL_REBUILD) {
-			/* XXX: allow REBUILD on INVALID extents */
-			fibril_mutex_lock(&vol->hotspare_lock);
-			size_t hs_no = vol->hotspare_no;
-			fibril_mutex_unlock(&vol->hotspare_lock);
-			if (hs_no > 0) {
+			if (hs_no > 0 || invalid_no > 0) {
 				fid_t fib = fibril_create(hr_raid1_rebuild,
 				    vol);
 				if (fib == 0)
@@ -267,13 +267,17 @@ static errno_t hr_raid1_bd_sync_cache(bd_srv_t *bd, aoff64_t ba, size_t cnt)
 static errno_t hr_raid1_bd_read_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
     void *buf, size_t size)
 {
-	return hr_raid1_bd_op(HR_BD_READ, bd, ba, cnt, buf, NULL, size);
+	hr_volume_t *vol = bd->srvs->sarg;
+
+	return hr_raid1_bd_op(HR_BD_READ, vol, ba, cnt, buf, NULL, size);
 }
 
 static errno_t hr_raid1_bd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
     const void *data, size_t size)
 {
-	return hr_raid1_bd_op(HR_BD_WRITE, bd, ba, cnt, NULL, data, size);
+	hr_volume_t *vol = bd->srvs->sarg;
+
+	return hr_raid1_bd_op(HR_BD_WRITE, vol, ba, cnt, NULL, data, size);
 }
 
 static errno_t hr_raid1_bd_get_block_size(bd_srv_t *bd, size_t *rsize)
@@ -310,12 +314,12 @@ static size_t hr_raid1_count_good_extents(hr_volume_t *vol, uint64_t ba,
 	return count;
 }
 
-static errno_t hr_raid1_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
-    size_t cnt, void *data_read, const void *data_write, size_t size)
+static errno_t hr_raid1_bd_op(hr_bd_op_type_t type, hr_volume_t *vol,
+    aoff64_t ba, size_t cnt, void *data_read, const void *data_write,
+    size_t size)
 {
 	HR_DEBUG("%s()", __func__);
 
-	hr_volume_t *vol = bd->srvs->sarg;
 	hr_range_lock_t *rl = NULL;
 	errno_t rc;
 	size_t i;
@@ -451,23 +455,27 @@ static errno_t hr_raid1_rebuild(void *arg)
 	hr_volume_t *vol = arg;
 	void *buf = NULL;
 	size_t rebuild_idx;
+	hr_extent_t *rebuild_ext = NULL;
 	errno_t rc;
 
 	rc = init_rebuild(vol, &rebuild_idx);
 	if (rc != EOK)
 		return rc;
 
+	rebuild_ext = &vol->extents[rebuild_idx];
+
 	size_t left = vol->data_blkno;
 	size_t max_blks = DATA_XFER_LIMIT / vol->bsize;
-	buf = malloc(max_blks * vol->bsize);
+	buf = hr_malloc_waitok(max_blks * vol->bsize);
 
 	size_t cnt;
 	uint64_t ba = 0;
 	hr_add_data_offset(vol, &ba);
 
 	/*
-	 * XXX: this is useless here after simplified DI, because
-	 * rebuild cannot be triggered while ongoing rebuild
+	 * this is not necessary because a rebuild is
+	 * protected by itself, i.e. there can be only
+	 * one REBUILD at a time
 	 */
 	fibril_rwlock_read_lock(&vol->extents_lock);
 
@@ -485,15 +493,23 @@ static errno_t hr_raid1_rebuild(void *arg)
 		cnt = min(max_blks, left);
 
 		rl = hr_range_lock_acquire(vol, ba, cnt);
-		if (rl == NULL) {
-			rc = ENOMEM;
-			goto end;
-		}
 
 		atomic_store_explicit(&vol->rebuild_blk, ba,
 		    memory_order_relaxed);
 
-		rc = hr_raid1_restore_blocks(vol, rebuild_idx, ba, cnt, buf);
+		rc = hr_raid1_bd_op(HR_BD_READ, vol, ba, cnt, buf, NULL,
+		    cnt * vol->bsize);
+		if (rc != EOK) {
+			hr_range_lock_release(rl);
+			goto end;
+		}
+
+		rc = hr_write_direct(rebuild_ext->svc_id, ba, cnt, buf);
+		if (rc != EOK) {
+			hr_raid1_ext_state_cb(vol, rebuild_idx, rc);
+			hr_range_lock_release(rl);
+			goto end;
+		}
 
 		percent = ((ba + cnt) * 100) / vol->data_blkno;
 		if (percent != old_percent) {
@@ -503,9 +519,6 @@ static errno_t hr_raid1_rebuild(void *arg)
 		}
 
 		hr_range_lock_release(rl);
-
-		if (rc != EOK)
-			goto end;
 
 		ba += cnt;
 		left -= cnt;
@@ -519,34 +532,13 @@ static errno_t hr_raid1_rebuild(void *arg)
 
 	hr_update_ext_state(vol, rebuild_idx, HR_EXT_ONLINE);
 
-	/*
-	 * We can be optimistic here, if some extents are
-	 * still INVALID, FAULTY or MISSING, the update vol
-	 * function will pick them up, and set the volume
-	 * state accordingly.
-	 */
-	hr_update_vol_state(vol, HR_VOL_OPTIMAL);
 	hr_mark_vol_state_dirty(vol);
 
 	fibril_rwlock_write_unlock(&vol->states_lock);
 
-	(void)vol->meta_ops->save(vol, WITH_STATE_CALLBACK);
+	/* (void)vol->meta_ops->save(vol, WITH_STATE_CALLBACK); */
 
 end:
-	if (rc != EOK) {
-		/*
-		 * We can fail either because:
-		 * - the rebuild extent failing or invalidation
-		 * - there is are no ONLINE extents (vol is FAULTY)
-		 * - we got ENOMEM on all READs (we also invalidate the
-		 *   rebuild extent here, for now)
-		 */
-		fibril_rwlock_write_lock(&vol->states_lock);
-		hr_update_vol_state(vol, HR_VOL_DEGRADED);
-		hr_mark_vol_state_dirty(vol);
-		fibril_rwlock_write_unlock(&vol->states_lock);
-	}
-
 	fibril_rwlock_read_unlock(&vol->extents_lock);
 
 	hr_raid1_vol_state_eval(vol);
@@ -565,14 +557,6 @@ static errno_t init_rebuild(hr_volume_t *vol, size_t *rebuild_idx)
 	fibril_rwlock_write_lock(&vol->states_lock);
 	fibril_mutex_lock(&vol->hotspare_lock);
 
-	/* XXX: allow REBUILD on INVALID extents */
-	if (vol->hotspare_no == 0) {
-		HR_WARN("hr_raid1_rebuild(): no free hotspares on \"%s\", "
-		    "aborting rebuild\n", vol->devname);
-		rc = EINVAL;
-		goto error;
-	}
-
 	size_t bad = vol->extent_no;
 	for (size_t i = 0; i < vol->extent_no; i++) {
 		if (vol->extents[i].state != HR_EXT_ONLINE) {
@@ -581,28 +565,46 @@ static errno_t init_rebuild(hr_volume_t *vol, size_t *rebuild_idx)
 		}
 	}
 
-	if (bad == vol->extent_no) {
-		HR_WARN("hr_raid1_rebuild(): no bad extent on \"%s\", "
-		    "aborting rebuild\n", vol->devname);
+	if (bad == vol->extent_no)
 		rc = EINVAL;
-		goto error;
+	else if (vol->state != HR_VOL_DEGRADED)
+		rc = EINVAL;
+
+	size_t invalid = vol->extent_no;
+	for (size_t i = 0; i < vol->extent_no; i++) {
+		if (vol->extents[i].state == HR_EXT_INVALID) {
+			invalid = i;
+			break;
+		}
 	}
 
-	size_t hotspare_idx = vol->hotspare_no - 1;
+	if (invalid < vol->extent_no)
+		bad = invalid;
 
-	hr_ext_state_t hs_state = vol->hotspares[hotspare_idx].state;
-	if (hs_state != HR_EXT_HOTSPARE) {
-		HR_ERROR("hr_raid1_rebuild(): invalid hotspare state \"%s\", "
-		    "aborting rebuild\n", hr_get_ext_state_str(hs_state));
+	if (bad != invalid && vol->hotspare_no == 0)
 		rc = EINVAL;
-		goto error;
-	}
 
-	rc = swap_hs(vol, bad, hotspare_idx);
-	if (rc != EOK) {
-		HR_ERROR("hr_raid1_rebuild(): swapping hotspare failed, "
-		    "aborting rebuild\n");
+	if (rc != EOK)
 		goto error;
+
+	if (bad != invalid) {
+		size_t hotspare_idx = vol->hotspare_no - 1;
+
+		hr_ext_state_t hs_state = vol->hotspares[hotspare_idx].state;
+		if (hs_state != HR_EXT_HOTSPARE) {
+			HR_ERROR("hr_raid1_rebuild(): invalid hotspare"
+			    "state \"%s\", aborting rebuild\n",
+			    hr_get_ext_state_str(hs_state));
+			rc = EINVAL;
+			goto error;
+		}
+
+		rc = swap_hs(vol, bad, hotspare_idx);
+		if (rc != EOK) {
+			HR_ERROR("hr_raid1_rebuild(): swapping "
+			    "hotspare failed, aborting rebuild\n");
+			goto error;
+		}
 	}
 
 	hr_extent_t *rebuild_ext = &vol->extents[bad];
@@ -626,7 +628,7 @@ error:
 
 static errno_t swap_hs(hr_volume_t *vol, size_t bad, size_t hs)
 {
-	HR_DEBUG("hr_raid1_rebuild(): swapping in hotspare\n");
+	HR_DEBUG("%s()", __func__);
 
 	service_id_t faulty_svc_id = vol->extents[bad].svc_id;
 	service_id_t hs_svc_id = vol->hotspares[hs].svc_id;
@@ -641,80 +643,6 @@ static errno_t swap_hs(hr_volume_t *vol, size_t bad, size_t hs)
 
 	if (faulty_svc_id != 0)
 		block_fini(faulty_svc_id);
-
-	return EOK;
-}
-
-static errno_t hr_raid1_restore_blocks(hr_volume_t *vol, size_t rebuild_idx,
-    uint64_t ba, size_t cnt, void *buf)
-{
-	assert(fibril_rwlock_is_locked(&vol->extents_lock));
-
-	errno_t rc = ENOENT;
-	hr_extent_t *ext, *rebuild_ext = &vol->extents[rebuild_idx];
-
-	fibril_rwlock_read_lock(&vol->states_lock);
-	hr_ext_state_t rebuild_ext_state = rebuild_ext->state;
-	fibril_rwlock_read_unlock(&vol->states_lock);
-
-	if (rebuild_ext_state != HR_EXT_REBUILD)
-		return EINVAL;
-
-	for (size_t i = 0; i < vol->extent_no; i++) {
-		fibril_rwlock_read_lock(&vol->states_lock);
-		ext = &vol->extents[i];
-		if (ext->state != HR_EXT_ONLINE) {
-			fibril_rwlock_read_unlock(&vol->states_lock);
-			continue;
-		}
-		fibril_rwlock_read_unlock(&vol->states_lock);
-
-		rc = block_read_direct(ext->svc_id, ba, cnt, buf);
-		if (rc == EOK)
-			break;
-
-		if (rc != ENOMEM)
-			hr_raid1_ext_state_cb(vol, i, rc);
-
-		if (i + 1 >= vol->extent_no) {
-			if (rc != ENOMEM) {
-				HR_ERROR("rebuild on \"%s\" (%" PRIun "), "
-				    "failed due to too many failed extents\n",
-				    vol->devname, vol->svc_id);
-			}
-
-			/* for now we have to invalidate the rebuild extent */
-			if (rc == ENOMEM) {
-				HR_ERROR("rebuild on \"%s\" (%" PRIun "), "
-				    "failed due to too many failed reads, "
-				    "because of not enough memory\n",
-				    vol->devname, vol->svc_id);
-				hr_raid1_ext_state_cb(vol, rebuild_idx,
-				    ENOMEM);
-			}
-
-			return rc;
-		}
-	}
-
-	rc = block_write_direct(rebuild_ext->svc_id, ba, cnt, buf);
-	if (rc != EOK) {
-		/*
-		 * Here we dont handle ENOMEM, because maybe in the
-		 * future, there is going to be M_WAITOK, or we are
-		 * going to wait for more memory, so that we don't
-		 * have to invalidate it...
-		 *
-		 * XXX: for now we do
-		 */
-		hr_raid1_ext_state_cb(vol, rebuild_idx, rc);
-
-		HR_ERROR("rebuild on \"%s\" (%" PRIun "), failed due to "
-		    "the rebuilt extent no. %zu WRITE (rc: %s)\n",
-		    vol->devname, vol->svc_id, rebuild_idx, str_error(rc));
-
-		return rc;
-	}
 
 	return EOK;
 }
