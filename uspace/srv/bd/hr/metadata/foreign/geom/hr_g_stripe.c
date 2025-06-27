@@ -64,6 +64,7 @@ static bool meta_gstripe_has_valid_magic(const void *);
 static errno_t meta_gstripe_probe(service_id_t, void **);
 static errno_t meta_gstripe_init_vol2meta(hr_volume_t *);
 static errno_t meta_gstripe_init_meta2vol(const list_t *, hr_volume_t *);
+static errno_t meta_gstripe_erase_block(service_id_t);
 static bool meta_gstripe_compare_uuids(const void *, const void *);
 static void meta_gstripe_inc_counter(hr_volume_t *);
 static errno_t meta_gstripe_save(hr_volume_t *, bool);
@@ -80,6 +81,7 @@ hr_superblock_ops_t metadata_gstripe_ops = {
 	.probe = meta_gstripe_probe,
 	.init_vol2meta = meta_gstripe_init_vol2meta,
 	.init_meta2vol = meta_gstripe_init_meta2vol,
+	.erase_block = meta_gstripe_erase_block,
 	.compare_uuids = meta_gstripe_compare_uuids,
 	.inc_counter = meta_gstripe_inc_counter,
 	.save = meta_gstripe_save,
@@ -201,6 +203,15 @@ static errno_t meta_gstripe_init_meta2vol(const list_t *list, hr_volume_t *vol)
 
 error:
 	return rc;
+}
+
+static errno_t meta_gstripe_erase_block(service_id_t dev)
+{
+	HR_DEBUG("%s()", __func__);
+
+	(void)dev;
+
+	return ENOTSUP;
 }
 
 static bool meta_gstripe_compare_uuids(const void *md1_v, const void *md2_v)
