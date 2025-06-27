@@ -53,15 +53,18 @@
 
 #include "native.h"
 
+/* not exposed */
 static void *meta_native_alloc_struct(void);
-static errno_t meta_native_init_vol2meta(hr_volume_t *);
-static errno_t meta_native_init_meta2vol(const list_t *, hr_volume_t *);
 static void meta_native_encode(void *, void *);
 static errno_t meta_native_decode(const void *, void *);
 static errno_t meta_native_get_block(service_id_t, void **);
 static errno_t meta_native_write_block(service_id_t, const void *);
-static errno_t meta_native_erase_block(service_id_t);
 static bool meta_native_has_valid_magic(const void *);
+
+static errno_t meta_native_probe(service_id_t, void **);
+static errno_t meta_native_init_vol2meta(hr_volume_t *);
+static errno_t meta_native_init_meta2vol(const list_t *, hr_volume_t *);
+static errno_t meta_native_erase_block(service_id_t);
 static bool meta_native_compare_uuids(const void *, const void *);
 static void meta_native_inc_counter(hr_volume_t *);
 static errno_t meta_native_save(hr_volume_t *, bool);
@@ -75,15 +78,10 @@ static hr_metadata_type_t meta_native_get_type(void);
 static void meta_native_dump(const void *);
 
 hr_superblock_ops_t metadata_native_ops = {
-	.alloc_struct = meta_native_alloc_struct,
+	.probe = meta_native_probe,
 	.init_vol2meta = meta_native_init_vol2meta,
 	.init_meta2vol = meta_native_init_meta2vol,
-	.encode = meta_native_encode,
-	.decode = meta_native_decode,
-	.get_block = meta_native_get_block,
-	.write_block = meta_native_write_block,
 	.erase_block = meta_native_erase_block,
-	.has_valid_magic = meta_native_has_valid_magic,
 	.compare_uuids = meta_native_compare_uuids,
 	.inc_counter = meta_native_inc_counter,
 	.save = meta_native_save,
@@ -97,9 +95,37 @@ hr_superblock_ops_t metadata_native_ops = {
 	.dump = meta_native_dump
 };
 
-static void *meta_native_alloc_struct(void)
+static errno_t meta_native_probe(service_id_t svc_id, void **rmd)
 {
-	return calloc(1, sizeof(hr_metadata_t));
+	errno_t rc;
+	void *meta_block;
+
+	void *metadata_struct = meta_native_alloc_struct();
+	if (metadata_struct == NULL)
+		return ENOMEM;
+
+	rc = meta_native_get_block(svc_id, &meta_block);
+	if (rc != EOK)
+		goto error;
+
+	rc = meta_native_decode(meta_block, metadata_struct);
+
+	free(meta_block);
+
+	if (rc != EOK)
+		goto error;
+
+	if (!meta_native_has_valid_magic(metadata_struct)) {
+		rc = ENOFS;
+		goto error;
+	}
+
+	*rmd = metadata_struct;
+	return EOK;
+
+error:
+	free(metadata_struct);
+	return ENOFS;
 }
 
 static errno_t meta_native_init_vol2meta(hr_volume_t *vol)
@@ -201,146 +227,6 @@ static errno_t meta_native_init_meta2vol(const list_t *list, hr_volume_t *vol)
 	return EOK;
 }
 
-static void meta_native_encode(void *md_v, void *block)
-{
-	HR_DEBUG("%s()", __func__);
-
-	const hr_metadata_t *metadata = md_v;
-
-	/*
-	 * Use scratch metadata for easier encoding without the need
-	 * for manualy specifying offsets.
-	 */
-	hr_metadata_t scratch_md;
-
-	memcpy(scratch_md.magic, metadata->magic, HR_NATIVE_MAGIC_SIZE);
-	memcpy(scratch_md.uuid, metadata->uuid, HR_NATIVE_UUID_LEN);
-
-	scratch_md.data_blkno = host2uint64_t_le(metadata->data_blkno);
-	scratch_md.truncated_blkno = host2uint64_t_le(
-	    metadata->truncated_blkno);
-	scratch_md.counter = host2uint64_t_le(metadata->counter);
-	scratch_md.rebuild_pos = host2uint64_t_le(metadata->rebuild_pos);
-	scratch_md.version = host2uint32_t_le(metadata->version);
-	scratch_md.extent_no = host2uint32_t_le(metadata->extent_no);
-	scratch_md.index = host2uint32_t_le(metadata->index);
-	scratch_md.level = host2uint32_t_le(metadata->level);
-	scratch_md.layout = host2uint32_t_le(metadata->layout);
-	scratch_md.strip_size = host2uint32_t_le(metadata->strip_size);
-	scratch_md.bsize = host2uint32_t_le(metadata->bsize);
-	memcpy(scratch_md.devname, metadata->devname, HR_DEVNAME_LEN);
-
-	memcpy(block, &scratch_md, sizeof(hr_metadata_t));
-}
-
-static errno_t meta_native_decode(const void *block, void *md_v)
-{
-	HR_DEBUG("%s()", __func__);
-
-	hr_metadata_t *metadata = md_v;
-
-	/*
-	 * Use scratch metadata for easier decoding without the need
-	 * for manualy specifying offsets.
-	 */
-	hr_metadata_t scratch_md;
-	memcpy(&scratch_md, block, sizeof(hr_metadata_t));
-
-	memcpy(metadata->magic, scratch_md.magic, HR_NATIVE_MAGIC_SIZE);
-	memcpy(metadata->uuid, scratch_md.uuid, HR_NATIVE_UUID_LEN);
-
-	metadata->data_blkno = uint64_t_le2host(scratch_md.data_blkno);
-	metadata->truncated_blkno = uint64_t_le2host(
-	    scratch_md.truncated_blkno);
-	metadata->counter = uint64_t_le2host(scratch_md.counter);
-	metadata->rebuild_pos = uint64_t_le2host(scratch_md.rebuild_pos);
-	metadata->version = uint32_t_le2host(scratch_md.version);
-	metadata->extent_no = uint32_t_le2host(scratch_md.extent_no);
-	metadata->index = uint32_t_le2host(scratch_md.index);
-	metadata->level = uint32_t_le2host(scratch_md.level);
-	metadata->layout = uint32_t_le2host(scratch_md.layout);
-	metadata->strip_size = uint32_t_le2host(scratch_md.strip_size);
-	metadata->bsize = uint32_t_le2host(scratch_md.bsize);
-	memcpy(metadata->devname, scratch_md.devname, HR_DEVNAME_LEN);
-
-	if (metadata->version != 1)
-		return EINVAL;
-
-	return EOK;
-}
-
-static errno_t meta_native_get_block(service_id_t dev, void **rblock)
-{
-	HR_DEBUG("%s()", __func__);
-
-	errno_t rc;
-	uint64_t blkno;
-	size_t bsize;
-	void *block;
-
-	if (rblock == NULL)
-		return EINVAL;
-
-	rc = block_get_bsize(dev, &bsize);
-	if (rc != EOK)
-		return rc;
-
-	if (bsize < sizeof(hr_metadata_t))
-		return EINVAL;
-
-	rc = block_get_nblocks(dev, &blkno);
-	if (rc != EOK)
-		return rc;
-
-	if (blkno < HR_NATIVE_META_SIZE)
-		return EINVAL;
-
-	block = malloc(bsize);
-	if (block == NULL)
-		return ENOMEM;
-
-	rc = hr_read_direct(dev, blkno - 1, HR_NATIVE_META_SIZE, block);
-	/*
-	 * XXX: here maybe call vol state event or the state callback...
-	 *
-	 * but need to pass vol pointer
-	 */
-	if (rc != EOK) {
-		free(block);
-		return rc;
-	}
-
-	*rblock = block;
-	return EOK;
-}
-
-static errno_t meta_native_write_block(service_id_t dev, const void *block)
-{
-	HR_DEBUG("%s()", __func__);
-
-	errno_t rc;
-	uint64_t blkno;
-	size_t bsize;
-
-	rc = block_get_bsize(dev, &bsize);
-	if (rc != EOK)
-		return rc;
-
-	if (bsize < sizeof(hr_metadata_t))
-		return EINVAL;
-
-	rc = block_get_nblocks(dev, &blkno);
-	if (rc != EOK)
-		return rc;
-
-	if (blkno < HR_NATIVE_META_SIZE)
-		return EINVAL;
-
-	rc = hr_write_direct(dev, blkno - 1, HR_NATIVE_META_SIZE, block);
-
-	return rc;
-}
-
 static errno_t meta_native_erase_block(service_id_t dev)
 {
 	HR_DEBUG("%s()", __func__);
@@ -358,18 +244,6 @@ static errno_t meta_native_erase_block(service_id_t dev)
 
 	rc = meta_native_write_block(dev, zero_block);
 	return rc;
-}
-
-static bool meta_native_has_valid_magic(const void *md_v)
-{
-	HR_DEBUG("%s()", __func__);
-
-	const hr_metadata_t *md = md_v;
-
-	if (str_lcmp(md->magic, HR_NATIVE_MAGIC_STR, HR_NATIVE_MAGIC_SIZE) != 0)
-		return false;
-
-	return true;
 }
 
 static bool meta_native_compare_uuids(const void *m1p, const void *m2p)
@@ -512,6 +386,163 @@ static void meta_native_dump(const void *md_v)
 	printf("\tstrip_size: %" PRIu32 "\n", metadata->strip_size);
 	printf("\tbsize: %" PRIu32 "\n", metadata->bsize);
 	printf("\tdevname: %s\n", metadata->devname);
+}
+
+static void *meta_native_alloc_struct(void)
+{
+	return calloc(1, sizeof(hr_metadata_t));
+}
+
+static void meta_native_encode(void *md_v, void *block)
+{
+	HR_DEBUG("%s()", __func__);
+
+	const hr_metadata_t *metadata = md_v;
+
+	/*
+	 * Use scratch metadata for easier encoding without the need
+	 * for manualy specifying offsets.
+	 */
+	hr_metadata_t scratch_md;
+
+	memcpy(scratch_md.magic, metadata->magic, HR_NATIVE_MAGIC_SIZE);
+	memcpy(scratch_md.uuid, metadata->uuid, HR_NATIVE_UUID_LEN);
+
+	scratch_md.data_blkno = host2uint64_t_le(metadata->data_blkno);
+	scratch_md.truncated_blkno = host2uint64_t_le(
+	    metadata->truncated_blkno);
+	scratch_md.counter = host2uint64_t_le(metadata->counter);
+	scratch_md.rebuild_pos = host2uint64_t_le(metadata->rebuild_pos);
+	scratch_md.version = host2uint32_t_le(metadata->version);
+	scratch_md.extent_no = host2uint32_t_le(metadata->extent_no);
+	scratch_md.index = host2uint32_t_le(metadata->index);
+	scratch_md.level = host2uint32_t_le(metadata->level);
+	scratch_md.layout = host2uint32_t_le(metadata->layout);
+	scratch_md.strip_size = host2uint32_t_le(metadata->strip_size);
+	scratch_md.bsize = host2uint32_t_le(metadata->bsize);
+	memcpy(scratch_md.devname, metadata->devname, HR_DEVNAME_LEN);
+
+	memcpy(block, &scratch_md, sizeof(hr_metadata_t));
+}
+
+static errno_t meta_native_decode(const void *block, void *md_v)
+{
+	HR_DEBUG("%s()", __func__);
+
+	hr_metadata_t *metadata = md_v;
+
+	/*
+	 * Use scratch metadata for easier decoding without the need
+	 * for manualy specifying offsets.
+	 */
+	hr_metadata_t scratch_md;
+	memcpy(&scratch_md, block, sizeof(hr_metadata_t));
+
+	memcpy(metadata->magic, scratch_md.magic, HR_NATIVE_MAGIC_SIZE);
+	memcpy(metadata->uuid, scratch_md.uuid, HR_NATIVE_UUID_LEN);
+
+	metadata->data_blkno = uint64_t_le2host(scratch_md.data_blkno);
+	metadata->truncated_blkno = uint64_t_le2host(
+	    scratch_md.truncated_blkno);
+	metadata->counter = uint64_t_le2host(scratch_md.counter);
+	metadata->rebuild_pos = uint64_t_le2host(scratch_md.rebuild_pos);
+	metadata->version = uint32_t_le2host(scratch_md.version);
+	metadata->extent_no = uint32_t_le2host(scratch_md.extent_no);
+	metadata->index = uint32_t_le2host(scratch_md.index);
+	metadata->level = uint32_t_le2host(scratch_md.level);
+	metadata->layout = uint32_t_le2host(scratch_md.layout);
+	metadata->strip_size = uint32_t_le2host(scratch_md.strip_size);
+	metadata->bsize = uint32_t_le2host(scratch_md.bsize);
+	memcpy(metadata->devname, scratch_md.devname, HR_DEVNAME_LEN);
+
+	if (metadata->version != 1)
+		return EINVAL;
+
+	return EOK;
+}
+
+static errno_t meta_native_get_block(service_id_t dev, void **rblock)
+{
+	HR_DEBUG("%s()", __func__);
+
+	errno_t rc;
+	uint64_t blkno;
+	size_t bsize;
+	void *block;
+
+	if (rblock == NULL)
+		return EINVAL;
+
+	rc = block_get_bsize(dev, &bsize);
+	if (rc != EOK)
+		return rc;
+
+	if (bsize < sizeof(hr_metadata_t))
+		return EINVAL;
+
+	rc = block_get_nblocks(dev, &blkno);
+	if (rc != EOK)
+		return rc;
+
+	if (blkno < HR_NATIVE_META_SIZE)
+		return EINVAL;
+
+	block = malloc(bsize);
+	if (block == NULL)
+		return ENOMEM;
+
+	rc = hr_read_direct(dev, blkno - 1, HR_NATIVE_META_SIZE, block);
+	/*
+	 * XXX: here maybe call vol state event or the state callback...
+	 *
+	 * but need to pass vol pointer
+	 */
+	if (rc != EOK) {
+		free(block);
+		return rc;
+	}
+
+	*rblock = block;
+	return EOK;
+}
+
+static errno_t meta_native_write_block(service_id_t dev, const void *block)
+{
+	HR_DEBUG("%s()", __func__);
+
+	errno_t rc;
+	uint64_t blkno;
+	size_t bsize;
+
+	rc = block_get_bsize(dev, &bsize);
+	if (rc != EOK)
+		return rc;
+
+	if (bsize < sizeof(hr_metadata_t))
+		return EINVAL;
+
+	rc = block_get_nblocks(dev, &blkno);
+	if (rc != EOK)
+		return rc;
+
+	if (blkno < HR_NATIVE_META_SIZE)
+		return EINVAL;
+
+	rc = hr_write_direct(dev, blkno - 1, HR_NATIVE_META_SIZE, block);
+
+	return rc;
+}
+
+static bool meta_native_has_valid_magic(const void *md_v)
+{
+	HR_DEBUG("%s()", __func__);
+
+	const hr_metadata_t *md = md_v;
+
+	if (str_lcmp(md->magic, HR_NATIVE_MAGIC_STR, HR_NATIVE_MAGIC_SIZE) != 0)
+		return false;
+
+	return true;
 }
 
 /** @}

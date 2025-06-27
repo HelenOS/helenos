@@ -114,7 +114,7 @@ errno_t hr_create_vol_struct(hr_volume_t **rvol, hr_level_t level,
 	str_cpy(vol->devname, HR_DEVNAME_LEN, devname);
 	vol->level = level;
 
-	vol->meta_ops = get_type_ops(metadata_type);
+	vol->meta_ops = hr_get_meta_type_ops(metadata_type);
 
 	uint8_t meta_flags = vol->meta_ops->get_flags();
 
@@ -791,7 +791,7 @@ static errno_t hr_util_get_matching_md_svcs_list(list_t *rlist, list_t *list,
 
 	errno_t rc = EOK;
 
-	hr_superblock_ops_t *meta_ops = get_type_ops(type_main);
+	hr_superblock_ops_t *meta_ops = hr_get_meta_type_ops(type_main);
 
 	list_foreach(*list, link, struct dev_list_member, iter) {
 		if (iter->svc_id == svc_id)
@@ -800,7 +800,7 @@ static errno_t hr_util_get_matching_md_svcs_list(list_t *rlist, list_t *list,
 		void *metadata_struct;
 		hr_metadata_type_t type;
 
-		rc = find_metadata(iter->svc_id, &metadata_struct, &type);
+		rc = hr_find_metadata(iter->svc_id, &metadata_struct, &type);
 		if (rc == ENOFS)
 			continue;
 		if (rc != EOK)
@@ -836,7 +836,7 @@ static errno_t hr_util_assemble_from_matching_list(list_t *list,
 
 	errno_t rc = EOK;
 
-	hr_superblock_ops_t *meta_ops = get_type_ops(type);
+	hr_superblock_ops_t *meta_ops = hr_get_meta_type_ops(type);
 
 	link_t *memb_l = list_first(list);
 	struct dev_list_member *memb = list_get_instance(memb_l,
@@ -932,7 +932,7 @@ errno_t hr_util_try_assemble(hr_config_t *cfg, size_t *rassembled_cnt)
 		void *metadata_struct_main;
 		hr_metadata_type_t type;
 
-		rc = find_metadata(iter->svc_id, &metadata_struct_main, &type);
+		rc = hr_find_metadata(iter->svc_id, &metadata_struct_main, &type);
 		if (rc == ENOFS) {
 			block_fini(iter->svc_id);
 			free_dev_list_member(iter);

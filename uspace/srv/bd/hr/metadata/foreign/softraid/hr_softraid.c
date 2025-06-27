@@ -53,14 +53,17 @@
 
 #include "softraidvar.h"
 
+/* not exposed */
 static void *meta_softraid_alloc_struct(void);
-static errno_t meta_softraid_init_vol2meta(hr_volume_t *);
-static errno_t meta_softraid_init_meta2vol(const list_t *, hr_volume_t *);
-static void meta_softraid_encode(void *, void *);
+/* static void meta_softraid_encode(void *, void *); */
 static errno_t meta_softraid_decode(const void *, void *);
 static errno_t meta_softraid_get_block(service_id_t, void **);
-static errno_t meta_softraid_write_block(service_id_t, const void *);
+/* static errno_t meta_softraid_write_block(service_id_t, const void *); */
 static bool meta_softraid_has_valid_magic(const void *);
+
+static errno_t meta_softraid_probe(service_id_t, void **);
+static errno_t meta_softraid_init_vol2meta(hr_volume_t *);
+static errno_t meta_softraid_init_meta2vol(const list_t *, hr_volume_t *);
 static bool meta_softraid_compare_uuids(const void *, const void *);
 static void meta_softraid_inc_counter(hr_volume_t *);
 static errno_t meta_softraid_save(hr_volume_t *, bool);
@@ -74,14 +77,9 @@ static hr_metadata_type_t meta_softraid_get_type(void);
 static void meta_softraid_dump(const void *);
 
 hr_superblock_ops_t metadata_softraid_ops = {
-	.alloc_struct = meta_softraid_alloc_struct,
+	.probe = meta_softraid_probe,
 	.init_vol2meta = meta_softraid_init_vol2meta,
 	.init_meta2vol = meta_softraid_init_meta2vol,
-	.encode = meta_softraid_encode,
-	.decode = meta_softraid_decode,
-	.get_block = meta_softraid_get_block,
-	.write_block = meta_softraid_write_block,
-	.has_valid_magic = meta_softraid_has_valid_magic,
 	.compare_uuids = meta_softraid_compare_uuids,
 	.inc_counter = meta_softraid_inc_counter,
 	.save = meta_softraid_save,
@@ -95,9 +93,37 @@ hr_superblock_ops_t metadata_softraid_ops = {
 	.dump = meta_softraid_dump
 };
 
-static void *meta_softraid_alloc_struct(void)
+static errno_t meta_softraid_probe(service_id_t svc_id, void **rmd)
 {
-	return calloc(1, SR_META_SIZE * DEV_BSIZE);
+	errno_t rc;
+	void *meta_block;
+
+	void *metadata_struct = meta_softraid_alloc_struct();
+	if (metadata_struct == NULL)
+		return ENOMEM;
+
+	rc = meta_softraid_get_block(svc_id, &meta_block);
+	if (rc != EOK)
+		goto error;
+
+	rc = meta_softraid_decode(meta_block, metadata_struct);
+
+	free(meta_block);
+
+	if (rc != EOK)
+		goto error;
+
+	if (!meta_softraid_has_valid_magic(metadata_struct)) {
+		rc = ENOFS;
+		goto error;
+	}
+
+	*rmd = metadata_struct;
+	return EOK;
+
+error:
+	free(metadata_struct);
+	return ENOFS;
 }
 
 static errno_t meta_softraid_init_vol2meta(hr_volume_t *vol)
@@ -180,6 +206,103 @@ error:
 	return rc;
 }
 
+static bool meta_softraid_compare_uuids(const void *m1_v, const void *m2_v)
+{
+	const struct sr_metadata *m1 = m1_v;
+	const struct sr_metadata *m2 = m2_v;
+	if (memcmp(&m1->ssdi.ssd_uuid, &m2->ssdi.ssd_uuid,
+	    SR_UUID_MAX) == 0)
+		return true;
+
+	return false;
+}
+
+static void meta_softraid_inc_counter(hr_volume_t *vol)
+{
+	fibril_mutex_lock(&vol->md_lock);
+
+	struct sr_metadata *md = vol->in_mem_md;
+
+	md->ssd_ondisk++;
+
+	fibril_mutex_unlock(&vol->md_lock);
+}
+
+static errno_t meta_softraid_save(hr_volume_t *vol, bool with_state_callback)
+{
+	HR_DEBUG("%s()", __func__);
+
+	return ENOTSUP;
+}
+
+static errno_t meta_softraid_save_ext(hr_volume_t *vol, size_t ext_idx,
+    bool with_state_callback)
+{
+	HR_DEBUG("%s()", __func__);
+
+	return ENOTSUP;
+}
+
+static const char *meta_softraid_get_devname(const void *md_v)
+{
+	const struct sr_metadata *md = md_v;
+
+	return md->ssd_devname;
+}
+
+static hr_level_t meta_softraid_get_level(const void *md_v)
+{
+	const struct sr_metadata *md = md_v;
+
+	switch (md->ssdi.ssd_level) {
+	case 0:
+		return HR_LVL_0;
+	case 1:
+		return HR_LVL_1;
+	case 5:
+		return HR_LVL_5;
+	default:
+		return HR_LVL_UNKNOWN;
+	}
+}
+
+static uint64_t meta_softraid_get_data_offset(void)
+{
+	return SR_DATA_OFFSET;
+}
+
+static size_t meta_softraid_get_size(void)
+{
+	return SR_META_SIZE;
+}
+
+static uint8_t meta_softraid_get_flags(void)
+{
+	uint8_t flags = 0;
+
+	return flags;
+}
+
+static hr_metadata_type_t meta_softraid_get_type(void)
+{
+	return HR_METADATA_SOFTRAID;
+}
+
+static void meta_softraid_dump(const void *md_v)
+{
+	HR_DEBUG("%s()", __func__);
+
+	const struct sr_metadata *md = md_v;
+
+	sr_meta_print(md);
+}
+
+static void *meta_softraid_alloc_struct(void)
+{
+	return calloc(1, SR_META_SIZE * DEV_BSIZE);
+}
+
+#if 0
 static void meta_softraid_encode(void *md_v, void *block)
 {
 	HR_DEBUG("%s()", __func__);
@@ -187,6 +310,7 @@ static void meta_softraid_encode(void *md_v, void *block)
 	(void)md_v;
 	(void)block;
 }
+#endif
 
 static errno_t meta_softraid_decode(const void *block, void *md_v)
 {
@@ -371,6 +495,7 @@ static errno_t meta_softraid_get_block(service_id_t dev, void **rblock)
 	return EOK;
 }
 
+#if 0
 static errno_t meta_softraid_write_block(service_id_t dev, const void *block)
 {
 	HR_DEBUG("%s()", __func__);
@@ -397,6 +522,7 @@ static errno_t meta_softraid_write_block(service_id_t dev, const void *block)
 
 	return rc;
 }
+#endif
 
 static bool meta_softraid_has_valid_magic(const void *md_v)
 {
@@ -408,97 +534,6 @@ static bool meta_softraid_has_valid_magic(const void *md_v)
 		return false;
 
 	return true;
-}
-
-static bool meta_softraid_compare_uuids(const void *m1_v, const void *m2_v)
-{
-	const struct sr_metadata *m1 = m1_v;
-	const struct sr_metadata *m2 = m2_v;
-	if (memcmp(&m1->ssdi.ssd_uuid, &m2->ssdi.ssd_uuid,
-	    SR_UUID_MAX) == 0)
-		return true;
-
-	return false;
-}
-
-static void meta_softraid_inc_counter(hr_volume_t *vol)
-{
-	fibril_mutex_lock(&vol->md_lock);
-
-	struct sr_metadata *md = vol->in_mem_md;
-
-	md->ssd_ondisk++;
-
-	fibril_mutex_unlock(&vol->md_lock);
-}
-
-static errno_t meta_softraid_save(hr_volume_t *vol, bool with_state_callback)
-{
-	HR_DEBUG("%s()", __func__);
-
-	return ENOTSUP;
-}
-
-static errno_t meta_softraid_save_ext(hr_volume_t *vol, size_t ext_idx,
-    bool with_state_callback)
-{
-	HR_DEBUG("%s()", __func__);
-
-	return ENOTSUP;
-}
-
-static const char *meta_softraid_get_devname(const void *md_v)
-{
-	const struct sr_metadata *md = md_v;
-
-	return md->ssd_devname;
-}
-
-static hr_level_t meta_softraid_get_level(const void *md_v)
-{
-	const struct sr_metadata *md = md_v;
-
-	switch (md->ssdi.ssd_level) {
-	case 0:
-		return HR_LVL_0;
-	case 1:
-		return HR_LVL_1;
-	case 5:
-		return HR_LVL_5;
-	default:
-		return HR_LVL_UNKNOWN;
-	}
-}
-
-static uint64_t meta_softraid_get_data_offset(void)
-{
-	return SR_DATA_OFFSET;
-}
-
-static size_t meta_softraid_get_size(void)
-{
-	return SR_META_SIZE;
-}
-
-static uint8_t meta_softraid_get_flags(void)
-{
-	uint8_t flags = 0;
-
-	return flags;
-}
-
-static hr_metadata_type_t meta_softraid_get_type(void)
-{
-	return HR_METADATA_SOFTRAID;
-}
-
-static void meta_softraid_dump(const void *md_v)
-{
-	HR_DEBUG("%s()", __func__);
-
-	const struct sr_metadata *md = md_v;
-
-	sr_meta_print(md);
 }
 
 /** @}

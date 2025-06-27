@@ -67,21 +67,20 @@ static hr_superblock_ops_t *hr_superblock_ops_all[] = {
 	[HR_METADATA_SOFTRAID] = &metadata_softraid_ops
 };
 
-hr_superblock_ops_t *get_type_ops(hr_metadata_type_t type)
+hr_superblock_ops_t *hr_get_meta_type_ops(hr_metadata_type_t type)
 {
 	assert(type >= HR_METADATA_NATIVE && type < HR_METADATA_LAST_DUMMY);
 
 	return hr_superblock_ops_all[type];
 }
 
-errno_t find_metadata(service_id_t svc_id, void **rmetadata,
+errno_t hr_find_metadata(service_id_t svc_id, void **rmetadata,
     hr_metadata_type_t *rtype)
 {
 	HR_DEBUG("%s()", __func__);
 
 	errno_t rc;
 	hr_superblock_ops_t *meta_ops;
-	void *meta_block;
 	void *metadata_struct;
 
 	if (rmetadata == NULL)
@@ -93,30 +92,10 @@ errno_t find_metadata(service_id_t svc_id, void **rmetadata,
 	for (; type < HR_METADATA_LAST_DUMMY; type++) {
 		meta_ops = hr_superblock_ops_all[type];
 
-		metadata_struct = meta_ops->alloc_struct();
-		if (metadata_struct == NULL)
-			return ENOMEM;
-
-		rc = meta_ops->get_block(svc_id, &meta_block);
-		if (rc == ENOMEM) {
-			free(metadata_struct);
-			return ENOMEM;
-		} else if (rc != EOK) {
-			free(metadata_struct);
-			continue;
-		}
-
-		rc = meta_ops->decode(meta_block, metadata_struct);
-
-		free(meta_block);
-
+		rc = meta_ops->probe(svc_id, &metadata_struct);
 		if (rc != EOK) {
-			free(metadata_struct);
-			continue;
-		}
-
-		if (!meta_ops->has_valid_magic(metadata_struct)) {
-			free(metadata_struct);
+			if (rc != ENOFS)
+				return rc;
 			continue;
 		}
 

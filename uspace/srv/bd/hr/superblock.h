@@ -43,15 +43,10 @@ typedef struct hr_volume hr_volume_t;
 #define HR_METADATA_HOTSPARE_SUPPORT 0x01
 
 typedef struct hr_superblock_ops {
-	void *(*alloc_struct)(void);
+	errno_t (*probe)(service_id_t, void **);
 	errno_t (*init_vol2meta)(hr_volume_t *);
 	errno_t (*init_meta2vol)(const list_t *, hr_volume_t *);
-	void (*encode)(void *, void *);
-	errno_t (*decode)(const void *, void *);
-	errno_t (*get_block)(service_id_t, void **);
-	errno_t (*write_block)(service_id_t, const void *);
 	errno_t (*erase_block)(service_id_t);
-	bool (*has_valid_magic)(const void *);
 	bool (*compare_uuids)(const void *, const void *);
 	void (*inc_counter)(hr_volume_t *);
 	errno_t (*save)(hr_volume_t *, bool);
@@ -65,8 +60,8 @@ typedef struct hr_superblock_ops {
 	hr_metadata_type_t (*get_type)(void);
 } hr_superblock_ops_t;
 
-extern hr_superblock_ops_t *get_type_ops(hr_metadata_type_t);
-extern errno_t find_metadata(service_id_t, void **, hr_metadata_type_t *);
+extern hr_superblock_ops_t *hr_get_meta_type_ops(hr_metadata_type_t);
+extern errno_t hr_find_metadata(service_id_t, void **, hr_metadata_type_t *);
 
 #endif
 
