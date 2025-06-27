@@ -29,6 +29,7 @@
 arch_src += [ autocheck.process('include/libarch/fibril_context.h') ]
 
 arch_src += files(
+	'src/atomic.c',
 	'src/entryjmp.S',
 	'src/thread_entry.S',
 	'src/syscall.c',
