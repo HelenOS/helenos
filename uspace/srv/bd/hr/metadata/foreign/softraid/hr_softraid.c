@@ -54,7 +54,7 @@
 #include "softraidvar.h"
 
 static void *meta_softraid_alloc_struct(void);
-static errno_t meta_softraid_init_vol2meta(const hr_volume_t *, void *);
+static errno_t meta_softraid_init_vol2meta(hr_volume_t *);
 static errno_t meta_softraid_init_meta2vol(const list_t *, hr_volume_t *);
 static void meta_softraid_encode(void *, void *);
 static errno_t meta_softraid_decode(const void *, void *);
@@ -100,10 +100,10 @@ static void *meta_softraid_alloc_struct(void)
 	return calloc(1, SR_META_SIZE * DEV_BSIZE);
 }
 
-static errno_t meta_softraid_init_vol2meta(const hr_volume_t *vol, void *md_v)
+static errno_t meta_softraid_init_vol2meta(hr_volume_t *vol)
 {
 	(void)vol;
-	(void)md_v;
+
 	return ENOTSUP;
 }
 

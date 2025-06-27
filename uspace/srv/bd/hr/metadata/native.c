@@ -54,7 +54,7 @@
 #include "native.h"
 
 static void *meta_native_alloc_struct(void);
-static errno_t meta_native_init_vol2meta(const hr_volume_t *, void *);
+static errno_t meta_native_init_vol2meta(hr_volume_t *);
 static errno_t meta_native_init_meta2vol(const list_t *, hr_volume_t *);
 static void meta_native_encode(void *, void *);
 static errno_t meta_native_decode(const void *, void *);
@@ -102,11 +102,13 @@ static void *meta_native_alloc_struct(void)
 	return calloc(1, sizeof(hr_metadata_t));
 }
 
-static errno_t meta_native_init_vol2meta(const hr_volume_t *vol, void *md_v)
+static errno_t meta_native_init_vol2meta(hr_volume_t *vol)
 {
 	HR_DEBUG("%s()", __func__);
 
-	hr_metadata_t *md = md_v;
+	hr_metadata_t *md = calloc(1, sizeof(*md));
+	if (md == NULL)
+		return ENOMEM;
 
 	str_cpy(md->magic, HR_NATIVE_MAGIC_SIZE, HR_NATIVE_MAGIC_STR);
 
@@ -131,6 +133,8 @@ static errno_t meta_native_init_vol2meta(const hr_volume_t *vol, void *md_v)
 	md->strip_size = vol->strip_size;
 	md->bsize = vol->bsize;
 	memcpy(md->devname, vol->devname, HR_DEVNAME_LEN);
+
+	vol->in_mem_md = md;
 
 	return EOK;
 }
@@ -162,6 +166,10 @@ static errno_t meta_native_init_meta2vol(const list_t *list, hr_volume_t *vol)
 	vol->bsize = main_meta->bsize;
 	/* already set */
 	/* memcpy(vol->devname, main_meta->devname, HR_DEVNAME_LEN); */
+
+	vol->in_mem_md = calloc(1, sizeof(hr_metadata_t));
+	if (vol->in_mem_md == NULL)
+		return ENOMEM;
 	memcpy(vol->in_mem_md, main_meta, sizeof(hr_metadata_t));
 
 	list_foreach(*list, link, struct dev_list_member, iter) {

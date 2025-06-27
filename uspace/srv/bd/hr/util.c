@@ -158,13 +158,6 @@ errno_t hr_create_vol_struct(hr_volume_t **rvol, hr_level_t level,
 		goto error;
 	}
 
-	vol->in_mem_md = vol->meta_ops->alloc_struct();
-	if (vol->in_mem_md == NULL) {
-		free(vol->fge);
-		rc = ENOMEM;
-		goto error;
-	}
-
 	vol->state = HR_VOL_NONE;
 
 	fibril_mutex_initialize(&vol->md_lock);

@@ -54,7 +54,7 @@
 #include "g_stripe.h"
 
 static void *meta_gstripe_alloc_struct(void);
-static errno_t meta_gstripe_init_vol2meta(const hr_volume_t *, void *);
+static errno_t meta_gstripe_init_vol2meta(hr_volume_t *);
 static errno_t meta_gstripe_init_meta2vol(const list_t *, hr_volume_t *);
 static void meta_gstripe_encode(void *, void *);
 static errno_t meta_gstripe_decode(const void *, void *);
@@ -100,10 +100,9 @@ static void *meta_gstripe_alloc_struct(void)
 	return calloc(1, sizeof(struct g_stripe_metadata));
 }
 
-static errno_t meta_gstripe_init_vol2meta(const hr_volume_t *vol, void *md_v)
+static errno_t meta_gstripe_init_vol2meta(hr_volume_t *vol)
 {
 	(void)vol;
-	(void)md_v;
 	return ENOTSUP;
 }
 

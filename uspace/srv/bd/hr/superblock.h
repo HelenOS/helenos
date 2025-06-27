@@ -44,7 +44,7 @@ typedef struct hr_volume hr_volume_t;
 
 typedef struct hr_superblock_ops {
 	void *(*alloc_struct)(void);
-	errno_t (*init_vol2meta)(const hr_volume_t *, void *);
+	errno_t (*init_vol2meta)(hr_volume_t *);
 	errno_t (*init_meta2vol)(const list_t *, hr_volume_t *);
 	void (*encode)(void *, void *);
 	errno_t (*decode)(const void *, void *);

@@ -146,7 +146,7 @@ static void hr_create_srv(ipc_call_t *icall)
 	if (rc != EOK)
 		goto error;
 
-	rc = vol->meta_ops->init_vol2meta(vol, vol->in_mem_md);
+	rc = vol->meta_ops->init_vol2meta(vol);
 	if (rc != EOK)
 		goto error;
 
