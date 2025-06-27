@@ -121,13 +121,10 @@ static errno_t meta_native_init_vol2meta(const hr_volume_t *vol, void *md_v)
 	if (rc != EOK)
 		return rc;
 
-	/* XXX: for now we just copy byte by byte as "encoding" */
 	memcpy(md->uuid, &uuid, HR_NATIVE_UUID_LEN);
-	/* uuid_encode(&uuid, metadata->uuid); */
 
 	md->data_blkno = vol->data_blkno;
 	md->truncated_blkno = vol->truncated_blkno;
-	md->data_offset = vol->data_offset;
 	md->extent_no = vol->extent_no;
 	md->level = vol->level;
 	md->layout = vol->layout;
@@ -157,7 +154,7 @@ static errno_t meta_native_init_meta2vol(const list_t *list, hr_volume_t *vol)
 
 	vol->data_blkno = main_meta->data_blkno;
 	vol->truncated_blkno = main_meta->truncated_blkno;
-	vol->data_offset = main_meta->data_offset;
+	vol->data_offset = meta_native_get_data_offset();
 	vol->extent_no = main_meta->extent_no;
 	/* vol->level = main_meta->level; */ /* already set */
 	vol->layout = main_meta->layout;
@@ -210,12 +207,10 @@ static void meta_native_encode(void *md_v, void *block)
 
 	memcpy(scratch_md.magic, metadata->magic, HR_NATIVE_MAGIC_SIZE);
 	memcpy(scratch_md.uuid, metadata->uuid, HR_NATIVE_UUID_LEN);
-	/* uuid_decode((uint8_t *)scratch_md.uuid, (uuid_t *)metadata->uuid); */
 
 	scratch_md.data_blkno = host2uint64_t_le(metadata->data_blkno);
 	scratch_md.truncated_blkno = host2uint64_t_le(
 	    metadata->truncated_blkno);
-	scratch_md.data_offset = host2uint64_t_le(metadata->data_offset);
 	scratch_md.counter = host2uint64_t_le(metadata->counter);
 	scratch_md.rebuild_pos = host2uint64_t_le(metadata->rebuild_pos);
 	scratch_md.version = host2uint32_t_le(metadata->version);
@@ -245,12 +240,10 @@ static errno_t meta_native_decode(const void *block, void *md_v)
 
 	memcpy(metadata->magic, scratch_md.magic, HR_NATIVE_MAGIC_SIZE);
 	memcpy(metadata->uuid, scratch_md.uuid, HR_NATIVE_UUID_LEN);
-	/* uuid_decode((uint8_t *)scratch_md.uuid, (uuid_t *)metadata->uuid); */
 
 	metadata->data_blkno = uint64_t_le2host(scratch_md.data_blkno);
 	metadata->truncated_blkno = uint64_t_le2host(
 	    scratch_md.truncated_blkno);
-	metadata->data_offset = uint64_t_le2host(scratch_md.data_offset);
 	metadata->counter = uint64_t_le2host(scratch_md.counter);
 	metadata->rebuild_pos = uint64_t_le2host(scratch_md.rebuild_pos);
 	metadata->version = uint32_t_le2host(scratch_md.version);
@@ -502,7 +495,6 @@ static void meta_native_dump(const void *md_v)
 	printf("\n");
 	printf("\tdata_blkno: %" PRIu64 "\n", metadata->data_blkno);
 	printf("\ttruncated_blkno: %" PRIu64 "\n", metadata->truncated_blkno);
-	printf("\tdata_offset: %" PRIu64 "\n", metadata->data_offset);
 	printf("\tcounter: %" PRIu64 "\n", metadata->counter);
 	printf("\tversion: %" PRIu32 "\n", metadata->version);
 	printf("\textent_no: %" PRIu32 "\n", metadata->extent_no);
