@@ -39,6 +39,16 @@ typedef uint64_t u_int64_t;
 #define	_DEV_BSHIFT	9		/* log2(DEV_BSIZE) */
 #define	DEV_BSIZE	(1 << _DEV_BSHIFT)
 
+/* copied from <dev/biovar.h>:struct bioc_disk */
+#define BIOC_SDONLINE		0x00
+#define BIOC_SDOFFLINE		0x01
+#define BIOC_SDFAILED		0x02
+#define BIOC_SDREBUILD		0x03
+#define BIOC_SDHOTSPARE		0x04
+#define BIOC_SDUNUSED		0x05
+#define BIOC_SDSCRUB		0x06
+#define BIOC_SDINVALID		0xff
+
 /* here continues stripped down and slightly modified softraidvat.h */
 
 #define MD5_DIGEST_LENGTH 16

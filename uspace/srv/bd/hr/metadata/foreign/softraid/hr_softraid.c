@@ -189,8 +189,13 @@ static errno_t meta_softraid_init_meta2vol(const list_t *list, hr_volume_t *vol)
 		vol->extents[index].svc_id = iter->svc_id;
 		iter->fini = false;
 
+		struct sr_meta_chunk *mc =
+		    (struct sr_meta_chunk *)(main_meta + 1);
+		mc += index;
+
 		/* for now no ssd_rebuild handling for saved REBUILD */
-		if (iter_meta->ssd_ondisk == max_counter_val)
+		if (iter_meta->ssd_ondisk == max_counter_val &&
+		    mc->scm_status != BIOC_SDREBUILD)
 			vol->extents[index].state = HR_EXT_ONLINE;
 		else
 			vol->extents[index].state = HR_EXT_INVALID;
