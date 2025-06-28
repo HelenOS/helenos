@@ -59,7 +59,6 @@ static void *meta_gmirror_alloc_struct(void);
 static errno_t meta_gmirror_decode(const void *, void *);
 static errno_t meta_gmirror_get_block(service_id_t, void **);
 /* static errno_t meta_gmirror_write_block(service_id_t, const void *); */
-static bool meta_gmirror_has_valid_magic(const void *);
 
 static errno_t meta_gmirror_probe(service_id_t, void **);
 static errno_t meta_gmirror_init_vol2meta(hr_volume_t *);
@@ -115,17 +114,12 @@ static errno_t meta_gmirror_probe(service_id_t svc_id, void **rmd)
 	if (rc != EOK)
 		goto error;
 
-	if (!meta_gmirror_has_valid_magic(metadata_struct)) {
-		rc = ENOFS;
-		goto error;
-	}
-
 	*rmd = metadata_struct;
 	return EOK;
 
 error:
 	free(metadata_struct);
-	return ENOFS;
+	return rc;
 }
 
 static errno_t meta_gmirror_init_vol2meta(hr_volume_t *vol)
@@ -399,18 +393,6 @@ static errno_t meta_gmirror_write_block(service_id_t dev, const void *block)
 	return rc;
 }
 #endif
-
-static bool meta_gmirror_has_valid_magic(const void *md_v)
-{
-	HR_DEBUG("%s()", __func__);
-
-	const struct g_mirror_metadata *md = md_v;
-
-	if (str_lcmp(md->md_magic, G_MIRROR_MAGIC, 16) != 0)
-		return false;
-
-	return true;
-}
 
 /** @}
  */

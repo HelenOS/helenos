@@ -115,17 +115,12 @@ static errno_t meta_native_probe(service_id_t svc_id, void **rmd)
 	if (rc != EOK)
 		goto error;
 
-	if (!meta_native_has_valid_magic(metadata_struct)) {
-		rc = ENOFS;
-		goto error;
-	}
-
 	*rmd = metadata_struct;
 	return EOK;
 
 error:
 	free(metadata_struct);
-	return ENOFS;
+	return rc;
 }
 
 static errno_t meta_native_init_vol2meta(hr_volume_t *vol)
@@ -439,6 +434,9 @@ static errno_t meta_native_decode(const void *block, void *md_v)
 	memcpy(&scratch_md, block, sizeof(hr_metadata_t));
 
 	memcpy(metadata->magic, scratch_md.magic, HR_NATIVE_MAGIC_SIZE);
+	if (!meta_native_has_valid_magic(metadata))
+		return EINVAL;
+
 	memcpy(metadata->uuid, scratch_md.uuid, HR_NATIVE_UUID_LEN);
 
 	metadata->data_blkno = uint64_t_le2host(scratch_md.data_blkno);

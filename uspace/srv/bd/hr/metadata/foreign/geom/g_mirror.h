@@ -171,6 +171,9 @@ mirror_metadata_decode(const u_char *data, struct g_mirror_metadata *md)
 	int error;
 
 	bcopy(data, md->md_magic, 16);
+	if (str_lcmp(md->md_magic, G_MIRROR_MAGIC, 16) != 0)
+		return (EINVAL);
+
 	md->md_version = le32dec(data + 16);
 	switch (md->md_version) {
 	case 4:

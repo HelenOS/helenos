@@ -95,11 +95,10 @@ errno_t hr_find_metadata(service_id_t svc_id, void **rmetadata,
 		meta_ops = hr_superblock_ops_all[type];
 
 		rc = meta_ops->probe(svc_id, &metadata_struct);
-		if (rc != EOK) {
-			if (rc != ENOFS)
-				return rc;
+		if (rc == ENOMEM)
+			return ENOMEM;
+		if (rc != EOK)
 			continue;
-		}
 
 		*rmetadata = metadata_struct;
 		*rtype = type;
