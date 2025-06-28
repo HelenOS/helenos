@@ -640,7 +640,7 @@ static errno_t print_vol_info(hr_vol_info_t *info)
 	hr_extent_t *ext;
 	const char *devname;
 
-	printf("volume: \"%s\" (%" PRIun ")\n", info->devname, info->svc_id);
+	printf("volume: '%s' (%" PRIun ")\n", info->devname, info->svc_id);
 
 	printf("|   metadata type: %s\n",
 	    hr_get_metadata_type_str(info->meta_type));
@@ -651,10 +651,10 @@ static errno_t print_vol_info(hr_vol_info_t *info)
 
 	if (info->strip_size > 0) {
 		if (info->strip_size < 1024) {
-			printf("|      strip size: %" PRIu32 "B\n",
+			printf("|      strip size: %" PRIu32 " B\n",
 			    info->strip_size);
 		} else {
-			printf("|      strip size: %" PRIu32 "KiB\n",
+			printf("|      strip size: %" PRIu32 " KiB\n",
 			    info->strip_size / 1024);
 		}
 	}
@@ -662,7 +662,7 @@ static errno_t print_vol_info(hr_vol_info_t *info)
 	printf("|  no. of extents: %zu\n", info->extent_no);
 	printf("|no. of hotspares: %zu\n", info->hotspare_no);
 	printf("|number of blocks: %" PRIu64 "\n", info->data_blkno);
-	printf("|      block size: %zuB\n", info->bsize);
+	printf("|      block size: %zu B\n", info->bsize);
 
 	capa_spec_t capa;
 	char *scapa = NULL;
@@ -762,7 +762,7 @@ static int handle_state(hr_t *hr, int argc, char **argv)
 				    "%s\n", str_error(rc));
 				return EXIT_FAILURE;
 			}
-			printf("volume \"%s\" (%" PRIun ") %s\n", devname,
+			printf("volume '%s' (%" PRIun ") %s\n", devname,
 			    svc_id, hr_get_vol_state_str(state));
 
 			free(devname);
