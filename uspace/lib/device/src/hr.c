@@ -551,6 +551,8 @@ const char *hr_get_metadata_type_str(hr_metadata_type_t type)
 		return "GEOM::STRIPE";
 	case HR_METADATA_SOFTRAID:
 		return "OpenBSD softraid";
+	case HR_METADATA_MD:
+		return "Linux Multiple Device";
 	default:
 		return "Invalid metadata type value";
 	}
