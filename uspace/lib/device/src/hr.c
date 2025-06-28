@@ -544,7 +544,7 @@ const char *hr_get_metadata_type_str(hr_metadata_type_t type)
 {
 	switch (type) {
 	case HR_METADATA_NATIVE:
-		return "Native HelenRAID metadata";
+		return "HelenRAID native";
 	case HR_METADATA_GEOM_MIRROR:
 		return "GEOM::MIRROR";
 	case HR_METADATA_GEOM_STRIPE:
