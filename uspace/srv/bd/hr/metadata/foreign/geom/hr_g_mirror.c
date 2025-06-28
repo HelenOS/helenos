@@ -147,8 +147,8 @@ static errno_t meta_gmirror_init_meta2vol(const list_t *list, hr_volume_t *vol)
 	list_foreach(*list, link, struct dev_list_member, iter) {
 		struct g_mirror_metadata *iter_meta = iter->md;
 
-		if (iter_meta->md_genid >= max_counter_val) {
-			max_counter_val = iter_meta->md_genid;
+		if (iter_meta->md_syncid >= max_counter_val) {
+			max_counter_val = iter_meta->md_syncid;
 			main_meta = iter_meta;
 		}
 	}
@@ -187,7 +187,7 @@ static errno_t meta_gmirror_init_meta2vol(const list_t *list, hr_volume_t *vol)
 		iter->fini = false;
 
 		/* for now no md_sync_offset handling for saved REBUILD */
-		if (iter_meta->md_genid == max_counter_val)
+		if (iter_meta->md_syncid == max_counter_val)
 			vol->extents[index].state = HR_EXT_ONLINE;
 		else
 			vol->extents[index].state = HR_EXT_INVALID;
@@ -229,8 +229,7 @@ static void meta_gmirror_inc_counter(hr_volume_t *vol)
 
 	struct g_mirror_metadata *md = vol->in_mem_md;
 
-	/* XXX: probably md_genid and not md_syncid is incremented */
-	md->md_genid++;
+	md->md_syncid++;
 
 	fibril_mutex_unlock(&vol->md_lock);
 }
