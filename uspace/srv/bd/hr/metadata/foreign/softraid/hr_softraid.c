@@ -182,6 +182,9 @@ static errno_t meta_softraid_init_meta2vol(const list_t *list, hr_volume_t *vol)
 
 	vol->strip_size = main_meta->ssdi.ssd_strip_size;
 
+	vol->in_mem_md = calloc(1, SR_META_SIZE * DEV_BSIZE);
+	if (vol->in_mem_md == NULL)
+		return ENOMEM;
 	memcpy(vol->in_mem_md, main_meta, SR_META_SIZE * DEV_BSIZE);
 
 	list_foreach(*list, link, struct dev_list_member, iter) {

@@ -177,6 +177,9 @@ static errno_t meta_gmirror_init_meta2vol(const list_t *list, hr_volume_t *vol)
 
 	vol->bsize = main_meta->md_sectorsize;
 
+	vol->in_mem_md = calloc(1, sizeof(struct g_mirror_metadata));
+	if (vol->in_mem_md == NULL)
+		return ENOMEM;
 	memcpy(vol->in_mem_md, main_meta, sizeof(struct g_mirror_metadata));
 
 	uint8_t index = 0;

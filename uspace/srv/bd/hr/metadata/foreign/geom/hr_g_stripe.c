@@ -184,6 +184,9 @@ static errno_t meta_gstripe_init_meta2vol(const list_t *list, hr_volume_t *vol)
 
 	vol->layout = HR_LAYOUT_NONE;
 
+	vol->in_mem_md = calloc(1, sizeof(struct g_stripe_metadata));
+	if (vol->in_mem_md == NULL)
+		return ENOMEM;
 	memcpy(vol->in_mem_md, main_meta, sizeof(struct g_stripe_metadata));
 
 	list_foreach(*list, link, struct dev_list_member, iter) {
