@@ -549,6 +549,8 @@ const char *hr_get_metadata_type_str(hr_metadata_type_t type)
 		return "GEOM::MIRROR";
 	case HR_METADATA_GEOM_STRIPE:
 		return "GEOM::STRIPE";
+	case HR_METADATA_SOFTRAID:
+		return "OpenBSD softraid";
 	default:
 		return "Invalid metadata type value";
 	}
