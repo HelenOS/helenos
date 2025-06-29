@@ -155,21 +155,21 @@ struct mdp_superblock_1 {
  *    Email: <neilb@suse.de>
  */
 
-/* from mdadm - mdadm.h*/
+/* from mdadm - mdadm.h */
 #define ALGORITHM_LEFT_ASYMMETRIC	0
 #define ALGORITHM_RIGHT_ASYMMETRIC	1
 #define ALGORITHM_LEFT_SYMMETRIC	2
 
 /* from mdadm - super1.c */
-static inline unsigned int calc_sb_1_csum(struct mdp_superblock_1 * sb)
+static inline unsigned int calc_sb_1_csum(struct mdp_superblock_1 *sb)
 {
 	unsigned int disk_csum, csum;
 	unsigned long long newcsum;
-	int size = sizeof(*sb) + uint32_t_le2host(sb->max_dev)*2;
+	int size = sizeof(*sb) + uint32_t_le2host(sb->max_dev) * 2;
 	unsigned int *isuper = (unsigned int *)sb;
 
-/* make sure I can count... */
-	if (offsetof(struct mdp_superblock_1,data_offset) != 128 ||
+	/* make sure I can count... */
+	if (offsetof(struct mdp_superblock_1, data_offset) != 128 ||
 	    offsetof(struct mdp_superblock_1, utime) != 192 ||
 	    sizeof(struct mdp_superblock_1) != 256) {
 		fprintf(stderr, "WARNING - superblock isn't sized correctly\n");
@@ -184,7 +184,7 @@ static inline unsigned int calc_sb_1_csum(struct mdp_superblock_1 * sb)
 	}
 
 	if (size == 2)
-		newcsum += uint32_t_le2host(*(unsigned short*) isuper);
+		newcsum += uint32_t_le2host(*(unsigned short *) isuper);
 
 	csum = (newcsum & 0xffffffff) + (newcsum >> 32);
 	sb->sb_csum = disk_csum;
