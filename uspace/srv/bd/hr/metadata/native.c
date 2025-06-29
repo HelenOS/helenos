@@ -204,8 +204,6 @@ static errno_t meta_native_init_meta2vol(const list_t *list, hr_volume_t *vol)
 			if (iter_meta->rebuild_pos > 0) {
 				final_ext_state = HR_EXT_REBUILD;
 				vol->rebuild_blk = iter_meta->rebuild_pos;
-				printf("REBUILD SHOULD RESUME at %lu\n",
-				    vol->rebuild_blk);
 			} else {
 				final_ext_state = HR_EXT_ONLINE;
 			}
