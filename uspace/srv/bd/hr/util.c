@@ -851,6 +851,8 @@ static errno_t hr_util_assemble_from_matching_list(list_t *list,
 		return rc;
 
 	meta_ops->init_meta2vol(list, vol);
+	if (rc != EOK)
+		goto error;
 
 	rc = vol->hr_ops.create(vol);
 	if (rc != EOK)
