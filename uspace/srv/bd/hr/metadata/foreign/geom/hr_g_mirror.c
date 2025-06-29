@@ -55,10 +55,10 @@
 
 /* not exposed */
 static void *meta_gmirror_alloc_struct(void);
-/* static void meta_gmirror_encode(void *, void *); */
+static void meta_gmirror_encode(void *, void *);
 static errno_t meta_gmirror_decode(const void *, void *);
 static errno_t meta_gmirror_get_block(service_id_t, void **);
-/* static errno_t meta_gmirror_write_block(service_id_t, const void *); */
+static errno_t meta_gmirror_write_block(service_id_t, const void *);
 
 static errno_t meta_gmirror_probe(service_id_t, void **);
 static errno_t meta_gmirror_init_vol2meta(hr_volume_t *);
@@ -171,21 +171,47 @@ static errno_t meta_gmirror_init_meta2vol(const list_t *list, hr_volume_t *vol)
 
 	vol->bsize = main_meta->md_sectorsize;
 
-	vol->in_mem_md = calloc(1, sizeof(struct g_mirror_metadata));
+	vol->in_mem_md =
+	    calloc(vol->extent_no, sizeof(struct g_mirror_metadata));
 	if (vol->in_mem_md == NULL)
 		return ENOMEM;
 	memcpy(vol->in_mem_md, main_meta, sizeof(struct g_mirror_metadata));
+
+	bool rebuild = false;
 
 	uint8_t index = 0;
 	list_foreach(*list, link, struct dev_list_member, iter) {
 		struct g_mirror_metadata *iter_meta = iter->md;
 
+		struct g_mirror_metadata *p =
+		    ((struct g_mirror_metadata *)vol->in_mem_md) + index;
+		memcpy(p, iter_meta, sizeof(*p));
+
 		vol->extents[index].svc_id = iter->svc_id;
 		iter->fini = false;
 
-		/* for now no md_sync_offset handling for saved REBUILD */
-		if (iter_meta->md_syncid == max_counter_val)
+		bool invalidate = false;
+
+		if (iter_meta->md_dflags & G_MIRROR_DISK_FLAG_DIRTY)
+			invalidate = true;
+		if (iter_meta->md_syncid != max_counter_val)
+			invalidate = true;
+
+		if (iter_meta->md_dflags & G_MIRROR_DISK_FLAG_SYNCHRONIZING &&
+		    !invalidate) {
+			if (rebuild) {
+				HR_DEBUG("only 1 rebuilt extent allowed");
+				rc = EINVAL;
+				goto error;
+			}
+			rebuild = true;
+			vol->rebuild_blk = iter_meta->md_sync_offset;
+		}
+
+		if (!rebuild && !invalidate)
 			vol->extents[index].state = HR_EXT_ONLINE;
+		else if (rebuild && !invalidate)
+			vol->extents[index].state = HR_EXT_REBUILD;
 		else
 			vol->extents[index].state = HR_EXT_INVALID;
 
@@ -224,9 +250,11 @@ static void meta_gmirror_inc_counter(hr_volume_t *vol)
 {
 	fibril_mutex_lock(&vol->md_lock);
 
-	struct g_mirror_metadata *md = vol->in_mem_md;
-
-	md->md_syncid++;
+	for (size_t d = 0; d < vol->extent_no; d++) {
+		struct g_mirror_metadata *md =
+		    ((struct g_mirror_metadata *)vol->in_mem_md) + d;
+		md->md_syncid++;
+	}
 
 	fibril_mutex_unlock(&vol->md_lock);
 }
@@ -235,16 +263,14 @@ static errno_t meta_gmirror_save(hr_volume_t *vol, bool with_state_callback)
 {
 	HR_DEBUG("%s()", __func__);
 
-	(void)vol;
-	(void)with_state_callback;
+	fibril_rwlock_read_lock(&vol->extents_lock);
 
-	/*
-	 * cannot support right now, because would need to store the
-	 * metadata for all disks, because of hardcoded provider names and
-	 * more importantly, disk unique ids
-	 */
+	for (size_t i = 0; i < vol->extent_no; i++)
+		meta_gmirror_save_ext(vol, i, with_state_callback);
 
-	return ENOTSUP;
+	fibril_rwlock_read_unlock(&vol->extents_lock);
+
+	return EOK;
 }
 
 static errno_t meta_gmirror_save_ext(hr_volume_t *vol, size_t ext_idx,
@@ -252,7 +278,45 @@ static errno_t meta_gmirror_save_ext(hr_volume_t *vol, size_t ext_idx,
 {
 	HR_DEBUG("%s()", __func__);
 
-	return ENOTSUP;
+	assert(fibril_rwlock_is_locked(&vol->extents_lock));
+
+	void *md_block = hr_calloc_waitok(1, vol->bsize);
+
+	struct g_mirror_metadata *md =
+	    ((struct g_mirror_metadata *)vol->in_mem_md) + ext_idx;
+
+	hr_extent_t *ext = &vol->extents[ext_idx];
+
+	fibril_rwlock_read_lock(&vol->states_lock);
+	hr_ext_state_t s = ext->state;
+	fibril_rwlock_read_unlock(&vol->states_lock);
+
+	if (s != HR_EXT_ONLINE && s != HR_EXT_REBUILD) {
+		return EINVAL;
+	}
+
+	fibril_mutex_lock(&vol->md_lock);
+
+	if (s == HR_EXT_REBUILD) {
+		md->md_sync_offset = vol->rebuild_blk;
+		md->md_dflags |= G_MIRROR_DISK_FLAG_SYNCHRONIZING;
+	} else {
+		md->md_sync_offset = 0;
+		md->md_dflags &= ~(G_MIRROR_DISK_FLAG_SYNCHRONIZING);
+	}
+
+	meta_gmirror_encode(md, md_block);
+	errno_t rc = meta_gmirror_write_block(ext->svc_id, md_block);
+	if (rc != EOK && with_state_callback)
+		vol->hr_ops.ext_state_cb(vol, ext_idx, rc);
+
+	fibril_mutex_unlock(&vol->md_lock);
+
+	if (with_state_callback)
+		vol->hr_ops.vol_state_eval(vol);
+
+	free(md_block);
+	return EOK;
 }
 
 static const char *meta_gmirror_get_devname(const void *md_v)
@@ -302,15 +366,12 @@ static void *meta_gmirror_alloc_struct(void)
 {
 	return calloc(1, sizeof(struct g_mirror_metadata));
 }
-
-#if 0
 static void meta_gmirror_encode(void *md_v, void *block)
 {
 	HR_DEBUG("%s()", __func__);
 
 	mirror_metadata_encode(md_v, block);
 }
-#endif
 
 static errno_t meta_gmirror_decode(const void *block, void *md_v)
 {
@@ -365,7 +426,6 @@ static errno_t meta_gmirror_get_block(service_id_t dev, void **rblock)
 	return EOK;
 }
 
-#if 0
 static errno_t meta_gmirror_write_block(service_id_t dev, const void *block)
 {
 	HR_DEBUG("%s()", __func__);
@@ -392,7 +452,6 @@ static errno_t meta_gmirror_write_block(service_id_t dev, const void *block)
 
 	return rc;
 }
-#endif
 
 /** @}
  */
