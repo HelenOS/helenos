@@ -54,10 +54,10 @@
 
 /* not exposed */
 static void *meta_md_alloc_struct(void);
-/* static void meta_md_encode(void *, void *); */
+static void meta_md_encode(void *, void *);
 static errno_t meta_md_decode(const void *, void *);
 static errno_t meta_md_get_block(service_id_t, void **);
-/* static errno_t meta_md_write_block(service_id_t, const void *); */
+static errno_t meta_md_write_block(service_id_t, const void *);
 
 static errno_t meta_md_probe(service_id_t, void **);
 static errno_t meta_md_init_vol2meta(hr_volume_t *);
@@ -189,23 +189,39 @@ static errno_t meta_md_init_meta2vol(const list_t *list, hr_volume_t *vol)
 
 	vol->strip_size = main_meta->chunksize * 512;
 
-	vol->in_mem_md = calloc(1, MD_SIZE * 512);
+	vol->in_mem_md = calloc(vol->extent_no, MD_SIZE * 512);
 	if (vol->in_mem_md == NULL)
 		return ENOMEM;
-	memcpy(vol->in_mem_md, main_meta, MD_SIZE * 512);
 
+	size_t i = 0;
 	list_foreach(*list, link, struct dev_list_member, iter) {
 		struct mdp_superblock_1 *iter_meta = iter->md;
 
 		uint8_t index = iter_meta->dev_roles[iter_meta->dev_number];
 
+		struct mdp_superblock_1 *p = (struct mdp_superblock_1 *)
+		    (((char *)vol->in_mem_md) + MD_SIZE * 512 * index);
+		memcpy(p, iter_meta, MD_SIZE * 512);
+
 		vol->extents[index].svc_id = iter->svc_id;
 		iter->fini = false;
 
-		if (iter_meta->events == max_events && index < vol->extent_no)
+		bool invalidate = false;
+
+		if (iter_meta->events != max_events)
+			invalidate = true;
+
+		if (iter_meta->feature_map & MD_DISK_SYNC)
+			invalidate = true;
+
+		if (!invalidate)
 			vol->extents[index].state = HR_EXT_ONLINE;
 		else
 			vol->extents[index].state = HR_EXT_INVALID;
+
+		i++;
+		if (i == vol->extent_no)
+			break;
 	}
 
 	for (size_t i = 0; i < vol->extent_no; i++) {
@@ -239,9 +255,11 @@ static void meta_md_inc_counter(hr_volume_t *vol)
 {
 	fibril_mutex_lock(&vol->md_lock);
 
-	struct mdp_superblock_1 *md = vol->in_mem_md;
-
-	md->events++;
+	for (size_t d = 0; d < vol->extent_no; d++) {
+		struct mdp_superblock_1 *md = (struct mdp_superblock_1 *)
+		    (((uint8_t *)vol->in_mem_md) + MD_SIZE * 512 * d);
+		md->events++;
+	}
 
 	fibril_mutex_unlock(&vol->md_lock);
 }
@@ -250,7 +268,14 @@ static errno_t meta_md_save(hr_volume_t *vol, bool with_state_callback)
 {
 	HR_DEBUG("%s()", __func__);
 
-	return ENOTSUP;
+	fibril_rwlock_read_lock(&vol->extents_lock);
+
+	for (size_t i = 0; i < vol->extent_no; i++)
+		meta_md_save_ext(vol, i, with_state_callback);
+
+	fibril_rwlock_read_unlock(&vol->extents_lock);
+
+	return EOK;
 }
 
 static errno_t meta_md_save_ext(hr_volume_t *vol, size_t ext_idx,
@@ -258,7 +283,46 @@ static errno_t meta_md_save_ext(hr_volume_t *vol, size_t ext_idx,
 {
 	HR_DEBUG("%s()", __func__);
 
-	return ENOTSUP;
+	assert(fibril_rwlock_is_locked(&vol->extents_lock));
+
+	void *md_block = hr_calloc_waitok(1, MD_SIZE * 512);
+
+	struct mdp_superblock_1 *md = (struct mdp_superblock_1 *)
+	    (((uint8_t *)vol->in_mem_md) + MD_SIZE * 512 * ext_idx);
+
+	hr_extent_t *ext = &vol->extents[ext_idx];
+
+	fibril_rwlock_read_lock(&vol->states_lock);
+	hr_ext_state_t s = ext->state;
+	fibril_rwlock_read_unlock(&vol->states_lock);
+
+	if (s != HR_EXT_ONLINE && s != HR_EXT_REBUILD) {
+		return EINVAL;
+	}
+
+	fibril_mutex_lock(&vol->md_lock);
+
+	if (s == HR_EXT_REBUILD) {
+		md->resync_offset = vol->rebuild_blk;
+		md->feature_map = MD_DISK_SYNC;
+	} else {
+		md->resync_offset = 0;
+		md->feature_map = 0;
+	}
+
+	meta_md_encode(md, md_block);
+	errno_t rc = meta_md_write_block(ext->svc_id, md_block);
+	if (rc != EOK && with_state_callback)
+		vol->hr_ops.ext_state_cb(vol, ext_idx, rc);
+
+	fibril_mutex_unlock(&vol->md_lock);
+
+	if (with_state_callback)
+		vol->hr_ops.vol_state_eval(vol);
+
+	free(md_block);
+
+	return EOK;
 }
 
 static const char *meta_md_get_devname(const void *md_v)
@@ -352,13 +416,9 @@ static void meta_md_dump(const void *md_v)
 
 	printf("dev_number: %" PRIu32 "\n", md->dev_number);
 
-	printf("cnt_corrected_read: %" PRIu32 "\n", md->cnt_corrected_read);
-
 	printf("device_uuid: ");
 	bytefield_print(md->device_uuid, 16);
 	printf("\n");
-
-	printf("devflags: 0x%" PRIx8 "\n", md->devflags);
 
 	printf("events: %" PRIu64 "\n", md->events);
 
@@ -366,8 +426,6 @@ static void meta_md_dump(const void *md_v)
 		printf("resync_offset: 0\n");
 	else
 		printf("resync_offset: %" PRIu64 "\n", md->resync_offset);
-
-	printf("sb_csum: 0x%" PRIx32 "\n", md->sb_csum);
 
 	printf("max_dev: %" PRIu32 "\n", md->max_dev);
 
@@ -386,15 +444,34 @@ static void *meta_md_alloc_struct(void)
 	return calloc(1, MD_SIZE * 512);
 }
 
-#if 0
 static void meta_md_encode(void *md_v, void *block)
 {
 	HR_DEBUG("%s()", __func__);
 
-	(void)md_v;
-	(void)block;
+	memcpy(block, md_v, meta_md_get_size() * 512);
+
+	struct mdp_superblock_1 *md = block;
+
+	md->magic = host2uint32_t_le(md->magic);
+	md->major_version = host2uint32_t_le(md->major_version);
+	md->feature_map = host2uint32_t_le(md->feature_map);
+	md->level = host2uint32_t_le(md->level);
+	md->layout = host2uint32_t_le(md->layout);
+	md->size = host2uint64_t_le(md->size);
+	md->chunksize = host2uint32_t_le(md->chunksize);
+	md->raid_disks = host2uint32_t_le(md->raid_disks);
+	md->data_offset = host2uint64_t_le(md->data_offset);
+	md->data_size = host2uint64_t_le(md->data_size);
+	md->super_offset = host2uint64_t_le(md->super_offset);
+	md->dev_number = host2uint32_t_le(md->dev_number);
+	md->events = host2uint64_t_le(md->events);
+	md->resync_offset = host2uint64_t_le(md->resync_offset);
+	md->max_dev = host2uint32_t_le(md->max_dev);
+	for (uint32_t d = 0; d < md->max_dev; d++)
+		md->dev_roles[d] = host2uint16_t_le(md->dev_roles[d]);
+
+	md->sb_csum = calc_sb_1_csum(md);
 }
-#endif
 
 static errno_t meta_md_decode(const void *block, void *md_v)
 {
@@ -403,39 +480,39 @@ static errno_t meta_md_decode(const void *block, void *md_v)
 	errno_t rc = EOK;
 	struct mdp_superblock_1 *md = md_v;
 
-	struct mdp_superblock_1 *scratch_md = meta_md_alloc_struct();
-	if (scratch_md == NULL)
-		return ENOMEM;
+	/*
+	 * Do in-place decoding to cpu byte order.
+	 * We do it like this because:
+	 * 1) we do not know what is after the 256 bytes
+	 * of the struct, so we write back what was there
+	 * previously,
+	 * 2) we do not want to deal unused fields such
+	 * as unions and so on.
+	 */
+	memcpy(md, block, meta_md_get_size() * 512);
 
-	memcpy(scratch_md, block, meta_md_get_size() * 512);
-
-	md->magic = uint32_t_le2host(scratch_md->magic);
+	md->magic = uint32_t_le2host(md->magic);
 	if (md->magic != MD_MAGIC) {
 		rc = EINVAL;
 		goto error;
 	}
 
-	md->major_version = uint32_t_le2host(scratch_md->major_version);
+	md->major_version = uint32_t_le2host(md->major_version);
 	if (md->major_version != 1) {
 		HR_DEBUG("unsupported metadata version\n");
 		rc = EINVAL;
 		goto error;
 	}
 
-	md->feature_map = uint32_t_le2host(scratch_md->feature_map);
+	md->feature_map = uint32_t_le2host(md->feature_map);
+	/* XXX: do not even support MD_DISK_SYNC here */
 	if (md->feature_map != 0x0) {
 		HR_DEBUG("unsupported feature map bits\n");
 		rc = EINVAL;
 		goto error;
 	}
 
-	memcpy(md->set_uuid, scratch_md->set_uuid, 16);
-
-	memcpy(md->set_name, scratch_md->set_name, 32);
-
-	md->ctime = uint64_t_le2host(scratch_md->ctime);
-
-	md->level = uint32_t_le2host(scratch_md->level);
+	md->level = uint32_t_le2host(md->level);
 	switch (md->level) {
 	case 0:
 	case 1:
@@ -448,7 +525,7 @@ static errno_t meta_md_decode(const void *block, void *md_v)
 		goto error;
 	}
 
-	md->layout = uint32_t_le2host(scratch_md->layout);
+	md->layout = uint32_t_le2host(md->layout);
 	if (md->level == 5) {
 		switch (md->layout) {
 		case ALGORITHM_LEFT_ASYMMETRIC:
@@ -468,69 +545,50 @@ static errno_t meta_md_decode(const void *block, void *md_v)
 		}
 	}
 
-	md->size = uint64_t_le2host(scratch_md->size);
+	md->size = uint64_t_le2host(md->size);
 
-	md->chunksize = uint32_t_le2host(scratch_md->chunksize);
+	md->chunksize = uint32_t_le2host(md->chunksize);
 
-	md->raid_disks = uint32_t_le2host(scratch_md->raid_disks);
+	md->raid_disks = uint32_t_le2host(md->raid_disks);
 	if (md->raid_disks > HR_MAX_EXTENTS) {
 		rc = EINVAL;
 		goto error;
 	}
 
-	md->data_offset = uint64_t_le2host(scratch_md->data_offset);
+	md->data_offset = uint64_t_le2host(md->data_offset);
 
-	md->data_size = uint64_t_le2host(scratch_md->data_size);
+	md->data_size = uint64_t_le2host(md->data_size);
 	if (md->data_size != md->size) {
 		rc = EINVAL;
 		goto error;
 	}
 
-	md->super_offset = uint64_t_le2host(scratch_md->super_offset);
+	md->super_offset = uint64_t_le2host(md->super_offset);
 	if (md->super_offset != MD_OFFSET) {
 		rc = EINVAL;
 		goto error;
 	}
 
-	md->dev_number = uint32_t_le2host(scratch_md->dev_number);
+	md->dev_number = uint32_t_le2host(md->dev_number);
 
-	md->cnt_corrected_read =
-	    uint32_t_le2host(scratch_md->cnt_corrected_read);
+	md->events = uint64_t_le2host(md->events);
 
-	memcpy(md->device_uuid, scratch_md->device_uuid, 16);
-
-	md->devflags = scratch_md->devflags;
-
-	md->bblog_shift = scratch_md->bblog_shift;
-
-	md->bblog_size = uint16_t_le2host(scratch_md->bblog_size);
-
-	md->bblog_offset = uint32_t_le2host(scratch_md->bblog_offset);
-
-	md->utime = uint64_t_le2host(scratch_md->utime);
-
-	md->events = uint64_t_le2host(scratch_md->events);
-
-	md->resync_offset = uint64_t_le2host(scratch_md->resync_offset);
-	if (md->resync_offset != ~(0ULL)) {
+	md->resync_offset = uint64_t_le2host(md->resync_offset);
+	if (md->feature_map == 0 && md->resync_offset != ~(0ULL)) {
 		rc = EINVAL;
 		goto error;
 	}
 
-	md->sb_csum = uint32_t_le2host(scratch_md->sb_csum);
-
-	md->max_dev = uint32_t_le2host(scratch_md->max_dev);
+	md->max_dev = uint32_t_le2host(md->max_dev);
 	if (md->max_dev > 256 + 128) {
 		rc = EINVAL;
 		goto error;
 	}
 
 	for (uint32_t d = 0; d < md->max_dev; d++)
-		md->dev_roles[d] = uint16_t_le2host(scratch_md->dev_roles[d]);
+		md->dev_roles[d] = uint16_t_le2host(md->dev_roles[d]);
 
 error:
-	free(scratch_md);
-
 	return rc;
 }
 
@@ -574,7 +632,6 @@ static errno_t meta_md_get_block(service_id_t dev, void **rblock)
 	return EOK;
 }
 
-#if 0
 static errno_t meta_md_write_block(service_id_t dev, const void *block)
 {
 	HR_DEBUG("%s()", __func__);
@@ -601,7 +658,6 @@ static errno_t meta_md_write_block(service_id_t dev, const void *block)
 
 	return rc;
 }
-#endif
 
 /** @}
  */

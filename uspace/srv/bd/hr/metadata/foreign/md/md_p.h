@@ -33,6 +33,8 @@ typedef uint8_t __u8;
 
 #define MD_MAGIC 0xa92b4efc
 
+#define MD_DISK_SYNC 2
+
 /*
  * The version-1 superblock :
  * All numeric fields are little-endian.
@@ -129,10 +131,65 @@ struct mdp_superblock_1 {
 	__le16	dev_roles[];	/* role in array, or 0xffff for a spare, or 0xfffe for faulty */
 };
 
-/* from mdadm.h */
+/*
+ * mdadm - manage Linux "md" devices aka RAID arrays.
+ *
+ * Copyright (C) 2001-2016 Neil Brown <neilb@suse.com>
+ *
+ *
+ *    This program is free software; you can redistribute it and/or modify
+ *    it under the terms of the GNU General Public License as published by
+ *    the Free Software Foundation; either version 2 of the License, or
+ *    (at your option) any later version.
+ *
+ *    This program is distributed in the hope that it will be useful,
+ *    but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *    GNU General Public License for more details.
+ *
+ *    You should have received a copy of the GNU General Public License
+ *    along with this program; if not, write to the Free Software
+ *    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *
+ *    Author: Neil Brown
+ *    Email: <neilb@suse.de>
+ */
+
+/* from mdadm - mdadm.h*/
 #define ALGORITHM_LEFT_ASYMMETRIC	0
 #define ALGORITHM_RIGHT_ASYMMETRIC	1
 #define ALGORITHM_LEFT_SYMMETRIC	2
+
+/* from mdadm - super1.c */
+static inline unsigned int calc_sb_1_csum(struct mdp_superblock_1 * sb)
+{
+	unsigned int disk_csum, csum;
+	unsigned long long newcsum;
+	int size = sizeof(*sb) + uint32_t_le2host(sb->max_dev)*2;
+	unsigned int *isuper = (unsigned int *)sb;
+
+/* make sure I can count... */
+	if (offsetof(struct mdp_superblock_1,data_offset) != 128 ||
+	    offsetof(struct mdp_superblock_1, utime) != 192 ||
+	    sizeof(struct mdp_superblock_1) != 256) {
+		fprintf(stderr, "WARNING - superblock isn't sized correctly\n");
+	}
+
+	disk_csum = sb->sb_csum;
+	sb->sb_csum = 0;
+	newcsum = 0;
+	for (; size >= 4; size -= 4) {
+		newcsum += uint32_t_le2host(*isuper);
+		isuper++;
+	}
+
+	if (size == 2)
+		newcsum += uint32_t_le2host(*(unsigned short*) isuper);
+
+	csum = (newcsum & 0xffffffff) + (newcsum >> 32);
+	sb->sb_csum = disk_csum;
+	return host2uint32_t_le(csum);
+}
 
 #endif
 
