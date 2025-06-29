@@ -60,18 +60,21 @@ extern hr_superblock_ops_t metadata_gmirror_ops;
 extern hr_superblock_ops_t metadata_gstripe_ops;
 extern hr_superblock_ops_t metadata_softraid_ops;
 extern hr_superblock_ops_t metadata_md_ops;
+extern hr_superblock_ops_t noop_ops;
 
 static hr_superblock_ops_t *hr_superblock_ops_all[] = {
 	[HR_METADATA_NATIVE] = &metadata_native_ops,
 	[HR_METADATA_GEOM_MIRROR] = &metadata_gmirror_ops,
 	[HR_METADATA_GEOM_STRIPE] = &metadata_gstripe_ops,
 	[HR_METADATA_SOFTRAID] = &metadata_softraid_ops,
-	[HR_METADATA_MD] = &metadata_md_ops
+	[HR_METADATA_MD] = &metadata_md_ops,
+	[HR_METADATA_NOOP] = &noop_ops
 };
 
 hr_superblock_ops_t *hr_get_meta_type_ops(hr_metadata_type_t type)
 {
-	assert(type >= HR_METADATA_NATIVE && type < HR_METADATA_LAST_DUMMY);
+	assert(type >= HR_METADATA_NATIVE &&
+	    type < HR_METADATA_LAST_PLACEHOLDER);
 
 	return hr_superblock_ops_all[type];
 }
@@ -91,7 +94,7 @@ errno_t hr_find_metadata(service_id_t svc_id, void **rmetadata,
 		return EINVAL;
 
 	volatile hr_metadata_type_t type = HR_METADATA_NATIVE;
-	for (; type < HR_METADATA_LAST_DUMMY; type++) {
+	for (; type < HR_METADATA_LAST_PLACEHOLDER; type++) {
 		meta_ops = hr_superblock_ops_all[type];
 
 		rc = meta_ops->probe(svc_id, &metadata_struct);

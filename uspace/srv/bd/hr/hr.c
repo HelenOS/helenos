@@ -130,8 +130,14 @@ static void hr_create_srv(ipc_call_t *icall)
 		}
 	}
 
-	rc = hr_create_vol_struct(&vol, cfg->level, cfg->devname,
-	    HR_METADATA_NATIVE);
+	hr_metadata_type_t meta_type;
+	if (cfg->vol_flags & HR_VOL_FLAG_NOOP_META)
+		meta_type = HR_METADATA_NOOP;
+	else
+		meta_type = HR_METADATA_NATIVE;
+
+	printf("creating with type %d\n", meta_type);
+	rc = hr_create_vol_struct(&vol, cfg->level, cfg->devname, meta_type);
 	if (rc != EOK) {
 		free(cfg);
 		async_answer_0(icall, rc);

@@ -37,6 +37,7 @@ src = files(
             'metadata/foreign/softraid/hr_softraid.c',
             'metadata/foreign/softraid/softraid.c',
             'metadata/native.c',
+            'metadata/noop.c',
             'parity_stripe.c',
             'raid0.c',
             'raid1.c',

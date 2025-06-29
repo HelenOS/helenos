@@ -87,8 +87,13 @@ typedef enum {
 	HR_METADATA_GEOM_STRIPE,
 	HR_METADATA_SOFTRAID,
 	HR_METADATA_MD,
-	HR_METADATA_LAST_DUMMY
+	HR_METADATA_NOOP,
+	HR_METADATA_LAST_PLACEHOLDER
 } hr_metadata_type_t;
+
+typedef enum hr_vol_flag {
+	HR_VOL_FLAG_NOOP_META = 0x01
+} hr_vol_flag_t;
 
 typedef struct hr {
 	async_sess_t *sess;
@@ -99,6 +104,7 @@ typedef struct hr_config {
 	service_id_t devs[HR_MAX_EXTENTS];
 	size_t dev_no;
 	hr_level_t level;
+	uint8_t vol_flags;
 } hr_config_t;
 
 typedef struct hr_extent {

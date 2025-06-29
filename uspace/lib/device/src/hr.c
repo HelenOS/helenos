@@ -553,6 +553,8 @@ const char *hr_get_metadata_type_str(hr_metadata_type_t type)
 		return "OpenBSD softraid";
 	case HR_METADATA_MD:
 		return "Linux Multiple Device";
+	case HR_METADATA_NOOP:
+		return "NOOP Metadata";
 	default:
 		return "Invalid metadata type value";
 	}
