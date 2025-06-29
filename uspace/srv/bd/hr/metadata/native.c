@@ -347,6 +347,7 @@ static uint8_t meta_native_get_flags(void)
 	uint8_t flags = 0;
 
 	flags |= HR_METADATA_HOTSPARE_SUPPORT;
+	flags |= HR_METADATA_ALLOW_REBUILD;
 
 	return flags;
 }

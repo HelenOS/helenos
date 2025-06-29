@@ -716,6 +716,9 @@ static errno_t hr_raid5_rebuild(void *arg)
 	size_t rebuild_idx;
 	void *buf = NULL, *xorbuf = NULL;
 
+	if (!(vol->meta_ops->get_flags() & HR_METADATA_ALLOW_REBUILD))
+		return ENOTSUP;
+
 	rc = hr_init_rebuild(vol, &rebuild_idx);
 	if (rc != EOK)
 		return rc;

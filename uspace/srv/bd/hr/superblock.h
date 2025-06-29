@@ -41,6 +41,7 @@
 typedef struct hr_volume hr_volume_t;
 
 #define HR_METADATA_HOTSPARE_SUPPORT 0x01
+#define HR_METADATA_ALLOW_REBUILD 0x02
 
 typedef struct hr_superblock_ops {
 	errno_t (*probe)(service_id_t, void **);
