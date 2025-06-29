@@ -395,6 +395,11 @@ static errno_t meta_softraid_decode(const void *block, void *md_v)
 
 	memcpy(md->ssd_devname, scratch_md->ssd_devname, 32);
 	md->ssd_meta_flags = uint32_t_le2host(scratch_md->ssd_meta_flags);
+	if (md->ssd_meta_flags & SR_META_DIRTY) {
+		HR_DEBUG("dirty metadata not supported\n");
+		rc = EINVAL;
+		goto error;
+	}
 	md->ssd_data_blkno = uint32_t_le2host(scratch_md->ssd_data_blkno);
 	md->ssd_ondisk = uint64_t_le2host(scratch_md->ssd_ondisk);
 	md->ssd_rebuild = int64_t_le2host(scratch_md->ssd_rebuild);
