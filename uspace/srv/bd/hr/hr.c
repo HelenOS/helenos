@@ -136,8 +136,8 @@ static void hr_create_srv(ipc_call_t *icall)
 	else
 		meta_type = HR_METADATA_NATIVE;
 
-	printf("creating with type %d\n", meta_type);
-	rc = hr_create_vol_struct(&vol, cfg->level, cfg->devname, meta_type);
+	rc = hr_create_vol_struct(&vol, cfg->level, cfg->devname, meta_type,
+	    cfg->vol_flags);
 	if (rc != EOK) {
 		free(cfg);
 		async_answer_0(icall, rc);
@@ -530,6 +530,7 @@ static void hr_get_vol_info_srv(ipc_call_t *icall)
 	info.layout = vol->layout;
 	info.meta_type = vol->meta_ops->get_type();
 	memcpy(info.devname, vol->devname, HR_DEVNAME_LEN);
+	info.vflags = vol->vflags;
 
 	if (!async_data_read_receive(&call, &size)) {
 		rc = EREFUSED;

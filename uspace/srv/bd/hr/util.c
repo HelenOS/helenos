@@ -64,7 +64,7 @@ static void block_fini_dev_list(list_t *);
 static errno_t hr_util_get_matching_md_svcs_list(list_t *, list_t *,
     service_id_t, hr_metadata_type_t, void *);
 static errno_t hr_util_assemble_from_matching_list(list_t *,
-    hr_metadata_type_t);
+    hr_metadata_type_t, uint8_t);
 static errno_t hr_fill_svcs_list_from_cfg(hr_config_t *, list_t *);
 static errno_t hr_swap_hs(hr_volume_t *, size_t, size_t);
 
@@ -101,7 +101,7 @@ void *hr_calloc_waitok(size_t nmemb, size_t size)
 }
 
 errno_t hr_create_vol_struct(hr_volume_t **rvol, hr_level_t level,
-    const char *devname, hr_metadata_type_t metadata_type)
+    const char *devname, hr_metadata_type_t metadata_type, uint8_t vflags)
 {
 	HR_DEBUG("%s()", __func__);
 
@@ -113,6 +113,8 @@ errno_t hr_create_vol_struct(hr_volume_t **rvol, hr_level_t level,
 
 	str_cpy(vol->devname, HR_DEVNAME_LEN, devname);
 	vol->level = level;
+
+	vol->vflags = vflags;
 
 	vol->meta_ops = hr_get_meta_type_ops(metadata_type);
 
@@ -830,7 +832,7 @@ error:
 }
 
 static errno_t hr_util_assemble_from_matching_list(list_t *list,
-    hr_metadata_type_t type)
+    hr_metadata_type_t type, uint8_t vflags)
 {
 	HR_DEBUG("%s()", __func__);
 
@@ -846,7 +848,7 @@ static errno_t hr_util_assemble_from_matching_list(list_t *list,
 	const char *devname = meta_ops->get_devname(memb->md);
 
 	hr_volume_t *vol;
-	rc = hr_create_vol_struct(&vol, level, devname, type);
+	rc = hr_create_vol_struct(&vol, level, devname, type, vflags);
 	if (rc != EOK)
 		return rc;
 
@@ -912,13 +914,16 @@ errno_t hr_util_try_assemble(hr_config_t *cfg, size_t *rassembled_cnt)
 	size_t asm_cnt = 0;
 	errno_t rc;
 	list_t dev_id_list;
+	uint8_t vflags = 0;
 
 	list_initialize(&dev_id_list);
 
-	if (cfg == NULL)
+	if (cfg == NULL) {
 		rc = hr_fill_disk_part_svcs_list(&dev_id_list);
-	else
+	} else {
 		rc = hr_fill_svcs_list_from_cfg(cfg, &dev_id_list);
+		vflags = cfg->vol_flags;
+	}
 
 	if (rc != EOK)
 		goto error;
@@ -985,7 +990,7 @@ errno_t hr_util_try_assemble(hr_config_t *cfg, size_t *rassembled_cnt)
 		}
 
 		rc = hr_util_assemble_from_matching_list(&matching_svcs_list,
-		    type);
+		    type, vflags);
 		switch (rc) {
 		case EOK:
 			asm_cnt++;

@@ -117,6 +117,7 @@ typedef struct hr_volume {
 	_Atomic uint64_t rebuild_blk; /* rebuild position */
 	_Atomic int open_cnt; /* open/close() counter */
 	hr_vol_state_t state; /* volume state */
+	uint8_t vflags;
 } hr_volume_t;
 
 typedef enum {

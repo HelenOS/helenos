@@ -255,6 +255,9 @@ static errno_t hr_raid0_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 	if (size < cnt * vol->bsize)
 		return EINVAL;
 
+	if (vol->vflags & HR_VOL_FLAG_READ_ONLY && type == HR_BD_WRITE)
+		return ENOTSUP;
+
 	fibril_rwlock_read_lock(&vol->states_lock);
 	if (vol->state != HR_VOL_OPTIMAL) {
 		fibril_rwlock_read_unlock(&vol->states_lock);

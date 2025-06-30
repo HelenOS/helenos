@@ -277,6 +277,9 @@ static errno_t hr_raid1_bd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
 {
 	hr_volume_t *vol = bd->srvs->sarg;
 
+	if (vol->vflags & HR_VOL_FLAG_READ_ONLY)
+		return ENOTSUP;
+
 	return hr_raid1_bd_op(HR_BD_WRITE, vol, ba, cnt, NULL, data, size);
 }
 
@@ -454,6 +457,8 @@ static errno_t hr_raid1_rebuild(void *arg)
 	hr_extent_t *rebuild_ext = NULL;
 	errno_t rc;
 
+	if (vol->vflags & HR_VOL_FLAG_READ_ONLY)
+		return ENOTSUP;
 	if (!(vol->meta_ops->get_flags() & HR_METADATA_ALLOW_REBUILD))
 		return ENOTSUP;
 

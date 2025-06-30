@@ -560,5 +560,17 @@ const char *hr_get_metadata_type_str(hr_metadata_type_t type)
 	}
 }
 
+const char *hr_get_vol_flag_str(hr_vol_flag_t flag)
+{
+	switch (flag) {
+	case HR_VOL_FLAG_NOOP_META:
+		return "--no-meta";
+	case HR_VOL_FLAG_READ_ONLY:
+		return "--read-only";
+	default:
+		return "Invalid flag";
+	}
+}
+
 /** @}
  */

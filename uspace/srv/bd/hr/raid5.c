@@ -383,6 +383,9 @@ static errno_t hr_raid5_bd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
 	if (size < cnt * vol->bsize)
 		return EINVAL;
 
+	if (vol->vflags & HR_VOL_FLAG_READ_ONLY)
+		return ENOTSUP;
+
 	fibril_rwlock_read_lock(&vol->states_lock);
 	hr_vol_state_t vol_state = vol->state;
 	fibril_rwlock_read_unlock(&vol->states_lock);
@@ -716,6 +719,8 @@ static errno_t hr_raid5_rebuild(void *arg)
 	size_t rebuild_idx;
 	void *buf = NULL, *xorbuf = NULL;
 
+	if (vol->vflags & HR_VOL_FLAG_READ_ONLY)
+		return ENOTSUP;
 	if (!(vol->meta_ops->get_flags() & HR_METADATA_ALLOW_REBUILD))
 		return ENOTSUP;
 

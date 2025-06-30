@@ -54,8 +54,8 @@ static errno_t get_vol_configs_from_sif(const char *, hr_config_t **, size_t *);
 static int create_from_config(hr_t *, const char *, uint8_t);
 static int create_from_argv(hr_t *, int, char **, uint8_t);
 static int handle_create(hr_t *, int, char **);
-static int assemble_from_config(hr_t *, const char *);
-static int assemble_from_argv(hr_t *, int, char **);
+static int assemble_from_config(hr_t *, const char *, uint8_t);
+static int assemble_from_argv(hr_t *, int, char **, uint8_t);
 static int handle_assemble(hr_t *, int, char **);
 static int handle_disassemble(hr_t *, int, char **);
 static int handle_modify(hr_t *, int, char **);
@@ -69,13 +69,13 @@ static const char usage_str[] =
     "Options:\n"
     "  -h, --help                                Display this message and exit.\n"
     "\n"
-    "  -c, --create [--no_meta]                  Create a volume, options:\n"
+    "  -c, --create [--no-meta] [--read-only]    Create a volume, options:\n"
     "      name {-l , --level level} device...   manual device specification, or\n"
     "      -f configuration.sif                  create from configuration file.\n"
     "\n"
     "  -a, --assemble                            Assemble volume(s), options:\n"
-    "      [device...]                           manual device specification, or\n"
-    "      [-f configuration.sif]                assemble from configuration file, or\n"
+    "      [[--read-only] device...]             manual device specification, or\n"
+    "      [[--read-only] -f configuration.sif]  assemble from configuration file, or\n"
     "                                            no option is automatic assembly.\n"
     "\n"
     "  -d, --disassemble                         Deactivate/disassemble, options:\n"
@@ -107,7 +107,7 @@ static const char usage_str[] =
     "\t\thrctl -s\n"
     "\n"
     "Notes:\n"
-    "  Add --no_meta after --create to disable storing on-disk metadata.\n"
+    "  Add --no-meta after --create to disable storing on-disk metadata.\n"
     "  Simulating an extent failure with -m volume -f index is dangerous. It marks\n"
     "  metadata as dirty in other healthy extents, and zeroes out the superblock\n"
     "  on the specified extent.\n"
@@ -444,20 +444,41 @@ error:
 	return EXIT_FAILURE;
 }
 
+static bool try_to_get_additional_flags(int argc, char **argv,
+    uint8_t test_flags, uint8_t *flags)
+{
+	if (test_flags & HR_VOL_FLAG_NOOP_META) {
+		if (str_cmp(argv[optind], "--no-meta") == 0) {
+			*flags |= HR_VOL_FLAG_NOOP_META;
+			optind++;
+			return true;
+		}
+	}
+
+	if (test_flags & HR_VOL_FLAG_READ_ONLY) {
+		if (str_cmp(argv[optind], "--read-only") == 0) {
+			*flags |= HR_VOL_FLAG_READ_ONLY;
+			optind++;
+			return true;
+		}
+	}
+
+	return false;
+}
+
 static int handle_create(hr_t *hr, int argc, char **argv)
 {
 	int rc;
-	uint8_t vol_flags = 0;
+	uint8_t vflags = 0;
 
 	if (optind >= argc) {
 		printf(NAME ": no arguments to --create\n");
 		return EXIT_FAILURE;
 	}
 
-	if (str_cmp(argv[optind], "--no_meta") == 0) {
-		vol_flags |= HR_VOL_FLAG_NOOP_META;
-		optind++;
-	}
+	uint8_t test_flags = HR_VOL_FLAG_NOOP_META | HR_VOL_FLAG_READ_ONLY;
+	while (try_to_get_additional_flags(argc, argv, test_flags, &vflags))
+		;
 
 	if (str_cmp(argv[optind], "-f") == 0) {
 		optind++;
@@ -473,15 +494,16 @@ static int handle_create(hr_t *hr, int argc, char **argv)
 			return EXIT_FAILURE;
 		}
 
-		rc = create_from_config(hr, config_path, vol_flags);
+		rc = create_from_config(hr, config_path, vflags);
 	} else {
-		rc = create_from_argv(hr, argc, argv, vol_flags);
+		rc = create_from_argv(hr, argc, argv, vflags);
 	}
 
 	return rc;
 }
 
-static int assemble_from_config(hr_t *hr, const char *config_path)
+static int assemble_from_config(hr_t *hr, const char *config_path,
+    uint8_t vflags)
 {
 	hr_config_t *vol_configs = NULL;
 	size_t vol_count = 0;
@@ -495,6 +517,7 @@ static int assemble_from_config(hr_t *hr, const char *config_path)
 	size_t cnt = 0;
 	for (size_t i = 0; i < vol_count; i++) {
 		size_t tmpcnt = 0;
+		vol_configs[i].vol_flags = vflags;
 		(void)hr_assemble(hr, &vol_configs[i], &tmpcnt);
 		cnt += tmpcnt;
 	}
@@ -505,13 +528,15 @@ static int assemble_from_config(hr_t *hr, const char *config_path)
 	return EXIT_SUCCESS;
 }
 
-static int assemble_from_argv(hr_t *hr, int argc, char **argv)
+static int assemble_from_argv(hr_t *hr, int argc, char **argv, uint8_t vflags)
 {
 	hr_config_t *vol_config = calloc(1, sizeof(hr_config_t));
 	if (vol_config == NULL) {
 		printf(NAME ": not enough memory\n");
 		return ENOMEM;
 	}
+
+	vol_config->vol_flags = vflags;
 
 	errno_t rc = fill_config_devs(argc, argv, vol_config);
 	if (rc != EOK)
@@ -550,6 +575,14 @@ static int handle_assemble(hr_t *hr, int argc, char **argv)
 		return EXIT_SUCCESS;
 	}
 
+	uint8_t vflags = 0;
+	uint8_t test_flags = HR_VOL_FLAG_NOOP_META | HR_VOL_FLAG_READ_ONLY;
+	while (try_to_get_additional_flags(argc, argv, test_flags, &vflags))
+		;
+
+	if (test_flags & HR_VOL_FLAG_NOOP_META)
+		printf(NAME ": assembling, --no-meta flag will be ignored\n");
+
 	if (str_cmp(argv[optind], "-f") == 0) {
 		if (++optind >= argc) {
 			printf(NAME ": not enough arguments\n");
@@ -562,9 +595,9 @@ static int handle_assemble(hr_t *hr, int argc, char **argv)
 			return EXIT_FAILURE;
 		}
 
-		rc = assemble_from_config(hr, config_path);
+		rc = assemble_from_config(hr, config_path, vflags);
 	} else {
-		rc = assemble_from_argv(hr, argc, argv);
+		rc = assemble_from_argv(hr, argc, argv, vflags);
 	}
 
 	return rc;
@@ -657,6 +690,16 @@ static errno_t print_vol_info(hr_vol_info_t *info)
 
 	printf("|   metadata type: %s\n",
 	    hr_get_metadata_type_str(info->meta_type));
+
+	printf("|          vflags: ");
+	for (size_t v = 0; v < HR_VOL_FLAG_COUNT; v++) {
+		if (info->vflags & (1 << v)) {
+			printf("%s ",
+			    hr_get_vol_flag_str(info->vflags & (1 << v)));
+		}
+	}
+	printf("\n");
+
 	printf("|           level: %s\n", hr_get_level_str(info->level));
 	if (info->layout != HR_LAYOUT_NONE)
 		printf("|          layout: %s\n",

@@ -91,8 +91,10 @@ typedef enum {
 	HR_METADATA_LAST_PLACEHOLDER
 } hr_metadata_type_t;
 
+#define HR_VOL_FLAG_COUNT 2
 typedef enum hr_vol_flag {
-	HR_VOL_FLAG_NOOP_META = 0x01
+	HR_VOL_FLAG_NOOP_META = 0x01,
+	HR_VOL_FLAG_READ_ONLY = 0x02
 } hr_vol_flag_t;
 
 typedef struct hr {
@@ -132,7 +134,7 @@ typedef struct hr_vol_info {
 	hr_vol_state_t state;
 	hr_layout_t layout;
 	hr_metadata_type_t meta_type;
-	/* TODO: add rebuild pos */
+	uint8_t vflags;
 } hr_vol_info_t;
 
 extern errno_t hr_sess_init(hr_t **);
@@ -151,6 +153,7 @@ extern const char *hr_get_ext_state_str(hr_ext_state_t);
 extern const char *hr_get_layout_str(hr_layout_t);
 extern const char *hr_get_level_str(hr_level_t);
 extern const char *hr_get_metadata_type_str(hr_metadata_type_t);
+extern const char *hr_get_vol_flag_str(hr_vol_flag_t);
 
 #endif
 
