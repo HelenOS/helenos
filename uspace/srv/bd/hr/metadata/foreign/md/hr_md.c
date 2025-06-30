@@ -193,6 +193,7 @@ static errno_t meta_md_init_meta2vol(const list_t *list, hr_volume_t *vol)
 	if (vol->in_mem_md == NULL)
 		return ENOMEM;
 
+	bool rebuild_set = false;
 	size_t i = 0;
 	list_foreach(*list, link, struct dev_list_member, iter) {
 		struct mdp_superblock_1 *iter_meta = iter->md;
@@ -207,15 +208,26 @@ static errno_t meta_md_init_meta2vol(const list_t *list, hr_volume_t *vol)
 		iter->fini = false;
 
 		bool invalidate = false;
+		bool rebuild_this_ext = false;
 
 		if (iter_meta->events != max_events)
 			invalidate = true;
 
-		if (iter_meta->feature_map & MD_DISK_SYNC)
-			invalidate = true;
+		if (iter_meta->feature_map & MD_DISK_SYNC && !invalidate) {
+			if (rebuild_set) {
+				HR_DEBUG("only 1 rebuilt extent allowed");
+				rc = EINVAL;
+				goto error;
+			}
+			rebuild_set = true;
+			rebuild_this_ext = true;
+			vol->rebuild_blk = iter_meta->resync_offset;
+		}
 
-		if (!invalidate)
+		if (!rebuild_this_ext && !invalidate)
 			vol->extents[index].state = HR_EXT_ONLINE;
+		else if (rebuild_this_ext && !invalidate)
+			vol->extents[index].state = HR_EXT_REBUILD;
 		else
 			vol->extents[index].state = HR_EXT_INVALID;
 
@@ -229,6 +241,7 @@ static errno_t meta_md_init_meta2vol(const list_t *list, hr_volume_t *vol)
 			vol->extents[i].state = HR_EXT_MISSING;
 	}
 
+error:
 	return rc;
 }
 
@@ -505,8 +518,7 @@ static errno_t meta_md_decode(const void *block, void *md_v)
 	}
 
 	md->feature_map = uint32_t_le2host(md->feature_map);
-	/* XXX: do not even support MD_DISK_SYNC here */
-	if (md->feature_map != 0x0) {
+	if (md->feature_map != 0x0 && md->feature_map != MD_DISK_SYNC) {
 		HR_DEBUG("unsupported feature map bits\n");
 		rc = EINVAL;
 		goto error;
