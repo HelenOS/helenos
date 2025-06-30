@@ -96,6 +96,7 @@ sr_meta_print(const struct sr_metadata *m)
 	printf("\n");
 	printf("\tssd_meta_flags 0x%" PRIx32 "\n", m->ssd_meta_flags);
 	printf("\tssd_ondisk %" PRId64 "\n", m->ssd_ondisk);
+	printf("\tssd_rebuild %" PRId64 "\n", m->ssd_rebuild);
 
 	mc = (struct sr_meta_chunk *)(m + 1);
 	for (i = 0; i < m->ssdi.ssd_chunk_no; i++, mc++) {

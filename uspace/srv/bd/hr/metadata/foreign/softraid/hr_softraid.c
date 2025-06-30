@@ -181,7 +181,7 @@ static errno_t meta_softraid_init_meta2vol(const list_t *list, hr_volume_t *vol)
 		return ENOMEM;
 	memcpy(vol->in_mem_md, main_meta, SR_META_SIZE * DEV_BSIZE);
 
-	bool rebuild = false;
+	bool rebuild_set = false;
 	list_foreach(*list, link, struct dev_list_member, iter) {
 		struct sr_metadata *iter_meta = iter->md;
 
@@ -194,6 +194,7 @@ static errno_t meta_softraid_init_meta2vol(const list_t *list, hr_volume_t *vol)
 		    ((struct sr_meta_chunk *)(main_meta + 1)) + index;
 
 		bool invalidate = false;
+		bool rebuild_this_ext = false;
 
 		if (iter_meta->ssd_meta_flags & SR_META_DIRTY)
 			invalidate = true;
@@ -201,18 +202,19 @@ static errno_t meta_softraid_init_meta2vol(const list_t *list, hr_volume_t *vol)
 			invalidate = true;
 
 		if (mc->scm_status == BIOC_SDREBUILD && !invalidate) {
-			if (rebuild) {
+			if (rebuild_set) {
 				HR_DEBUG("only 1 rebuilt extent allowed");
 				rc = EINVAL;
 				goto error;
 			}
-			rebuild = true;
+			rebuild_set = true;
+			rebuild_this_ext = true;
 			vol->rebuild_blk = iter_meta->ssd_rebuild;
 		}
 
-		if (!rebuild && !invalidate)
+		if (!rebuild_this_ext && !invalidate)
 			vol->extents[index].state = HR_EXT_ONLINE;
-		else if (rebuild && !invalidate)
+		else if (rebuild_this_ext && !invalidate)
 			vol->extents[index].state = HR_EXT_REBUILD;
 		else
 			vol->extents[index].state = HR_EXT_INVALID;
@@ -296,13 +298,13 @@ static errno_t meta_softraid_save_ext(hr_volume_t *vol, size_t ext_idx,
 
 	fibril_mutex_lock(&vol->md_lock);
 
-	if (s == HR_EXT_REBUILD) {
-		md->ssd_rebuild = vol->rebuild_blk;
+	md->ssd_rebuild = vol->rebuild_blk;
+	md->ssdi.ssd_chunk_id = ext_idx;
+
+	if (s == HR_EXT_REBUILD)
 		mc->scm_status = BIOC_SDREBUILD;
-	} else {
-		md->ssd_rebuild = 0;
+	else
 		mc->scm_status = BIOC_SDONLINE;
-	}
 
 	meta_softraid_encode(md, md_block);
 	errno_t rc = meta_softraid_write_block(ext->svc_id, md_block);
@@ -354,6 +356,8 @@ static size_t meta_softraid_get_size(void)
 static uint8_t meta_softraid_get_flags(void)
 {
 	uint8_t flags = 0;
+
+	flags |= HR_METADATA_ALLOW_REBUILD;
 
 	return flags;
 }
