@@ -177,7 +177,7 @@ static errno_t meta_gmirror_init_meta2vol(const list_t *list, hr_volume_t *vol)
 		return ENOMEM;
 	memcpy(vol->in_mem_md, main_meta, sizeof(struct g_mirror_metadata));
 
-	bool rebuild = false;
+	bool rebuild_set = false;
 
 	uint8_t index = 0;
 	list_foreach(*list, link, struct dev_list_member, iter) {
@@ -191,6 +191,7 @@ static errno_t meta_gmirror_init_meta2vol(const list_t *list, hr_volume_t *vol)
 		iter->fini = false;
 
 		bool invalidate = false;
+		bool rebuild_this_ext = false;
 
 		if (iter_meta->md_dflags & G_MIRROR_DISK_FLAG_DIRTY)
 			invalidate = true;
@@ -199,18 +200,19 @@ static errno_t meta_gmirror_init_meta2vol(const list_t *list, hr_volume_t *vol)
 
 		if (iter_meta->md_dflags & G_MIRROR_DISK_FLAG_SYNCHRONIZING &&
 		    !invalidate) {
-			if (rebuild) {
+			if (rebuild_set) {
 				HR_DEBUG("only 1 rebuilt extent allowed");
 				rc = EINVAL;
 				goto error;
 			}
-			rebuild = true;
+			rebuild_set = true;
+			rebuild_this_ext = true;
 			vol->rebuild_blk = iter_meta->md_sync_offset;
 		}
 
-		if (!rebuild && !invalidate)
+		if (!rebuild_this_ext && !invalidate)
 			vol->extents[index].state = HR_EXT_ONLINE;
-		else if (rebuild && !invalidate)
+		else if (rebuild_this_ext && !invalidate)
 			vol->extents[index].state = HR_EXT_REBUILD;
 		else
 			vol->extents[index].state = HR_EXT_INVALID;
