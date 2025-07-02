@@ -132,17 +132,6 @@ errno_t hr_raid1_init(hr_volume_t *vol)
 	return EOK;
 }
 
-errno_t hr_raid1_add_hotspare(hr_volume_t *vol, service_id_t hotspare)
-{
-	HR_DEBUG("%s()", __func__);
-
-	errno_t rc = hr_util_add_hotspare(vol, hotspare);
-
-	hr_raid1_vol_state_eval(vol);
-
-	return rc;
-}
-
 void hr_raid1_vol_state_eval(hr_volume_t *vol)
 {
 	HR_DEBUG("%s()", __func__);

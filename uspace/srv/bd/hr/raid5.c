@@ -154,17 +154,6 @@ void hr_raid5_vol_state_eval(hr_volume_t *vol)
 	hr_raid5_vol_state_eval_forced(vol);
 }
 
-errno_t hr_raid5_add_hotspare(hr_volume_t *vol, service_id_t hotspare)
-{
-	HR_DEBUG("%s()", __func__);
-
-	errno_t rc = hr_util_add_hotspare(vol, hotspare);
-
-	hr_raid5_vol_state_eval(vol);
-
-	return rc;
-}
-
 void hr_raid5_ext_state_cb(hr_volume_t *vol, size_t extent, errno_t rc)
 {
 	HR_DEBUG("%s()", __func__);

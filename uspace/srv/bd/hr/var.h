@@ -65,7 +65,6 @@ typedef struct hr_superblock_ops hr_superblock_ops_t;
 typedef struct hr_ops {
 	errno_t (*create)(hr_volume_t *);
 	errno_t (*init)(hr_volume_t *);
-	errno_t (*add_hotspare)(hr_volume_t *, service_id_t);
 	void (*vol_state_eval)(hr_volume_t *);
 	void (*ext_state_cb)(hr_volume_t *, size_t, errno_t);
 } hr_ops_t;
@@ -136,9 +135,6 @@ extern errno_t hr_raid5_create(hr_volume_t *);
 extern errno_t hr_raid0_init(hr_volume_t *);
 extern errno_t hr_raid1_init(hr_volume_t *);
 extern errno_t hr_raid5_init(hr_volume_t *);
-
-extern errno_t hr_raid1_add_hotspare(hr_volume_t *, service_id_t);
-extern errno_t hr_raid5_add_hotspare(hr_volume_t *, service_id_t);
 
 extern void hr_raid0_vol_state_eval(hr_volume_t *);
 extern void hr_raid1_vol_state_eval(hr_volume_t *);
