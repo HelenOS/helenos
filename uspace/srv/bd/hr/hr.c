@@ -630,8 +630,10 @@ static void hr_client_conn(ipc_call_t *icall, void *arg)
 		hr_ctl_conn(icall);
 	} else {
 		vol = hr_get_volume(svc_id);
-		if (vol == NULL)
+		if (vol == NULL) {
 			async_answer_0(icall, ENOENT);
+			return;
+		}
 		bd_conn(icall, &vol->hr_bds);
 	}
 }
