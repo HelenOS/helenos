@@ -60,7 +60,7 @@ static void hr_stop_all_srv(ipc_call_t *);
 static void hr_add_hotspare_srv(ipc_call_t *);
 static void hr_get_vol_states_srv(ipc_call_t *);
 static void hr_ctl_conn(ipc_call_t *);
-static void hr_client_conn(ipc_call_t *, void *);
+static void hr_call_handler(ipc_call_t *, void *);
 
 loc_srv_t *hr_srv;
 list_t hr_volumes;
@@ -618,7 +618,7 @@ static void hr_ctl_conn(ipc_call_t *icall)
  * Distinguishes between control IPC and block device
  * IPC calls.
  */
-static void hr_client_conn(ipc_call_t *icall, void *arg)
+static void hr_call_handler(ipc_call_t *icall, void *arg)
 {
 	HR_DEBUG("%s()", __func__);
 
@@ -653,7 +653,7 @@ int main(int argc, char **argv)
 	fibril_rwlock_initialize(&hr_volumes_lock);
 	list_initialize(&hr_volumes);
 
-	async_set_fallback_port_handler(hr_client_conn, NULL);
+	async_set_fallback_port_handler(hr_call_handler, NULL);
 
 	rc = loc_server_register(NAME, &hr_srv);
 	if (rc != EOK) {
