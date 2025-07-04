@@ -56,7 +56,7 @@
 #include "var.h"
 
 static void hr_raid1_vol_state_eval_forced(hr_volume_t *);
-static size_t hr_raid1_count_good_extents(hr_volume_t *, uint64_t, size_t,
+static size_t hr_raid1_count_good_w_extents(hr_volume_t *, uint64_t, size_t,
     uint64_t);
 static errno_t hr_raid1_bd_op(hr_bd_op_type_t, hr_volume_t *, aoff64_t, size_t,
     void *, const void *, size_t);
@@ -285,7 +285,7 @@ static errno_t hr_raid1_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
 	return EOK;
 }
 
-static size_t hr_raid1_count_good_extents(hr_volume_t *vol, uint64_t ba,
+static size_t hr_raid1_count_good_w_extents(hr_volume_t *vol, uint64_t ba,
     size_t cnt, uint64_t rebuild_blk)
 {
 	assert(fibril_rwlock_is_locked(&vol->extents_lock));
@@ -303,6 +303,210 @@ static size_t hr_raid1_count_good_extents(hr_volume_t *vol, uint64_t ba,
 	return count;
 }
 
+#ifdef HR_RAID1_READ_STRATEGY_SPLIT
+static size_t hr_raid1_count_good_r_extents(hr_volume_t *vol, uint64_t ba,
+    size_t cnt, uint64_t rebuild_blk)
+{
+	assert(fibril_rwlock_is_locked(&vol->extents_lock));
+	assert(fibril_rwlock_is_locked(&vol->states_lock));
+
+	size_t count = 0;
+	for (size_t i = 0; i < vol->extent_no; i++) {
+		if (vol->extents[i].state == HR_EXT_ONLINE ||
+		    (vol->extents[i].state == HR_EXT_REBUILD &&
+		    rebuild_blk > ba + cnt - 1)) {
+			count++;
+		}
+	}
+
+	return count;
+}
+#endif
+
+#ifdef HR_RAID1_READ_STRATEGY_CLOSEST
+static size_t get_ext(hr_volume_t *vol, uint64_t ba, size_t cnt,
+    uint64_t rebuild_blk)
+{
+	uint64_t closest_e;
+	uint64_t pos;
+	uint64_t mdiff = UINT64_MAX;
+	hr_ext_state_t state = vol->extents[0].state;
+	if (state != HR_EXT_ONLINE &&
+	    (state != HR_EXT_REBUILD || ba + cnt - 1 >= rebuild_blk)) {
+		closest_e = 1;
+	} else {
+		closest_e = 0;
+		pos = atomic_load_explicit(&vol->last_ext_pos_arr[0],
+		    memory_order_relaxed);
+		mdiff = (pos > ba) ? pos - ba : ba - pos;
+	}
+
+	for (size_t e = 1; e < vol->extent_no; e++) {
+		state = vol->extents[e].state;
+		if (state != HR_EXT_ONLINE &&
+		    (state != HR_EXT_REBUILD || ba + cnt - 1 >= rebuild_blk)) {
+			continue;
+		}
+
+		pos = atomic_load_explicit(&vol->last_ext_pos_arr[e],
+		    memory_order_relaxed);
+		uint64_t diff = (pos > ba) ? pos - ba : ba - pos;
+		if (diff < mdiff) {
+			mdiff = diff;
+			closest_e = e;
+		}
+	}
+
+	return closest_e;
+}
+
+#elif defined(HR_RAID1_READ_STRATEGY_ROUND_ROBIN)
+
+static size_t get_ext(hr_volume_t *vol, uint64_t ba, size_t cnt,
+    uint64_t rebuild_blk)
+{
+	size_t last_e;
+	size_t fail = 0;
+
+	while (true) {
+		last_e = atomic_fetch_add_explicit(&vol->last_ext_used, 1,
+		    memory_order_relaxed);
+		last_e %= vol->extent_no;
+
+		hr_ext_state_t state = vol->extents[last_e].state;
+		if (state != HR_EXT_ONLINE &&
+		    (state != HR_EXT_REBUILD || ba + cnt - 1 >= rebuild_blk)) {
+			if (++fail >= vol->extent_no)
+				return vol->extent_no;
+			continue;
+		}
+
+		break;
+	}
+
+	return last_e;
+}
+
+#elif defined(HR_RAID1_READ_STRATEGY_FIRST)
+
+static size_t get_ext(hr_volume_t *vol, uint64_t ba, size_t cnt,
+    uint64_t rebuild_blk)
+{
+	for (size_t e = 0; e < vol->extent_no; e++) {
+		hr_ext_state_t state = vol->extents[e].state;
+		if (state != HR_EXT_ONLINE &&
+		    (state != HR_EXT_REBUILD || ba + cnt - 1 >= rebuild_blk)) {
+			continue;
+		}
+
+		return e;
+	}
+	return vol->extent_no;
+}
+
+#else
+
+#if !defined(HR_RAID1_READ_STRATEGY_SPLIT) || \
+    !defined(HR_RAID1_READ_STRATEGY_SPLIT_THRESHOLD)
+#error "Some RAID 1 read strategy must be used"
+#endif
+
+#endif
+
+static size_t hr_raid1_read(hr_volume_t *vol, uint64_t ba, size_t cnt,
+    void *data_read)
+{
+	uint64_t rebuild_blk;
+	size_t successful = 0;
+
+#if !defined(HR_RAID1_READ_STRATEGY_SPLIT)
+	errno_t rc;
+
+	rebuild_blk = atomic_load_explicit(&vol->rebuild_blk,
+	    memory_order_relaxed);
+	size_t fail = 0;
+	while (fail < vol->extent_no) {
+		fibril_rwlock_read_lock(&vol->states_lock);
+		size_t best_e = get_ext(vol, ba, cnt,
+		    rebuild_blk);
+		fibril_rwlock_read_unlock(&vol->states_lock);
+		if (best_e >= vol->extent_no)
+			break;
+		rc = hr_read_direct(vol->extents[best_e].svc_id, ba,
+		    cnt, data_read);
+		if (rc != EOK) {
+			hr_raid1_ext_state_cb(vol, best_e, rc);
+			fail++;
+		} else {
+			successful++;
+			break;
+		}
+	}
+
+#else
+
+retry_split:
+	size_t good;
+	rebuild_blk = atomic_load_explicit(&vol->rebuild_blk,
+	    memory_order_relaxed);
+
+	fibril_rwlock_read_lock(&vol->states_lock);
+	good = hr_raid1_count_good_r_extents(vol, ba, cnt,
+	    rebuild_blk);
+	fibril_rwlock_read_unlock(&vol->states_lock);
+
+	size_t cnt_per_ext = (cnt + good - 1) / good;
+	if (cnt_per_ext * vol->bsize < HR_RAID1_READ_STRATEGY_SPLIT_THRESHOLD)
+		cnt_per_ext = cnt;
+
+	hr_fgroup_t *group = hr_fgroup_create(vol->fge, good);
+
+	fibril_rwlock_read_lock(&vol->states_lock);
+	size_t left = cnt;
+	size_t e = 0;
+	uint8_t *data = data_read;
+	size_t submitted = 0;
+	while (left > 0) {
+		if (e >= vol->extent_no) {
+			fibril_rwlock_read_unlock(&vol->states_lock);
+			if (submitted)
+				(void)hr_fgroup_wait(group, NULL, NULL);
+			goto retry_split;
+		}
+
+		hr_ext_state_t state = vol->extents[e].state;
+		if (state != HR_EXT_ONLINE &&
+		    (state != HR_EXT_REBUILD ||
+		    ba + cnt - 1 >= rebuild_blk)) {
+			e++;
+			continue;
+		}
+
+		hr_io_t *io = hr_fgroup_alloc(group);
+		io->extent = e;
+		io->data_read = data;
+		io->ba = ba + (cnt - left);
+		size_t cnt_to_dispatch = min(left, cnt_per_ext);
+		io->cnt = cnt_to_dispatch;
+		io->type = HR_BD_READ;
+		io->vol = vol;
+
+		hr_fgroup_submit(group, hr_io_worker, io);
+		submitted++;
+
+		data += cnt_to_dispatch * vol->bsize;
+		left -= cnt_to_dispatch;
+		e++;
+	}
+
+	fibril_rwlock_read_unlock(&vol->states_lock);
+
+	(void)hr_fgroup_wait(group, &successful, NULL);
+#endif
+
+	return successful;
+}
+
 static errno_t hr_raid1_bd_op(hr_bd_op_type_t type, hr_volume_t *vol,
     aoff64_t ba, size_t cnt, void *data_read, const void *data_write,
     size_t size)
@@ -311,7 +515,6 @@ static errno_t hr_raid1_bd_op(hr_bd_op_type_t type, hr_volume_t *vol,
 
 	hr_range_lock_t *rl = NULL;
 	errno_t rc;
-	size_t i;
 	uint64_t rebuild_blk;
 
 	if (size < cnt * vol->bsize)
@@ -344,32 +547,11 @@ static errno_t hr_raid1_bd_op(hr_bd_op_type_t type, hr_volume_t *vol,
 	 */
 	fibril_rwlock_read_lock(&vol->extents_lock);
 
-	size_t successful = 0;
+	size_t good;
+	size_t successful;
 	switch (type) {
 	case HR_BD_READ:
-		rebuild_blk = atomic_load_explicit(&vol->rebuild_blk,
-		    memory_order_relaxed);
-
-		for (i = 0; i < vol->extent_no; i++) {
-			fibril_rwlock_read_lock(&vol->states_lock);
-			hr_ext_state_t state = vol->extents[i].state;
-			fibril_rwlock_read_unlock(&vol->states_lock);
-
-			if (state != HR_EXT_ONLINE &&
-			    (state != HR_EXT_REBUILD ||
-			    ba + cnt - 1 >= rebuild_blk)) {
-				continue;
-			}
-
-			rc = hr_read_direct(vol->extents[i].svc_id, ba, cnt,
-			    data_read);
-			if (rc != EOK) {
-				hr_raid1_ext_state_cb(vol, i, rc);
-			} else {
-				successful++;
-				break;
-			}
-		}
+		successful = hr_raid1_read(vol, ba, cnt, data_read);
 		break;
 	case HR_BD_WRITE:
 		rl = hr_range_lock_acquire(vol, ba, cnt);
@@ -379,12 +561,12 @@ static errno_t hr_raid1_bd_op(hr_bd_op_type_t type, hr_volume_t *vol,
 		rebuild_blk = atomic_load_explicit(&vol->rebuild_blk,
 		    memory_order_relaxed);
 
-		size_t good = hr_raid1_count_good_extents(vol, ba, cnt,
+		good = hr_raid1_count_good_w_extents(vol, ba, cnt,
 		    rebuild_blk);
 
 		hr_fgroup_t *group = hr_fgroup_create(vol->fge, good);
 
-		for (i = 0; i < vol->extent_no; i++) {
+		for (size_t i = 0; i < vol->extent_no; i++) {
 			if (vol->extents[i].state != HR_EXT_ONLINE &&
 			    (vol->extents[i].state != HR_EXT_REBUILD ||
 			    ba > rebuild_blk)) {
@@ -401,7 +583,6 @@ static errno_t hr_raid1_bd_op(hr_bd_op_type_t type, hr_volume_t *vol,
 			hr_io_t *io = hr_fgroup_alloc(group);
 			io->extent = i;
 			io->data_write = data_write;
-			io->data_read = data_read;
 			io->ba = ba;
 			io->cnt = cnt;
 			io->type = type;

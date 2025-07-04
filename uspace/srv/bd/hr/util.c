@@ -168,6 +168,9 @@ errno_t hr_create_vol_struct(hr_volume_t **rvol, hr_level_t level,
 
 	atomic_init(&vol->state_dirty, false);
 	atomic_init(&vol->first_write, false);
+	for (size_t i = 0; i < HR_MAX_EXTENTS; i++)
+		atomic_init(&vol->last_ext_pos_arr[i], 0);
+	atomic_init(&vol->last_ext_used, 0);
 	atomic_init(&vol->rebuild_blk, 0);
 	atomic_init(&vol->open_cnt, 0);
 

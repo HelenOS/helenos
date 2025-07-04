@@ -49,6 +49,21 @@
 #define NAME "hr"
 #define HR_STRIP_SIZE DATA_XFER_LIMIT
 
+#define HR_RAID1_READ_STRATEGY_SPLIT
+#define HR_RAID1_READ_STRATEGY_SPLIT_THRESHOLD (1024 * 1)
+
+/* #define HR_RAID1_READ_STRATEGY_CLOSEST */
+/* #define HR_RAID1_READ_STRATEGY_ROUND_ROBIN */
+/* #define HR_RAID1_READ_STRATEGY_FIRST */
+
+#if !defined(HR_RAID1_READ_STRATEGY_ROUND_ROBIN) && \
+    !defined(HR_RAID1_READ_STRATEGY_CLOSEST) && \
+    !defined(HR_RAID1_READ_STRATEGY_FIRST) && \
+    (!defined(HR_RAID1_READ_STRATEGY_SPLIT) && \
+    !defined(HR_RAID1_READ_STRATEGY_SPLIT_THRESHOLD))
+#error "Some RAID 1 read strategy must be used"
+#endif
+
 /*
  * During a rebuild operation, we save the rebuild
  * position this each many bytes. Currently each
@@ -112,6 +127,9 @@ typedef struct hr_volume {
 	 * allowing non-destructive read-only access
 	 */
 	_Atomic bool first_write;
+
+	_Atomic uint64_t last_ext_pos_arr[HR_MAX_EXTENTS];
+	_Atomic uint64_t last_ext_used;
 
 	_Atomic uint64_t rebuild_blk; /* rebuild position */
 	_Atomic int open_cnt; /* open/close() counter */

@@ -109,6 +109,11 @@ errno_t hr_io_worker(void *arg)
 		assert(0);
 	}
 
+	if (io->vol->level == HR_LVL_1) {
+		atomic_store_explicit(&io->vol->last_ext_pos_arr[e],
+		    io->ba + io->cnt - 1, memory_order_relaxed);
+	}
+
 	if (rc != EOK)
 		io->vol->hr_ops.ext_state_cb(io->vol, io->extent, rc);
 
