@@ -1109,20 +1109,24 @@ errno_t hr_sync_extents(hr_volume_t *vol)
 
 errno_t hr_init_rebuild(hr_volume_t *vol, size_t *rebuild_idx)
 {
+	HR_DEBUG("%s()", __func__);
+
 	errno_t rc = EOK;
 	size_t bad = vol->extent_no;
 
 	if (vol->level == HR_LVL_0)
 		return EINVAL;
 
+	fibril_rwlock_read_lock(&vol->states_lock);
+	if (vol->state != HR_VOL_DEGRADED) {
+		fibril_rwlock_read_unlock(&vol->states_lock);
+		return EINVAL;
+	}
+	fibril_rwlock_read_unlock(&vol->states_lock);
+
 	fibril_rwlock_write_lock(&vol->extents_lock);
 	fibril_rwlock_write_lock(&vol->states_lock);
 	fibril_mutex_lock(&vol->hotspare_lock);
-
-	if (vol->state != HR_VOL_DEGRADED) {
-		rc = EINVAL;
-		goto error;
-	}
 
 	size_t rebuild = vol->extent_no;
 	for (size_t i = 0; i < vol->extent_no; i++) {

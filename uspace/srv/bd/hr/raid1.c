@@ -184,12 +184,12 @@ static void hr_raid1_vol_state_eval_forced(hr_volume_t *vol)
 
 	size_t rebuild_no = hr_count_extents(vol, HR_EXT_REBUILD);
 
+	fibril_rwlock_read_unlock(&vol->states_lock);
+	fibril_rwlock_read_unlock(&vol->extents_lock);
+
 	fibril_mutex_lock(&vol->hotspare_lock);
 	size_t hs_no = vol->hotspare_no;
 	fibril_mutex_unlock(&vol->hotspare_lock);
-
-	fibril_rwlock_read_unlock(&vol->states_lock);
-	fibril_rwlock_read_unlock(&vol->extents_lock);
 
 	if (healthy == 0) {
 		if (old_state != HR_VOL_FAULTY) {
@@ -205,15 +205,12 @@ static void hr_raid1_vol_state_eval_forced(hr_volume_t *vol)
 			fibril_rwlock_write_unlock(&vol->states_lock);
 		}
 
-		if (old_state != HR_VOL_REBUILD) {
-			if (hs_no > 0 || invalid_no > 0 || rebuild_no > 0) {
-				fid_t fib = fibril_create(hr_raid1_rebuild,
-				    vol);
-				if (fib == 0)
-					return;
-				fibril_start(fib);
-				fibril_detach(fib);
-			}
+		if (hs_no > 0 || invalid_no > 0 || rebuild_no > 0) {
+			fid_t fib = fibril_create(hr_raid1_rebuild, vol);
+			if (fib == 0)
+				return;
+			fibril_start(fib);
+			fibril_detach(fib);
 		}
 	} else {
 		if (old_state != HR_VOL_OPTIMAL) {
@@ -539,6 +536,8 @@ static errno_t hr_raid1_rebuild(void *arg)
 	atomic_store_explicit(&vol->rebuild_blk, 0, memory_order_relaxed);
 
 	hr_mark_vol_state_dirty(vol);
+
+	hr_update_vol_state(vol, HR_VOL_DEGRADED);
 
 	fibril_rwlock_write_unlock(&vol->states_lock);
 end:

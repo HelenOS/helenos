@@ -845,6 +845,8 @@ static errno_t hr_raid5_rebuild(void *arg)
 
 	hr_mark_vol_state_dirty(vol);
 
+	hr_update_vol_state(vol, HR_VOL_DEGRADED);
+
 	fibril_rwlock_write_unlock(&vol->states_lock);
 end:
 	fibril_rwlock_read_unlock(&vol->extents_lock);
