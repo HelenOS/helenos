@@ -304,6 +304,7 @@ static size_t hr_raid1_count_good_w_extents(hr_volume_t *vol, uint64_t ba,
 }
 
 #ifdef HR_RAID1_READ_STRATEGY_SPLIT
+
 static size_t hr_raid1_count_good_r_extents(hr_volume_t *vol, uint64_t ba,
     size_t cnt, uint64_t rebuild_blk)
 {
@@ -321,9 +322,11 @@ static size_t hr_raid1_count_good_r_extents(hr_volume_t *vol, uint64_t ba,
 
 	return count;
 }
-#endif
+
+#endif /* HR_RAID1_READ_STRATEGY_SPLIT */
 
 #ifdef HR_RAID1_READ_STRATEGY_CLOSEST
+
 static size_t get_ext(hr_volume_t *vol, uint64_t ba, size_t cnt,
     uint64_t rebuild_blk)
 {
@@ -685,6 +688,8 @@ static errno_t hr_raid1_rebuild(void *arg)
 			hr_range_lock_release(rl);
 			goto end;
 		}
+		atomic_store_explicit(&vol->last_ext_pos_arr[rebuild_idx],
+		    ba + cnt - 1, memory_order_relaxed);
 
 		percent = ((ba + cnt) * 100) / vol->data_blkno;
 		if (percent != old_percent) {
