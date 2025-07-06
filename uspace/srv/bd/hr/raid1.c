@@ -505,6 +505,9 @@ retry_split:
 	fibril_rwlock_read_unlock(&vol->states_lock);
 
 	(void)hr_fgroup_wait(group, &successful, NULL);
+	if (successful < submitted)
+		goto retry_split;
+
 #endif
 
 	return successful;
