@@ -112,6 +112,14 @@ static void hr_create_srv(ipc_call_t *icall)
 		return;
 	}
 
+	if (cfg->dev_no > HR_MAX_EXTENTS) {
+		HR_ERROR("provided %u devices (max = %u)",
+		    (unsigned)cfg->dev_no, HR_MAX_EXTENTS);
+		free(cfg);
+		async_answer_0(icall, ELIMIT);
+		return;
+	}
+
 	/*
 	 * If there was a missing device provided
 	 * for creation of a new volume, abort

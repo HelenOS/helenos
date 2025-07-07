@@ -188,6 +188,12 @@ static errno_t meta_native_init_meta2vol(const list_t *list, hr_volume_t *vol)
 	/* already set */
 	/* memcpy(vol->devname, main_meta->devname, HR_DEVNAME_LEN); */
 
+	if (vol->extent_no > HR_MAX_EXTENTS) {
+		HR_DEBUG("Assembled volume has %u extents (max = %u)",
+		    (unsigned)vol->extent_no, HR_MAX_EXTENTS);
+		return EINVAL;
+	}
+
 	vol->in_mem_md = calloc(1, sizeof(hr_metadata_t));
 	if (vol->in_mem_md == NULL)
 		return ENOMEM;
