@@ -458,6 +458,9 @@ retry_split:
 	    rebuild_blk);
 	fibril_rwlock_read_unlock(&vol->states_lock);
 
+	if (good == 0)
+		return 0;
+
 	size_t cnt_per_ext = (cnt + good - 1) / good;
 	if (cnt_per_ext * vol->bsize < HR_RAID1_READ_STRATEGY_SPLIT_THRESHOLD)
 		cnt_per_ext = cnt;
