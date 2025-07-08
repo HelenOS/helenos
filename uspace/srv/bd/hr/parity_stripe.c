@@ -45,10 +45,9 @@
 static void hr_execute_write_stripe_degraded_mixed(hr_stripe_t *, size_t);
 static void hr_execute_write_stripe_degraded(hr_stripe_t *, size_t);
 static void hr_execute_write_stripe_optimal_reconstruct(hr_stripe_t *);
-static void hr_execute_write_stripe_optimal_subtract(hr_stripe_t *);
+static void hr_execute_write_stripe_subtract(hr_stripe_t *, size_t);
 static void hr_execute_write_stripe(hr_stripe_t *, size_t);
 static void hr_execute_read_stripe(hr_stripe_t *, size_t);
-static void hr_execute_write_stripe_degraded_good(hr_stripe_t *, size_t);
 static bool hr_stripe_range_non_extension(const range_t *, const range_t *,
     range_t *);
 static size_t hr_stripe_merge_extent_spans(hr_stripe_t *, size_t, range_t [2]);
@@ -146,76 +145,13 @@ void hr_wait_for_stripe(hr_stripe_t *stripe)
 		stripe->done = true;
 }
 
-static void hr_execute_write_stripe_degraded_good(hr_stripe_t *stripe,
-    size_t bad_extent)
-{
-	hr_volume_t *vol = stripe->vol;
-
-	stripe->ps_to_be_added = stripe->strips_touched; /* writers */
-	stripe->ps_to_be_added += stripe->range_count; /* parity readers */
-	stripe->p_count_final = true;
-
-	size_t worker_cnt = stripe->strips_touched + stripe->range_count * 2;
-	stripe->worker_group = hr_fgroup_create(vol->fge, worker_cnt);
-
-	for (size_t e = 0; e < vol->extent_no; e++) {
-		if (e == bad_extent || e == stripe->p_extent)
-			continue;
-		if (stripe->extent_span[e].cnt == 0)
-			continue;
-
-		hr_io_raid5_t *io = hr_fgroup_alloc(stripe->worker_group);
-		io->extent = e;
-		io->data_write = stripe->extent_span[e].data_write;
-		io->ba = stripe->extent_span[e].range.start;
-		io->cnt = stripe->extent_span[e].cnt;
-		io->strip_off = stripe->extent_span[e].strip_off * vol->bsize;
-		io->vol = vol;
-		io->stripe = stripe;
-
-		hr_fgroup_submit(stripe->worker_group,
-		    hr_io_raid5_subtract_writer, io);
-	}
-
-	for (size_t r = 0; r < stripe->range_count; r++) {
-		hr_io_raid5_t *p_reader = hr_fgroup_alloc(stripe->worker_group);
-		p_reader->extent = stripe->p_extent;
-		p_reader->ba = stripe->total_height[r].start;
-		p_reader->cnt = stripe->total_height[r].end -
-		    stripe->total_height[r].start + 1;
-		p_reader->vol = vol;
-		p_reader->stripe = stripe;
-
-		p_reader->strip_off = p_reader->ba;
-		hr_sub_data_offset(vol, &p_reader->strip_off);
-		p_reader->strip_off %= vol->strip_size / vol->bsize;
-		p_reader->strip_off *= vol->bsize;
-
-		hr_fgroup_submit(stripe->worker_group,
-		    hr_io_raid5_reconstruct_reader, p_reader);
-
-		hr_io_raid5_t *p_writer = hr_fgroup_alloc(stripe->worker_group);
-		p_writer->extent = stripe->p_extent;
-		p_writer->ba = stripe->total_height[r].start;
-		p_writer->cnt = stripe->total_height[r].end -
-		    stripe->total_height[r].start + 1;
-		p_writer->vol = vol;
-		p_writer->stripe = stripe;
-
-		p_writer->strip_off = p_writer->ba;
-		hr_sub_data_offset(vol, &p_writer->strip_off);
-		p_writer->strip_off %= vol->strip_size / vol->bsize;
-		p_writer->strip_off *= vol->bsize;
-
-		hr_fgroup_submit(stripe->worker_group,
-		    hr_io_raid5_parity_writer, p_writer);
-	}
-}
-
 static void hr_execute_write_stripe_degraded_mixed(hr_stripe_t *stripe,
     size_t bad_extent)
 {
 	hr_volume_t *vol = stripe->vol;
+
+	stripe->range_count = hr_stripe_merge_extent_spans(stripe,
+	    vol->extent_no, stripe->total_height);
 
 	size_t worker_cnt = (vol->extent_no - 2) * 3 + 3; /* upper bound */
 	stripe->worker_group = hr_fgroup_create(vol->fge, worker_cnt);
@@ -418,13 +354,10 @@ static void hr_execute_write_stripe_degraded(hr_stripe_t *stripe,
 		return;
 	}
 
-	stripe->range_count = hr_stripe_merge_extent_spans(stripe,
-	    vol->extent_no, stripe->total_height);
-
 	if (stripe->extent_span[bad_extent].cnt > 0)
 		hr_execute_write_stripe_degraded_mixed(stripe, bad_extent);
 	else
-		hr_execute_write_stripe_degraded_good(stripe, bad_extent);
+		hr_execute_write_stripe_subtract(stripe, bad_extent);
 }
 
 static void hr_execute_write_stripe_optimal_reconstruct(hr_stripe_t *stripe)
@@ -545,7 +478,7 @@ static void hr_execute_write_stripe_optimal_reconstruct(hr_stripe_t *stripe)
 	}
 }
 
-static void hr_execute_write_stripe_optimal_subtract(hr_stripe_t *stripe)
+static void hr_execute_write_stripe_subtract(hr_stripe_t *stripe, size_t bad)
 {
 	hr_volume_t *vol = stripe->vol;
 
@@ -563,7 +496,7 @@ static void hr_execute_write_stripe_optimal_subtract(hr_stripe_t *stripe)
 	stripe->worker_group = hr_fgroup_create(vol->fge, worker_cnt);
 
 	for (size_t e = 0; e < vol->extent_no; e++) {
-		if (e == stripe->p_extent)
+		if (e == bad || e == stripe->p_extent)
 			continue;
 
 		if (stripe->extent_span[e].cnt == 0)
@@ -628,7 +561,7 @@ static void hr_execute_write_stripe(hr_stripe_t *stripe, size_t bad_extent)
 	}
 
 	if (stripe->subtract)
-		hr_execute_write_stripe_optimal_subtract(stripe);
+		hr_execute_write_stripe_subtract(stripe, vol->extent_no);
 	else
 		hr_execute_write_stripe_optimal_reconstruct(stripe);
 }
