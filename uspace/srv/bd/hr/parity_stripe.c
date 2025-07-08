@@ -42,13 +42,13 @@
 #include "util.h"
 #include "var.h"
 
-static void execute_stripe_degraded_mixed(hr_stripe_t *, size_t);
-static void execute_stripe_degraded(hr_stripe_t *, size_t);
-static void execute_stripe_optimal_reconstruct(hr_stripe_t *);
-static void execute_stripe_optimal_subtract(hr_stripe_t *);
-static void execute_write_stripe(hr_stripe_t *, size_t);
-static void execute_read_stripe(hr_stripe_t *, size_t);
-static void execute_stripe_degraded_good(hr_stripe_t *, size_t);
+static void hr_execute_write_stripe_degraded_mixed(hr_stripe_t *, size_t);
+static void hr_execute_write_stripe_degraded(hr_stripe_t *, size_t);
+static void hr_execute_write_stripe_optimal_reconstruct(hr_stripe_t *);
+static void hr_execute_write_stripe_optimal_subtract(hr_stripe_t *);
+static void hr_execute_write_stripe(hr_stripe_t *, size_t);
+static void hr_execute_read_stripe(hr_stripe_t *, size_t);
+static void hr_execute_write_stripe_degraded_good(hr_stripe_t *, size_t);
 static bool hr_stripe_range_non_extension(const range_t *, const range_t *,
     range_t *);
 static size_t hr_stripe_merge_extent_spans(hr_stripe_t *, size_t, range_t [2]);
@@ -129,15 +129,15 @@ void hr_stripe_parity_abort(hr_stripe_t *stripe)
 	fibril_mutex_unlock(&stripe->parity_lock);
 }
 
-void execute_stripe(hr_stripe_t *stripe, size_t bad_extent)
+void hr_execute_stripe(hr_stripe_t *stripe, size_t bad_extent)
 {
 	if (stripe->write)
-		execute_write_stripe(stripe, bad_extent);
+		hr_execute_write_stripe(stripe, bad_extent);
 	else
-		execute_read_stripe(stripe, bad_extent);
+		hr_execute_read_stripe(stripe, bad_extent);
 }
 
-void wait_for_stripe(hr_stripe_t *stripe)
+void hr_wait_for_stripe(hr_stripe_t *stripe)
 {
 	stripe->rc = hr_fgroup_wait(stripe->worker_group, NULL, NULL);
 	if (stripe->rc == EAGAIN)
@@ -146,7 +146,8 @@ void wait_for_stripe(hr_stripe_t *stripe)
 		stripe->done = true;
 }
 
-static void execute_stripe_degraded_good(hr_stripe_t *stripe, size_t bad_extent)
+static void hr_execute_write_stripe_degraded_good(hr_stripe_t *stripe,
+    size_t bad_extent)
 {
 	hr_volume_t *vol = stripe->vol;
 
@@ -211,7 +212,8 @@ static void execute_stripe_degraded_good(hr_stripe_t *stripe, size_t bad_extent)
 	}
 }
 
-static void execute_stripe_degraded_mixed(hr_stripe_t *stripe, size_t bad_extent)
+static void hr_execute_write_stripe_degraded_mixed(hr_stripe_t *stripe,
+    size_t bad_extent)
 {
 	hr_volume_t *vol = stripe->vol;
 
@@ -382,7 +384,8 @@ static void execute_stripe_degraded_mixed(hr_stripe_t *stripe, size_t bad_extent
 	fibril_condvar_broadcast(&stripe->ps_added_cv);
 }
 
-static void execute_stripe_degraded(hr_stripe_t *stripe, size_t bad_extent)
+static void hr_execute_write_stripe_degraded(hr_stripe_t *stripe,
+    size_t bad_extent)
 {
 	hr_volume_t *vol = stripe->vol;
 
@@ -419,12 +422,12 @@ static void execute_stripe_degraded(hr_stripe_t *stripe, size_t bad_extent)
 	    vol->extent_no, stripe->total_height);
 
 	if (stripe->extent_span[bad_extent].cnt > 0)
-		execute_stripe_degraded_mixed(stripe, bad_extent);
+		hr_execute_write_stripe_degraded_mixed(stripe, bad_extent);
 	else
-		execute_stripe_degraded_good(stripe, bad_extent);
+		hr_execute_write_stripe_degraded_good(stripe, bad_extent);
 }
 
-static void execute_stripe_optimal_reconstruct(hr_stripe_t *stripe)
+static void hr_execute_write_stripe_optimal_reconstruct(hr_stripe_t *stripe)
 {
 	hr_volume_t *vol = stripe->vol;
 
@@ -542,7 +545,7 @@ static void execute_stripe_optimal_reconstruct(hr_stripe_t *stripe)
 	}
 }
 
-static void execute_stripe_optimal_subtract(hr_stripe_t *stripe)
+static void hr_execute_write_stripe_optimal_subtract(hr_stripe_t *stripe)
 {
 	hr_volume_t *vol = stripe->vol;
 
@@ -615,22 +618,22 @@ static void execute_stripe_optimal_subtract(hr_stripe_t *stripe)
 
 }
 
-static void execute_write_stripe(hr_stripe_t *stripe, size_t bad_extent)
+static void hr_execute_write_stripe(hr_stripe_t *stripe, size_t bad_extent)
 {
 	hr_volume_t *vol = stripe->vol;
 
 	if (bad_extent < vol->extent_no) {
-		execute_stripe_degraded(stripe, bad_extent);
+		hr_execute_write_stripe_degraded(stripe, bad_extent);
 		return;
 	}
 
 	if (stripe->subtract)
-		execute_stripe_optimal_subtract(stripe);
+		hr_execute_write_stripe_optimal_subtract(stripe);
 	else
-		execute_stripe_optimal_reconstruct(stripe);
+		hr_execute_write_stripe_optimal_reconstruct(stripe);
 }
 
-static void execute_read_stripe(hr_stripe_t *stripe, size_t bad_extent)
+static void hr_execute_read_stripe(hr_stripe_t *stripe, size_t bad_extent)
 {
 	hr_volume_t *vol = stripe->vol;
 

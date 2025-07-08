@@ -322,13 +322,13 @@ retry:
 	for (size_t s = 0; s < stripes_cnt; s++) {
 		if (stripes[s].done)
 			continue;
-		execute_stripe(&stripes[s], bad_extent);
+		hr_execute_stripe(&stripes[s], bad_extent);
 	}
 
 	for (size_t s = 0; s < stripes_cnt; s++) {
 		if (stripes[s].done)
 			continue;
-		wait_for_stripe(&stripes[s]);
+		hr_wait_for_stripe(&stripes[s]);
 	}
 
 	hr_raid5_vol_state_eval(vol);
@@ -531,13 +531,13 @@ retry:
 	for (size_t s = 0; s < stripes_cnt; s++) {
 		if (stripes[s].done)
 			continue;
-		execute_stripe(&stripes[s], bad_extent);
+		hr_execute_stripe(&stripes[s], bad_extent);
 	}
 
 	for (size_t s = 0; s < stripes_cnt; s++) {
 		if (stripes[s].done)
 			continue;
-		wait_for_stripe(&stripes[s]);
+		hr_wait_for_stripe(&stripes[s]);
 	}
 
 	hr_raid5_vol_state_eval(vol);

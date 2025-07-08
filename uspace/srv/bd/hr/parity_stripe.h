@@ -111,8 +111,8 @@ extern void hr_stripe_commit_parity(hr_stripe_t *, uint64_t, const void *,
     uint64_t);
 extern void hr_stripe_wait_for_parity_commits(hr_stripe_t *);
 extern void hr_stripe_parity_abort(hr_stripe_t *);
-extern void execute_stripe(hr_stripe_t *, size_t);
-extern void wait_for_stripe(hr_stripe_t *);
+extern void hr_execute_stripe(hr_stripe_t *, size_t);
+extern void hr_wait_for_stripe(hr_stripe_t *);
 
 #endif
 
