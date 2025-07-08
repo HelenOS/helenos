@@ -332,8 +332,11 @@ static void hr_stop_all_srv(ipc_call_t *icall)
 	if (rc != EOK)
 		goto fail;
 
-	for (i = 0; i < vol_cnt; i++)
-		(void)hr_remove_volume(vol_svcs[i]);
+	for (i = 0; i < vol_cnt; i++) {
+		errno_t rc2 = hr_remove_volume(vol_svcs[i]);
+		if (rc2 == EBUSY)
+			rc = EBUSY;
+	}
 
 fail:
 	if (vol_svcs != NULL)
