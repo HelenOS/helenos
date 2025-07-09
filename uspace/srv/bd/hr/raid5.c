@@ -706,7 +706,6 @@ static errno_t hr_raid5_rebuild(void *arg)
 	hr_volume_t *vol = arg;
 	errno_t rc = EOK;
 	size_t rebuild_idx;
-	void *buf = NULL, *xorbuf = NULL;
 
 	if (vol->vflags & HR_VOL_FLAG_READ_ONLY)
 		return ENOTSUP;
@@ -720,8 +719,6 @@ static errno_t hr_raid5_rebuild(void *arg)
 	uint64_t max_blks = DATA_XFER_LIMIT / vol->bsize;
 	uint64_t left =
 	    vol->data_blkno / (vol->extent_no - 1) - vol->rebuild_blk;
-	buf = hr_malloc_waitok(max_blks * vol->bsize);
-	xorbuf = hr_malloc_waitok(max_blks * vol->bsize);
 
 	uint64_t strip_size = vol->strip_size / vol->bsize; /* in blocks */
 
@@ -854,8 +851,6 @@ end:
 	hr_raid1_vol_state_eval(vol);
 
 	hr_destroy_stripes(stripe, 1);
-	free(buf);
-	free(xorbuf);
 
 	return rc;
 }
