@@ -130,7 +130,7 @@ errno_t hr_raid5_init(hr_volume_t *vol)
 	uint64_t single_sz = vol->truncated_blkno - vol->meta_ops->get_size();
 	vol->data_blkno = single_sz * (vol->extent_no - 1);
 
-	vol->strip_size = HR_STRIP_SIZE;
+	vol->strip_size = hr_closest_pow2(HR_STRIP_SIZE / (vol->extent_no - 1));
 
 	if (vol->level == HR_LVL_4)
 		vol->layout = HR_LAYOUT_RAID4_N;

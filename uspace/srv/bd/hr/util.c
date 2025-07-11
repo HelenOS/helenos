@@ -1253,5 +1253,18 @@ static errno_t hr_swap_hs(hr_volume_t *vol, size_t bad, size_t hs)
 	return EOK;
 }
 
+uint32_t hr_closest_pow2(uint32_t n)
+{
+	if (n == 0)
+		return 0;
+
+	n |= (n >> 1);
+	n |= (n >> 2);
+	n |= (n >> 4);
+	n |= (n >> 8);
+	n |= (n >> 16);
+	return n - (n >> 1);
+}
+
 /** @}
  */

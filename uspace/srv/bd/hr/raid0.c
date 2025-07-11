@@ -122,7 +122,7 @@ errno_t hr_raid0_init(hr_volume_t *vol)
 	/* count md blocks */
 	vol->data_blkno -= vol->meta_ops->get_size() * vol->extent_no;
 
-	vol->strip_size = HR_STRIP_SIZE;
+	vol->strip_size = hr_closest_pow2(HR_STRIP_SIZE / vol->extent_no);
 
 	return EOK;
 }

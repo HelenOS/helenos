@@ -110,6 +110,7 @@ extern errno_t hr_util_add_hotspare(hr_volume_t *, service_id_t);
 extern void hr_raid5_xor(void *, const void *, size_t);
 extern errno_t hr_sync_extents(hr_volume_t *);
 extern errno_t hr_init_rebuild(hr_volume_t *, size_t *);
+extern uint32_t hr_closest_pow2(uint32_t);
 
 #endif
 
