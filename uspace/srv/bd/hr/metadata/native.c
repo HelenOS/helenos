@@ -203,7 +203,6 @@ static errno_t meta_native_init_meta2vol(const list_t *list, hr_volume_t *vol)
 		hr_metadata_t *iter_meta = (hr_metadata_t *)iter->md;
 
 		vol->extents[iter_meta->index].svc_id = iter->svc_id;
-		iter->fini = false;
 
 		hr_ext_state_t final_ext_state = HR_EXT_INVALID;
 		if (iter_meta->counter == max_counter_val) {

@@ -188,7 +188,6 @@ static errno_t meta_gmirror_init_meta2vol(const list_t *list, hr_volume_t *vol)
 		memcpy(p, iter_meta, sizeof(*p));
 
 		vol->extents[index].svc_id = iter->svc_id;
-		iter->fini = false;
 
 		bool invalidate = false;
 		bool rebuild_this_ext = false;

@@ -188,7 +188,6 @@ static errno_t meta_softraid_init_meta2vol(const list_t *list, hr_volume_t *vol)
 		uint8_t index = iter_meta->ssdi.ssd_chunk_id;
 
 		vol->extents[index].svc_id = iter->svc_id;
-		iter->fini = false;
 
 		struct sr_meta_chunk *mc =
 		    ((struct sr_meta_chunk *)(main_meta + 1)) + index;

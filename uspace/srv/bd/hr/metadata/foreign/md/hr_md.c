@@ -205,7 +205,6 @@ static errno_t meta_md_init_meta2vol(const list_t *list, hr_volume_t *vol)
 		memcpy(p, iter_meta, MD_SIZE * 512);
 
 		vol->extents[index].svc_id = iter->svc_id;
-		iter->fini = false;
 
 		bool invalidate = false;
 		bool rebuild_this_ext = false;

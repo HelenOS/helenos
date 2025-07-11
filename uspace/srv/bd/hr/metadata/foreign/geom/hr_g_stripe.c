@@ -188,7 +188,6 @@ static errno_t meta_gstripe_init_meta2vol(const list_t *list, hr_volume_t *vol)
 		uint16_t index = iter_meta->md_no;
 
 		vol->extents[index].svc_id = iter->svc_id;
-		iter->fini = false;
 
 		vol->extents[index].state = HR_EXT_ONLINE;
 	}

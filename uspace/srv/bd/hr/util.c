@@ -620,6 +620,7 @@ static errno_t hr_add_svc_linked_to_list(list_t *list, service_id_t svc_id,
 
 	to_add->svc_id = svc_id;
 	to_add->inited = inited;
+	to_add->fini = true;
 
 	if (md != NULL) {
 		to_add->md = md;
@@ -857,6 +858,15 @@ static errno_t hr_util_assemble_from_matching_list(list_t *list,
 	if (rc != EOK)
 		goto error;
 
+	for (size_t e = 0; e < vol->extent_no; e++) {
+		if (vol->extents[e].svc_id == 0)
+			continue;
+		list_foreach(*list, link, struct dev_list_member, iter) {
+			if (iter->svc_id == vol->extents[e].svc_id)
+				iter->fini = false;
+		}
+	}
+
 	rc = hr_register_volume(vol);
 	if (rc != EOK)
 		goto error;
@@ -869,7 +879,12 @@ static errno_t hr_util_assemble_from_matching_list(list_t *list,
 
 	return EOK;
 error:
+	/* let the caller fini the block svc list */
+	for (size_t e = 0; e < vol->extent_no; e++)
+		vol->extents[e].svc_id = 0;
+
 	hr_destroy_vol_struct(vol);
+
 	return rc;
 }
 
@@ -944,13 +959,19 @@ errno_t hr_util_try_assemble(hr_config_t *cfg, size_t *rassembled_cnt)
 			continue;
 		}
 
-		if (rc != EOK)
+		if (rc != EOK) {
+			block_fini(iter->svc_id);
+			free_dev_list_member(iter);
 			goto error;
+		}
 
 		char *svc_name = NULL;
 		rc = loc_service_get_name(iter->svc_id, &svc_name);
-		if (rc != EOK)
+		if (rc != EOK) {
+			block_fini(iter->svc_id);
+			free_dev_list_member(iter);
 			goto error;
+		}
 		HR_DEBUG("found valid metadata on %s (type = %s), matching "
 		    "other extents\n",
 		    svc_name, hr_get_metadata_type_str(type));
@@ -961,16 +982,22 @@ errno_t hr_util_try_assemble(hr_config_t *cfg, size_t *rassembled_cnt)
 
 		rc = hr_util_get_matching_md_svcs_list(&matching_svcs_list,
 		    &dev_id_list, iter->svc_id, type, metadata_struct_main);
-		if (rc != EOK)
+		if (rc != EOK) {
+			block_fini(iter->svc_id);
+			free_dev_list_member(iter);
 			goto error;
+		}
 
 		/* add current iter to list as well */
 		rc = hr_add_svc_linked_to_list(&matching_svcs_list,
 		    iter->svc_id, true, metadata_struct_main);
 		if (rc != EOK) {
+			block_fini(iter->svc_id);
 			free_svc_id_list(&matching_svcs_list);
 			goto error;
 		}
+
+		free_dev_list_member(iter);
 
 		/* remove matching list members from dev_id_list */
 		list_foreach(matching_svcs_list, link, struct dev_list_member,
