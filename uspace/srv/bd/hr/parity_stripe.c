@@ -383,7 +383,8 @@ static void hr_execute_write_stripe_optimal_reconstruct(hr_stripe_t *stripe)
 		worker_cnt = stripe->strips_touched; /* writers */
 
 		/* readers (upper bound) */
-		worker_cnt += (vol->extent_no - 1) - stripe->strips_touched;
+		worker_cnt += ((vol->extent_no - 1) - stripe->strips_touched) *
+		    stripe->range_count;
 		worker_cnt += stripe->partial_strips_touched;
 
 		worker_cnt += stripe->range_count; /* parity writer(s) */
