@@ -668,8 +668,8 @@ static errno_t hr_raid1_rebuild(void *arg)
 
 	hr_range_lock_t *rl = NULL;
 
-	HR_NOTE("\"%s\": REBUILD started on extent no. %zu at block %lu.\n",
-	    vol->devname, rebuild_idx, ba);
+	HR_NOTE("\"%s\": REBUILD started on extent no. %zu at "
+	    "block %" PRIu64 ".\n", vol->devname, rebuild_idx, ba);
 
 	uint64_t written = 0;
 	unsigned int percent, old_percent = 100;

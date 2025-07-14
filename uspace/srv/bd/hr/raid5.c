@@ -59,7 +59,7 @@ static void hr_raid5_vol_state_eval_forced(hr_volume_t *);
 static size_t hr_raid5_parity_extent(hr_level_t, hr_layout_t, size_t,
     uint64_t);
 static size_t hr_raid5_data_extent(hr_level_t, hr_layout_t, size_t, uint64_t,
-    uint64_t);
+    size_t);
 static errno_t hr_raid5_rebuild(void *);
 
 /* bdops */
@@ -744,7 +744,8 @@ static errno_t hr_raid5_rebuild(void *arg)
 	hr_stripe_t *stripe = hr_create_stripes(vol, max_blks * vol->bsize, 1,
 	    false);
 
-	HR_NOTE("\"%s\": REBUILD started on extent no. %zu at block %lu.\n",
+	HR_NOTE("\"%s\": REBUILD started on extent no. %zu at "
+	    "block %" PRIu64 ".\n",
 	    vol->devname, rebuild_idx, ba);
 
 	uint64_t written = 0;
