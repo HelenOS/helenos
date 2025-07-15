@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Miroslav Cimerman
+ * Copyright (c) 2025 Miroslav Cimerman <mc@doas.su>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
