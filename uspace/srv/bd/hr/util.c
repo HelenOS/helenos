@@ -752,8 +752,6 @@ static errno_t block_init_dev_list(list_t *list)
 
 		errno_t rc = block_init(iter->svc_id);
 
-		/* already used as an extent of active volume */
-		/* XXX: figure out how it is with hotspares too */
 		if (rc == EEXIST) {
 			list_remove(cur_link);
 			free_dev_list_member(iter);

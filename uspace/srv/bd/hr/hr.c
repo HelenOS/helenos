@@ -126,10 +126,6 @@ static void hr_create_srv(ipc_call_t *icall)
 	 */
 	for (i = 0; i < cfg->dev_no; i++) {
 		if (cfg->devs[i] == 0) {
-			/*
-			 * XXX: own error codes, no need to log this...
-			 * its user error not service error
-			 */
 			HR_ERROR("missing device provided for volume "
 			    "creation, aborting");
 			free(cfg);

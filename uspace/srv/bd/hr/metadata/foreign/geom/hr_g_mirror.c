@@ -413,11 +413,6 @@ static errno_t meta_gmirror_get_block(service_id_t dev, void **rblock)
 		return ENOMEM;
 
 	rc = hr_read_direct(dev, blkno - 1, 1, block);
-	/*
-	 * XXX: here maybe call vol state event or the state callback...
-	 *
-	 * but need to pass vol pointer
-	 */
 	if (rc != EOK) {
 		free(block);
 		return rc;

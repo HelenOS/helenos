@@ -28,7 +28,7 @@ typedef uint8_t __u8;
 #define MD_OFFSET 8
 #define MD_SIZE 2
 
-/* XXX: this is actually not used when assembling */
+/* this is actually not used when assembling */
 #define MD_DATA_OFFSET 2048
 
 #define MD_MAGIC 0xa92b4efc
