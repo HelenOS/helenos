@@ -43,6 +43,7 @@
 #include <ddf/driver.h>
 #include <device/hw_res_parsed.h>
 #include <ops/nic.h>
+#include <pcap_dumper.h>
 
 #define DEVICE_CATEGORY_NIC "nic"
 
@@ -276,6 +277,11 @@ extern uint64_t nic_query_mcast_hash(nic_t *);
 /* Software period functions */
 extern void nic_sw_period_start(nic_t *);
 extern void nic_sw_period_stop(nic_t *);
+
+/* pcapdump interface */
+extern pcap_dumper_t *nic_get_pcap_dumper(nic_t *);
+
+extern errno_t nic_fun_add_to_cats(ddf_fun_t *fun);
 
 #endif // __NIC_H__
 

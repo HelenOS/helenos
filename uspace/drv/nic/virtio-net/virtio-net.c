@@ -427,10 +427,11 @@ static errno_t virtio_net_dev_add(ddf_dev_t *dev)
 		goto destroy;
 	}
 
-	rc = ddf_fun_add_to_category(fun, DEVICE_CATEGORY_NIC);
+	rc = nic_fun_add_to_cats(fun);
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Failed adding function to category");
-		goto unbind;
+		ddf_msg(LVL_ERROR, "Failed adding function to categories");
+		ddf_fun_unbind(fun);
+		return rc;
 	}
 
 	ddf_msg(LVL_NOTE, "The %s device has been successfully initialized.",
@@ -438,8 +439,8 @@ static errno_t virtio_net_dev_add(ddf_dev_t *dev)
 
 	return EOK;
 
-unbind:
-	ddf_fun_unbind(fun);
+	// unbind:
+	// ddf_fun_unbind(fun);
 destroy:
 	ddf_fun_destroy(fun);
 uninitialize:

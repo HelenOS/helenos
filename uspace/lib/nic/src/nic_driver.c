@@ -46,6 +46,7 @@
 #include <ddf/interrupt.h>
 #include <ops/nic.h>
 #include <errno.h>
+#include <pcapdump_drv_iface.h>
 
 #include "nic_driver.h"
 #include "nic_ev.h"
@@ -521,6 +522,7 @@ void nic_received_frame(nic_t *nic_data, nic_frame_t *frame)
 	 * Note: this function must not lock main lock, because loopback driver
 	 * 		 calls it inside send_frame handler (with locked main lock)
 	 */
+	pcapdump_packet(nic_get_pcap_dumper(nic_data), frame->data, frame->size);
 	fibril_rwlock_read_lock(&nic_data->rxc_lock);
 	nic_frame_type_t frame_type;
 	bool check = nic_rxc_check(&nic_data->rx_control, frame->data,
@@ -559,6 +561,7 @@ void nic_received_frame(nic_t *nic_data, nic_frame_t *frame)
 		}
 		fibril_rwlock_write_unlock(&nic_data->stats_lock);
 	}
+	//pcapdump_packet(nic_get_pcap_dumper(nic_data), frame->data, frame->size);
 	nic_release_frame(nic_data, frame);
 }
 
@@ -646,6 +649,11 @@ nic_t *nic_create_and_bind(ddf_dev_t *device)
 		return NULL;
 
 	nic_data->dev = device;
+
+	errno_t pcap_rc  = pcapdump_init(nic_get_pcap_dumper(nic_data));
+	if (pcap_rc != EOK) {
+		printf("Failed creating pcapdump port\n");
+	}
 
 	return nic_data;
 }
@@ -1130,6 +1138,11 @@ void nic_sw_period_start(nic_t *nic_data)
 void nic_sw_period_stop(nic_t *nic_data)
 {
 	nic_data->sw_poll_info.running = 0;
+}
+
+pcap_dumper_t *nic_get_pcap_dumper(nic_t *nic_data)
+{
+	return &nic_data->dumper;
 }
 
 /** @}

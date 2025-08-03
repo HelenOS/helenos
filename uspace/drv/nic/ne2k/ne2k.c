@@ -43,6 +43,7 @@
 #include <stdlib.h>
 #include <str_error.h>
 #include <async.h>
+#include <ddf/log.h>
 #include "dp8390.h"
 
 #define NAME  "ne2k"
@@ -449,10 +450,10 @@ static errno_t ne2k_dev_add(ddf_dev_t *dev)
 		return rc;
 	}
 
-	rc = ddf_fun_add_to_category(fun, DEVICE_CATEGORY_NIC);
+	rc = nic_fun_add_to_cats(fun);
 	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed adding function to categories");
 		ddf_fun_unbind(fun);
-		ddf_fun_destroy(fun);
 		return rc;
 	}
 
@@ -496,6 +497,7 @@ int main(int argc, char *argv[])
 	nic_driver_init(NAME);
 	nic_driver_implement(&ne2k_driver_ops, &ne2k_dev_ops, &ne2k_nic_iface);
 
+	ddf_log_init(NAME);
 	return ddf_driver_main(&ne2k_driver);
 }
 

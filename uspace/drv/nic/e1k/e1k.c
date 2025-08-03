@@ -174,6 +174,7 @@ typedef struct {
 
 	/** Lock for EEPROM access */
 	fibril_mutex_t eeprom_lock;
+
 } e1000_t;
 
 /** Global mutex for work with shared irq structure */
@@ -1191,6 +1192,7 @@ static void e1000_receive_frames(nic_t *nic)
 		nic_frame_t *frame = nic_alloc_frame(nic, frame_size);
 		if (frame != NULL) {
 			memcpy(frame->data, e1000->rx_frame_virt[next_tail], frame_size);
+
 			nic_received_frame(nic, frame);
 		} else {
 			ddf_msg(LVL_ERROR, "Memory allocation failed. Frame dropped.");
@@ -2200,14 +2202,14 @@ errno_t e1000_dev_add(ddf_dev_t *dev)
 	if (rc != EOK)
 		goto err_fun_bind;
 
-	rc = ddf_fun_add_to_category(fun, DEVICE_CATEGORY_NIC);
-	if (rc != EOK)
-		goto err_add_to_cat;
-
+	rc = nic_fun_add_to_cats(fun);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed adding function to categories");
+		ddf_fun_unbind(fun);
+		return rc;
+	}
 	return EOK;
 
-err_add_to_cat:
-	ddf_fun_unbind(fun);
 err_fun_bind:
 err_rx_structure:
 	e1000_uninitialize_rx_structure(nic);
@@ -2387,7 +2389,6 @@ static void e1000_send_frame(nic_t *nic, void *data, size_t size)
 	}
 
 	memcpy(e1000->tx_frame_virt[tdt], data, size);
-
 	tx_descriptor_addr->phys_addr = PTR_TO_U64(e1000->tx_frame_phys[tdt]);
 	tx_descriptor_addr->length = size;
 

@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'drv' ]
+deps = [ 'drv' , 'pcap' ]
 src = files(
 	'arp.c',
 	'atrans.c',
