@@ -76,8 +76,8 @@ static void bd_read_blocks_srv(bd_srv_t *srv, ipc_call_t *call)
 
 	rc = srv->srvs->ops->read_blocks(srv, ba, cnt, buf, size);
 	if (rc != EOK) {
-		async_answer_0(&rcall, ENOMEM);
-		async_answer_0(call, ENOMEM);
+		async_answer_0(&rcall, rc);
+		async_answer_0(call, rc);
 		free(buf);
 		return;
 	}
@@ -120,8 +120,8 @@ static void bd_read_toc_srv(bd_srv_t *srv, ipc_call_t *call)
 
 	rc = srv->srvs->ops->read_toc(srv, session, buf, size);
 	if (rc != EOK) {
-		async_answer_0(&rcall, ENOMEM);
-		async_answer_0(call, ENOMEM);
+		async_answer_0(&rcall, rc);
+		async_answer_0(call, rc);
 		free(buf);
 		return;
 	}
