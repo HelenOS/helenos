@@ -257,7 +257,7 @@ check_dirs() {
 		ring_bell
 		( set -x ; sudo -k mkdir -p "${CROSS_PREFIX}" )
 	else
-		mkdir -p "${CROSS_PREFIX}"
+		( set -x ; mkdir -p "${CROSS_PREFIX}" )
 	fi
 
 	cd "${CROSS_PREFIX}"
@@ -458,9 +458,9 @@ install_pkg() {
 	echo ">>> Moving to the destination directory."
 	if $SYSTEM_INSTALL ; then
 		ring_bell
-		( set -x ; sudo -k cp -r -t "${CROSS_PREFIX}" "${INSTALL_DIR}${CROSS_PREFIX}/"* )
+		( set -x ; tar -C "${INSTALL_DIR}${CROSS_PREFIX}" -cpf - . | sudo -k tar -C "${CROSS_PREFIX}" -xpf - )
 	else
-		( set -x ; cp -r -t "${CROSS_PREFIX}" "${INSTALL_DIR}${CROSS_PREFIX}/"* )
+		( set -x ; tar -C "${INSTALL_DIR}${CROSS_PREFIX}" -cpf - . | tar -C "${CROSS_PREFIX}" -xpf - )
 	fi
 }
 
