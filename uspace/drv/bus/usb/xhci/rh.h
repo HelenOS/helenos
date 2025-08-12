@@ -50,7 +50,7 @@ typedef struct ddf_dev ddf_dev_t;
  * xHCI lets the controller define speeds of ports it controls.
  */
 typedef struct xhci_port_speed {
-	char name [4];
+	char name[4] __attribute__((nonstring));
 	uint8_t major, minor;
 	uint64_t rx_bps, tx_bps;
 	usb_speed_t usb_speed;
