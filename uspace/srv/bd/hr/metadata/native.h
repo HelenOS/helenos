@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2025 Miroslav Cimerman
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,46 +26,55 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
+/** @addtogroup hr
  * @{
  */
 /**
- * @file  services.h
- * @brief List of all known services and their codes.
+ * @file
  */
 
-#ifndef _LIBC_SERVICES_H_
-#define _LIBC_SERVICES_H_
+#ifndef _HR_METADATA_NATIVE_H
+#define _HR_METADATA_NATIVE_H
 
-#include <abi/fourcc.h>
+#include "../var.h"
 
-typedef enum {
-	SERVICE_NONE       = 0,
-	SERVICE_LOADER     = FOURCC('l', 'o', 'a', 'd'),
-	SERVICE_VFS        = FOURCC('v', 'f', 's', ' '),
-	SERVICE_LOC        = FOURCC('l', 'o', 'c', ' '),
-	SERVICE_LOGGER     = FOURCC('l', 'o', 'g', 'g'),
-	SERVICE_DEVMAN     = FOURCC('d', 'e', 'v', 'n'),
-} service_t;
+/*
+ * Metadata is stored on the last block of an extent.
+ */
+#define HR_NATIVE_META_SIZE 1 /* in blocks */
+#define HR_NATIVE_DATA_OFF 0
 
-#define SERVICE_NAME_CHARDEV_TEST_SMALLX "chardev-test/smallx"
-#define SERVICE_NAME_CHARDEV_TEST_LARGEX "chardev-test/largex"
-#define SERVICE_NAME_CHARDEV_TEST_PARTIALX "chardev-test/partialx"
-#define SERVICE_NAME_CLIPBOARD "clipboard"
-#define SERVICE_NAME_CORECFG  "corecfg"
-#define SERVICE_NAME_DISPCFG  "hid/display"
-#define SERVICE_NAME_DISPLAY  "hid/display"
-#define SERVICE_NAME_WNDMGT   "hid/display"
-#define SERVICE_NAME_HR       "hr"
-#define SERVICE_NAME_DHCP     "net/dhcp"
-#define SERVICE_NAME_DNSR     "net/dnsr"
-#define SERVICE_NAME_INET     "net/inet"
-#define SERVICE_NAME_IPC_TEST "ipc-test"
-#define SERVICE_NAME_NETCONF  "net/netconf"
-#define SERVICE_NAME_UDP      "net/udp"
-#define SERVICE_NAME_TCP      "net/tcp"
-#define SERVICE_NAME_VBD      "vbd"
-#define SERVICE_NAME_VOLSRV   "volsrv"
+#define HR_NATIVE_MAGIC_STR "HelenRAID"
+#define HR_NATIVE_MAGIC_SIZE 16
+#define HR_NATIVE_UUID_LEN 16
+
+/*
+ * Bump on each superblock update.
+ */
+#define HR_NATIVE_METADATA_VERSION 1
+
+struct hr_metadata {
+	char magic[HR_NATIVE_MAGIC_SIZE];
+
+	uint8_t uuid[HR_NATIVE_UUID_LEN];
+
+	uint32_t version;
+	uint32_t extent_no;
+	uint32_t level;
+	uint32_t layout;
+
+	uint32_t index; /* index of extent in volume */
+	uint32_t strip_size;
+	uint32_t bsize;
+
+	uint64_t data_blkno; /* usable blocks */
+	uint64_t truncated_blkno; /* size of smallest extent */
+
+	uint64_t counter;
+	uint64_t rebuild_pos;
+
+	char devname[HR_DEVNAME_LEN];
+} __attribute__((packed));
 
 #endif
 
