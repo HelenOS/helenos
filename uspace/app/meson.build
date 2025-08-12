@@ -71,6 +71,8 @@ apps = [
 	'nic',
 	'nterm',
 	'ofw',
+	'pcapcat',
+	'pcapctl',
 	'pci',
 	'ping',
 	'pkg',

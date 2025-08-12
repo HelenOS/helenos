@@ -211,7 +211,6 @@ errno_t inet_route_packet(inet_dgram_t *dgram, uint8_t proto, uint8_t ttl,
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "dgram to be routed");
 
 	/* Route packet using source/destination addresses */
-
 	rc = inet_find_dir(&dgram->src, &dgram->dest, dgram->tos, &dir);
 	if (rc != EOK)
 		return rc;
@@ -546,7 +545,6 @@ errno_t inet_recv_packet(inet_packet_t *packet)
 			dgram.tos = packet->tos;
 			dgram.data = packet->data;
 			dgram.size = packet->size;
-
 			return inet_recv_dgram_local(&dgram, packet->proto);
 		} else {
 			/* It is a fragment, queue it for reassembly */
