@@ -349,6 +349,8 @@ errno_t ui_file_list_read_dir(ui_file_list_t *flist, const char *dirname)
 		goto error;
 	}
 
+	ui_file_list_clear_entries(flist);
+
 	if (str_cmp(ndir, "/") != 0) {
 		/* Need to add a synthetic up-dir entry */
 		ui_file_list_entry_attr_init(&attr);
@@ -419,6 +421,24 @@ error:
 	if (dir != NULL)
 		closedir(dir);
 	return rc;
+}
+
+/** Re-read file list from directory.
+ *
+ * @param flist File list
+ * @return EOK on success or an error code
+ */
+errno_t ui_file_list_refresh(ui_file_list_t *flist)
+{
+	errno_t rc;
+	ui_list_pos_t pos;
+
+	ui_list_save_pos(flist->list, &pos);
+	rc = ui_file_list_read_dir(flist, flist->dir);
+	if (rc != EOK)
+		return rc;
+	ui_list_restore_pos(flist->list, &pos);
+	return EOK;
 }
 
 /** Sort file list entries.
@@ -591,8 +611,6 @@ errno_t ui_file_list_open_dir(ui_file_list_t *flist,
 	dirname = str_dup(entry->name);
 	if (dirname == NULL)
 		return ENOMEM;
-
-	ui_file_list_clear_entries(flist);
 
 	rc = ui_file_list_read_dir(flist, dirname);
 	if (rc != EOK) {

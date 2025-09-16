@@ -50,6 +50,7 @@ extern void ui_file_list_set_cb(ui_file_list_t *, ui_file_list_cb_t *, void *);
 extern void ui_file_list_set_rect(ui_file_list_t *, gfx_rect_t *);
 extern errno_t ui_file_list_read_dir(ui_file_list_t *, const char *);
 extern errno_t ui_file_list_activate(ui_file_list_t *);
+extern errno_t ui_file_list_refresh(ui_file_list_t *);
 extern void ui_file_list_deactivate(ui_file_list_t *);
 extern errno_t ui_file_list_open(ui_file_list_t *, ui_file_list_entry_t *);
 extern ui_file_list_entry_t *ui_file_list_get_cursor(ui_file_list_t *);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -70,6 +70,8 @@ extern ui_list_entry_t *ui_list_last(ui_list_t *);
 extern ui_list_entry_t *ui_list_next(ui_list_entry_t *);
 extern ui_list_entry_t *ui_list_prev(ui_list_entry_t *);
 extern bool ui_list_is_active(ui_list_t *);
+extern void ui_list_save_pos(ui_list_t *, ui_list_pos_t *);
+extern void ui_list_restore_pos(ui_list_t *, ui_list_pos_t *);
 
 #endif
 

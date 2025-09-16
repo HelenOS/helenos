@@ -30,25 +30,44 @@
  * @{
  */
 /**
- * @file Navigator menu
+ * @file New File dialog
  */
 
-#ifndef MENU_H
-#define MENU_H
+#ifndef TYPES_DLG_NEWFILEDLG_H
+#define TYPES_DLG_NEWFILEDLG_H
 
 #include <errno.h>
-#include <ui/menuentry.h>
+#include <ui/entry.h>
+#include <ui/pbutton.h>
 #include <ui/window.h>
-#include "types/menu.h"
 
-extern errno_t nav_menu_create(ui_window_t *, nav_menu_t **);
-extern void nav_menu_set_cb(nav_menu_t *, nav_menu_cb_t *, void *);
-extern void nav_menu_destroy(nav_menu_t *);
-extern ui_control_t *nav_menu_ctl(nav_menu_t *);
-extern void nav_menu_file_new_file(ui_menu_entry_t *, void *);
-extern void nav_menu_file_open(ui_menu_entry_t *, void *);
-extern void nav_menu_file_edit(ui_menu_entry_t *, void *);
-extern void nav_menu_file_exit(ui_menu_entry_t *, void *);
+/** New File dialog */
+typedef struct new_file_dlg {
+	/** Dialog window */
+	ui_window_t *window;
+	/** File name text entry */
+	ui_entry_t *ename;
+	/** File size text entry */
+	ui_entry_t *esize;
+	/** OK button */
+	ui_pbutton_t *bok;
+	/** Cancel button */
+	ui_pbutton_t *bcancel;
+	/** New file dialog callbacks */
+	struct new_file_dlg_cb *cb;
+	/** Callback argument */
+	void *arg;
+} new_file_dlg_t;
+
+/** Prompt dialog callback */
+typedef struct new_file_dlg_cb {
+	/** OK button was pressed */
+	void (*bok)(new_file_dlg_t *, void *, const char *);
+	/** Cancel button was pressed */
+	void (*bcancel)(new_file_dlg_t *, void *);
+	/** Window closure requested (e.g. via close button) */
+	void (*close)(new_file_dlg_t *, void *);
+} new_file_dlg_cb_t;
 
 #endif
 

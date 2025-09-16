@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2021 Jiri Svoboda
+# Copyright (c) 2025 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,15 +28,19 @@
 
 deps = [ 'ui' ]
 src = files(
+	'dlg/newfiledlg.c',
 	'main.c',
 	'menu.c',
 	'nav.c',
+	'newfile.c',
 	'panel.c',
 )
 
 test_src = files(
+	'dlg/newfiledlg.c',
 	'menu.c',
 	'nav.c',
+	'newfile.c',
 	'panel.c',
 	'test/main.c',
 	'test/menu.c',

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,6 +45,7 @@ extern void navigator_destroy(navigator_t *);
 extern errno_t navigator_run(const char *);
 extern panel_t *navigator_get_active_panel(navigator_t *);
 extern void navigator_switch_panel(navigator_t *);
+extern void navigator_refresh_panels(navigator_t *);
 
 #endif
 

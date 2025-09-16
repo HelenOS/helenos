@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -660,6 +660,108 @@ PCUT_TEST(sort)
 	PCUT_ASSERT_INT_EQUALS(3, entry->size);
 
 	ui_file_list_destroy(flist);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
+/** ui_file_list_refresh() */
+PCUT_TEST(refresh)
+{
+	ui_t *ui;
+	ui_window_t *window;
+	ui_wnd_params_t params;
+	ui_file_list_t *flist;
+	ui_file_list_entry_t *entry;
+	char buf[L_tmpnam];
+	char *fname;
+	char *p;
+	errno_t rc;
+	FILE *f;
+	int rv;
+
+	/* Create name for temporary directory */
+	p = tmpnam(buf);
+	PCUT_ASSERT_NOT_NULL(p);
+
+	/* Create temporary directory */
+	rc = vfs_link_path(p, KIND_DIRECTORY, NULL);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rv = asprintf(&fname, "%s/%s", p, "a");
+	PCUT_ASSERT_TRUE(rv >= 0);
+
+	f = fopen(fname, "wb");
+	PCUT_ASSERT_NOT_NULL(f);
+
+	rv = fprintf(f, "X");
+	PCUT_ASSERT_TRUE(rv >= 0);
+
+	rv = fclose(f);
+	PCUT_ASSERT_INT_EQUALS(0, rv);
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Test";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_file_list_create(window, true, &flist);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_file_list_read_dir(flist, p);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_INT_EQUALS(2, ui_list_entries_cnt(flist->list));
+
+	entry = ui_file_list_first(flist);
+	PCUT_ASSERT_NOT_NULL(entry);
+	PCUT_ASSERT_STR_EQUALS("..", entry->name);
+
+	entry = ui_file_list_next(entry);
+	PCUT_ASSERT_NOT_NULL(entry);
+	PCUT_ASSERT_STR_EQUALS("a", entry->name);
+	PCUT_ASSERT_INT_EQUALS(1, entry->size);
+
+	rv = remove(fname);
+	PCUT_ASSERT_INT_EQUALS(0, rv);
+	free(fname);
+
+	rv = asprintf(&fname, "%s/%s", p, "b");
+	PCUT_ASSERT_TRUE(rv >= 0);
+
+	f = fopen(fname, "wb");
+	PCUT_ASSERT_NOT_NULL(f);
+
+	rv = fprintf(f, "X");
+	PCUT_ASSERT_TRUE(rv >= 0);
+
+	rv = fclose(f);
+	PCUT_ASSERT_INT_EQUALS(0, rv);
+
+	rc = ui_file_list_refresh(flist);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	entry = ui_file_list_first(flist);
+	PCUT_ASSERT_NOT_NULL(entry);
+	PCUT_ASSERT_STR_EQUALS("..", entry->name);
+
+	entry = ui_file_list_next(entry);
+	PCUT_ASSERT_NOT_NULL(entry);
+	PCUT_ASSERT_STR_EQUALS("b", entry->name);
+	PCUT_ASSERT_INT_EQUALS(1, entry->size);
+
+	rv = remove(fname);
+	PCUT_ASSERT_INT_EQUALS(0, rv);
+	free(fname);
+
+	rv = remove(p);
+	PCUT_ASSERT_INT_EQUALS(0, rv);
+
+	ui_file_list_destroy(flist);
+
 	ui_window_destroy(window);
 	ui_destroy(ui);
 }

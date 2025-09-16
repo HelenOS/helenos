@@ -45,6 +45,7 @@
 #include <ui/ui.h>
 #include <ui/window.h>
 #include "menu.h"
+#include "newfile.h"
 #include "nav.h"
 #include "panel.h"
 
@@ -58,11 +59,13 @@ static ui_window_cb_t window_cb = {
 	.kbd = wnd_kbd
 };
 
+static void navigator_file_new_file(void *);
 static void navigator_file_open(void *);
 static void navigator_file_edit(void *);
 static void navigator_file_exit(void *);
 
 static nav_menu_cb_t navigator_menu_cb = {
+	.file_new_file = navigator_file_new_file,
 	.file_open = navigator_file_open,
 	.file_edit = navigator_file_edit,
 	.file_exit = navigator_file_exit
@@ -103,6 +106,9 @@ static void wnd_kbd(ui_window_t *window, void *arg, kbd_event_t *event)
 	    ((event->mods & KM_SHIFT) == 0) &&
 	    (event->mods & KM_CTRL) != 0) {
 		switch (event->key) {
+		case KC_M:
+			navigator_new_file_dlg(navigator);
+			break;
 		case KC_E:
 			navigator_file_edit((void *)navigator);
 			break;
@@ -315,6 +321,50 @@ void navigator_switch_panel(navigator_t *navigator)
 			return;
 		panel_deactivate(navigator->panel[1]);
 	}
+}
+
+/** Refresh navigator panels.
+ *
+ * This needs to be called when the disk/directory contents might have
+ * changed.
+ *
+ * @param navigator Navigator
+ */
+void navigator_refresh_panels(navigator_t *navigator)
+{
+	errno_t rc;
+	unsigned i;
+
+	/* First refresh inactive panel. */
+
+	for (i = 0; i < 2; i++) {
+		if (!panel_is_active(navigator->panel[i])) {
+			rc = panel_refresh(navigator->panel[i]);
+			if (rc != EOK)
+				return;
+		}
+	}
+
+	/*
+	 * Refresh active panel last so that working directory is left
+	 * to that of the active panel.
+	 */
+
+	for (i = 0; i < 2; i++) {
+		if (panel_is_active(navigator->panel[i])) {
+			rc = panel_refresh(navigator->panel[i]);
+			if (rc != EOK)
+				return;
+		}
+	}
+}
+
+/** File / New File menu entry selected */
+static void navigator_file_new_file(void *arg)
+{
+	navigator_t *navigator = (navigator_t *)arg;
+
+	navigator_new_file_dlg(navigator);
 }
 
 /** File / Open menu entry selected */
