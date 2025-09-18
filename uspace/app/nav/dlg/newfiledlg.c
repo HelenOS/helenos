@@ -34,6 +34,7 @@
  */
 
 #include <errno.h>
+#include <fmgt.h>
 #include <mem.h>
 #include <stdlib.h>
 #include <ui/entry.h>
@@ -83,6 +84,7 @@ errno_t new_file_dlg_create(ui_t *ui, new_file_dlg_t **rdialog)
 	ui_pbutton_t *bcancel = NULL;
 	gfx_rect_t rect;
 	ui_resource_t *ui_res;
+	char *name = NULL;
 
 	dialog = calloc(1, sizeof(new_file_dlg_t));
 	if (dialog == NULL) {
@@ -143,9 +145,16 @@ errno_t new_file_dlg_create(ui_t *ui, new_file_dlg_t **rdialog)
 
 	label = NULL;
 
-	rc = ui_entry_create(window, "noname00", &entry);
+	rc = fmgt_new_file_suggest(&name);
 	if (rc != EOK)
 		goto error;
+
+	rc = ui_entry_create(window, name, &entry);
+	if (rc != EOK)
+		goto error;
+
+	free(name);
+	name = NULL;
 
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
@@ -293,6 +302,8 @@ errno_t new_file_dlg_create(ui_t *ui, new_file_dlg_t **rdialog)
 	*rdialog = dialog;
 	return EOK;
 error:
+	if (name != NULL)
+		free(name);
 	if (entry != NULL)
 		ui_entry_destroy(entry);
 	if (bok != NULL)

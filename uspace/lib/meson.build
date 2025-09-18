@@ -71,6 +71,7 @@ libs = [
 	'dltest',
 	'fbfont',
 	'fdisk',
+	'fmgt',
 	'fmtutil',
 	'fs',
 	'futil',

@@ -26,24 +26,6 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'fmgt', 'ui' ]
 src = files(
-	'dlg/newfiledlg.c',
-	'main.c',
-	'menu.c',
-	'nav.c',
-	'newfile.c',
-	'panel.c',
-)
-
-test_src = files(
-	'dlg/newfiledlg.c',
-	'menu.c',
-	'nav.c',
-	'newfile.c',
-	'panel.c',
-	'test/main.c',
-	'test/menu.c',
-	'test/nav.c',
-	'test/panel.c',
+	'src/fmgt.c'
 )

@@ -410,6 +410,7 @@ static errno_t navigator_edit_file(navigator_t *navigator, const char *fname)
 	if (rc != EOK)
 		return rc;
 
+	navigator_refresh_panels(navigator);
 	(void) ui_paint(navigator->ui);
 	return EOK;
 error:
@@ -450,6 +451,8 @@ static errno_t navigator_exec_file(navigator_t *navigator, const char *fname)
 	rc = ui_resume(navigator->ui);
 	if (rc != EOK)
 		return rc;
+
+	navigator_refresh_panels(navigator);
 
 	(void) ui_paint(navigator->ui);
 	return EOK;
