@@ -115,7 +115,7 @@ PCUT_TEST(new_file_empty)
 	rc = fmgt_new_file_suggest(&fname);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = fmgt_new_file(fmgt, fname, 0);
+	rc = fmgt_new_file(fmgt, fname, 0, nf_none);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	/* Remove the file [this also verifies the file exists]. */
@@ -149,7 +149,57 @@ PCUT_TEST(new_file_zerofill)
 	rc = fmgt_new_file_suggest(&fname);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = fmgt_new_file(fmgt, fname, 20000);
+	rc = fmgt_new_file(fmgt, fname, 20000, nf_none);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Verify the file. */
+	f = fopen(fname, "rb");
+	PCUT_ASSERT_NOT_NULL(f);
+	total_rd = 0;
+	do {
+		nr = fread(buf, 1, sizeof(buf), f);
+		for (i = 0; i < nr; i++)
+			PCUT_ASSERT_INT_EQUALS(0, buf[i]);
+
+		total_rd += nr;
+	} while (nr > 0);
+
+	PCUT_ASSERT_INT_EQUALS(20000, total_rd);
+
+	(void)fclose(f);
+
+	/* Remove the file. */
+	rv = remove(fname);
+	PCUT_ASSERT_INT_EQUALS(0, rv);
+
+	free(fname);
+	fmgt_destroy(fmgt);
+}
+
+/** New sparse file can be created. */
+PCUT_TEST(new_file_sparse)
+{
+	FILE *f = NULL;
+	fmgt_t *fmgt = NULL;
+	char *fname = NULL;
+	char buf[128];
+	errno_t rc;
+	size_t nr;
+	size_t total_rd;
+	size_t i;
+	int rv;
+
+	rc = vfs_cwd_set(TEMP_DIR);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = fmgt_create(&fmgt);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Suggest unique file name. */
+	rc = fmgt_new_file_suggest(&fname);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = fmgt_new_file(fmgt, fname, 20000, nf_sparse);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	/* Verify the file. */
@@ -205,7 +255,7 @@ PCUT_TEST(new_file_init_upd)
 	rc = fmgt_new_file_suggest(&fname);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = fmgt_new_file(fmgt, fname, 20000);
+	rc = fmgt_new_file(fmgt, fname, 20000, nf_none);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	/* Verify the file. */

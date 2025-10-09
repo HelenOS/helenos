@@ -37,9 +37,11 @@
 #define TYPES_DLG_NEWFILEDLG_H
 
 #include <errno.h>
+#include <ui/checkbox.h>
 #include <ui/entry.h>
 #include <ui/pbutton.h>
 #include <ui/window.h>
+#include <stdbool.h>
 
 /** New File dialog */
 typedef struct new_file_dlg {
@@ -49,6 +51,8 @@ typedef struct new_file_dlg {
 	ui_entry_t *ename;
 	/** File size text entry */
 	ui_entry_t *esize;
+	/** Sparse checkbox */
+	ui_checkbox_t *sparse;
 	/** OK button */
 	ui_pbutton_t *bok;
 	/** Cancel button */
@@ -62,7 +66,7 @@ typedef struct new_file_dlg {
 /** New File dialog callbacks */
 typedef struct new_file_dlg_cb {
 	/** OK button was pressed */
-	void (*bok)(new_file_dlg_t *, void *, const char *, const char *);
+	void (*bok)(new_file_dlg_t *, void *, const char *, const char *, bool);
 	/** Cancel button was pressed */
 	void (*bcancel)(new_file_dlg_t *, void *);
 	/** Window closure requested (e.g. via close button) */

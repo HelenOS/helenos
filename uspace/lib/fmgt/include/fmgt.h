@@ -48,7 +48,7 @@ extern void fmgt_set_cb(fmgt_t *, fmgt_cb_t *, void *);
 extern void fmgt_destroy(fmgt_t *);
 extern void fmgt_set_init_update(fmgt_t *, bool);
 extern errno_t fmgt_new_file_suggest(char **);
-extern errno_t fmgt_new_file(fmgt_t *, const char *, uint64_t);
+extern errno_t fmgt_new_file(fmgt_t *, const char *, uint64_t, fmgt_nf_flags_t);
 
 #endif
 

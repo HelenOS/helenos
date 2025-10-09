@@ -36,6 +36,7 @@
 #include <errno.h>
 #include <fmgt.h>
 #include <mem.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <ui/entry.h>
 #include <ui/fixed.h>
@@ -80,6 +81,7 @@ errno_t new_file_dlg_create(ui_t *ui, new_file_dlg_t **rdialog)
 	ui_fixed_t *fixed = NULL;
 	ui_label_t *label = NULL;
 	ui_entry_t *entry = NULL;
+	ui_checkbox_t *checkbox = NULL;
 	ui_pbutton_t *bok = NULL;
 	ui_pbutton_t *bcancel = NULL;
 	gfx_rect_t rect;
@@ -100,12 +102,12 @@ errno_t new_file_dlg_create(ui_t *ui, new_file_dlg_t **rdialog)
 		wparams.rect.p0.x = 0;
 		wparams.rect.p0.y = 0;
 		wparams.rect.p1.x = 40;
-		wparams.rect.p1.y = 11;
+		wparams.rect.p1.y = 13;
 	} else {
 		wparams.rect.p0.x = 0;
 		wparams.rect.p0.y = 0;
 		wparams.rect.p1.x = 300;
-		wparams.rect.p1.y = 135;
+		wparams.rect.p1.y = 155;
 	}
 
 	rc = ui_window_create(ui, &wparams, &window);
@@ -233,6 +235,32 @@ errno_t new_file_dlg_create(ui_t *ui, new_file_dlg_t **rdialog)
 	dialog->esize = entry;
 	entry = NULL;
 
+	rc = ui_checkbox_create(ui_res, "Sparse", &checkbox);
+	if (rc != EOK)
+		goto error;
+
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(ui)) {
+		rect.p0.x = 3;
+		rect.p0.y = 8;
+		rect.p1.x = 17;
+		rect.p1.y = 9;
+	} else {
+		rect.p0.x = 10;
+		rect.p0.y = 100;
+		rect.p1.x = 190;
+		rect.p1.y = 120;
+	}
+
+	ui_checkbox_set_rect(checkbox, &rect);
+
+	rc = ui_fixed_add(fixed, ui_checkbox_ctl(checkbox));
+	if (rc != EOK)
+		goto error;
+
+	dialog->sparse = checkbox;
+	checkbox = NULL;
+
 	rc = ui_pbutton_create(ui_res, "OK", &bok);
 	if (rc != EOK)
 		goto error;
@@ -242,14 +270,14 @@ errno_t new_file_dlg_create(ui_t *ui, new_file_dlg_t **rdialog)
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
 		rect.p0.x = 10;
-		rect.p0.y = 8;
+		rect.p0.y = 10;
 		rect.p1.x = 20;
-		rect.p1.y = 9;
+		rect.p1.y = 11;
 	} else {
 		rect.p0.x = 55;
-		rect.p0.y = 90;
+		rect.p0.y = 120;
 		rect.p1.x = 145;
-		rect.p1.y = 118;
+		rect.p1.y = 148;
 	}
 
 	ui_pbutton_set_rect(bok, &rect);
@@ -272,14 +300,14 @@ errno_t new_file_dlg_create(ui_t *ui, new_file_dlg_t **rdialog)
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
 		rect.p0.x = 22;
-		rect.p0.y = 8;
+		rect.p0.y = 10;
 		rect.p1.x = 32;
-		rect.p1.y = 9;
+		rect.p1.y = 11;
 	} else {
 		rect.p0.x = 155;
-		rect.p0.y = 90;
+		rect.p0.y = 120;
 		rect.p1.x = 245;
-		rect.p1.y = 118;
+		rect.p1.y = 148;
 	}
 
 	ui_pbutton_set_rect(bcancel, &rect);
@@ -306,6 +334,8 @@ error:
 		free(name);
 	if (entry != NULL)
 		ui_entry_destroy(entry);
+	if (checkbox != NULL)
+		ui_checkbox_destroy(checkbox);
 	if (bok != NULL)
 		ui_pbutton_destroy(bok);
 	if (bcancel != NULL)
@@ -374,6 +404,7 @@ static void new_file_dlg_wnd_kbd(ui_window_t *window, void *arg,
 	new_file_dlg_t *dialog = (new_file_dlg_t *) arg;
 	const char *fname;
 	const char *fsize;
+	bool sparse;
 
 	if (event->type == KEY_PRESS &&
 	    (event->mods & (KM_CTRL | KM_SHIFT | KM_ALT)) == 0) {
@@ -382,8 +413,10 @@ static void new_file_dlg_wnd_kbd(ui_window_t *window, void *arg,
 			if (dialog->cb != NULL && dialog->cb->bok != NULL) {
 				fname = ui_entry_get_text(dialog->ename);
 				fsize = ui_entry_get_text(dialog->esize);
+				sparse =
+				    ui_checkbox_get_checked(dialog->sparse);
 				dialog->cb->bok(dialog, dialog->arg, fname,
-				    fsize);
+				    fsize, sparse);
 				return;
 			}
 		} else if (event->key == KC_ESCAPE) {
@@ -408,11 +441,13 @@ static void new_file_dlg_bok_clicked(ui_pbutton_t *pbutton, void *arg)
 	new_file_dlg_t *dialog = (new_file_dlg_t *) arg;
 	const char *fname;
 	const char *fsize;
+	bool sparse;
 
 	if (dialog->cb != NULL && dialog->cb->bok != NULL) {
 		fname = ui_entry_get_text(dialog->ename);
 		fsize = ui_entry_get_text(dialog->esize);
-		dialog->cb->bok(dialog, dialog->arg, fname, fsize);
+		sparse = ui_checkbox_get_checked(dialog->sparse);
+		dialog->cb->bok(dialog, dialog->arg, fname, fsize, sparse);
 	}
 }
 

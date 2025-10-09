@@ -43,6 +43,7 @@
 #include <ui/resource.h>
 #include <ui/ui.h>
 #include <ui/window.h>
+#include <stdbool.h>
 #include <str.h>
 #include "dlg/newfiledlg.h"
 #include "dlg/progress.h"
@@ -51,7 +52,8 @@
 #include "nav.h"
 #include "types/newfile.h"
 
-static void new_file_bok(new_file_dlg_t *, void *, const char *, const char *);
+static void new_file_bok(new_file_dlg_t *, void *, const char *, const char *,
+    bool);
 static void new_file_bcancel(new_file_dlg_t *, void *);
 static void new_file_close(new_file_dlg_t *, void *);
 
@@ -103,7 +105,8 @@ static void new_file_wfunc(void *arg)
 	fmgt_set_cb(fmgt, &new_file_fmgt_cb, (void *)nav);
 	fmgt_set_init_update(fmgt, true);
 
-	rc = fmgt_new_file(fmgt, job->fname, job->nbytes);
+	rc = fmgt_new_file(fmgt, job->fname, job->nbytes,
+	    job->sparse ? nf_sparse : nf_none);
 	if (rc != EOK) {
 		rv = asprintf(&msg, "Error creating file (%s).",
 		    str_error(rc));
@@ -136,9 +139,10 @@ error:
  * @param arg Argument (navigator_t *)
  * @param fname New file name
  * @param fsize New file size
+ * @param sparse @c true to create a sparse file
  */
 static void new_file_bok(new_file_dlg_t *dlg, void *arg, const char *fname,
-    const char *fsize)
+    const char *fsize, bool sparse)
 {
 	navigator_t *nav = (navigator_t *)arg;
 	ui_msg_dialog_t *dialog = NULL;
@@ -174,6 +178,7 @@ static void new_file_bok(new_file_dlg_t *dlg, void *arg, const char *fname,
 	job->navigator = nav;
 	job->fname = fname;
 	job->nbytes = nbytes;
+	job->sparse = sparse;
 
 	progress_dlg_params_init(&pd_params);
 	pd_params.caption = "Creating new file";

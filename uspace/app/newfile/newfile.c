@@ -165,7 +165,7 @@ int main(int argc, char *argv[])
 
 	fmgt_set_cb(fmgt, &newfile_fmgt_cb, NULL);
 
-	rc = fmgt_new_file(fmgt, fname, nbytes);
+	rc = fmgt_new_file(fmgt, fname, nbytes, sparse ? nf_sparse : nf_none);
 	if (rc != EOK) {
 		printf("Error creating file: %s.\n", str_error(rc));
 		goto error;

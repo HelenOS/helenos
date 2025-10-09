@@ -74,6 +74,12 @@ typedef struct {
 	bool do_init_update;
 } fmgt_t;
 
+/** New file flags. */
+typedef enum {
+	nf_none = 0x0,
+	nf_sparse = 0x1
+} fmgt_nf_flags_t;
+
 #endif
 
 /** @}

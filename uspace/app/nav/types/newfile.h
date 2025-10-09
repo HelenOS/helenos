@@ -36,6 +36,7 @@
 #ifndef TYPES_NEWFILE_H
 #define TYPES_NEWFILE_H
 
+#include <stdbool.h>
 #include <stdint.h>
 
 /** Navigator New File job */
@@ -46,6 +47,8 @@ typedef struct {
 	const char *fname;
 	/** New file size */
 	uint64_t nbytes;
+	/** @c true to create a sparse file */
+	bool sparse;
 } navigator_new_file_job_t;
 
 #endif

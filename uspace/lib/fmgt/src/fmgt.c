@@ -225,9 +225,11 @@ static void fmgt_timer_start(fmgt_t *fmgt)
  * @param fmgt File management object
  * @param fname File name
  * @param fsize Size of new file (number of zero bytes to fill in)
+ * @param flags New file flags
  * @return EOK on success or an error code
  */
-errno_t fmgt_new_file(fmgt_t *fmgt, const char *fname, uint64_t fsize)
+errno_t fmgt_new_file(fmgt_t *fmgt, const char *fname, uint64_t fsize,
+    fmgt_nf_flags_t flags)
 {
 	int fd;
 	size_t nw;
@@ -253,6 +255,11 @@ errno_t fmgt_new_file(fmgt_t *fmgt, const char *fname, uint64_t fsize)
 	fmgt_timer_start(fmgt);
 
 	fmgt_initial_progress_update(fmgt);
+
+	if ((flags & nf_sparse) != 0) {
+		fmgt->curf_procb = fsize - 1;
+		pos = fsize - 1;
+	}
 
 	while (fmgt->curf_procb < fsize) {
 		now = fsize - fmgt->curf_procb;
