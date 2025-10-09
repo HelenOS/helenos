@@ -357,7 +357,7 @@ static void new_file_dlg_wnd_close(ui_window_t *window, void *arg)
 	new_file_dlg_t *dialog = (new_file_dlg_t *) arg;
 
 	(void)window;
-	if (dialog->cb != NULL && dialog->cb->bcancel != NULL) {
+	if (dialog->cb != NULL && dialog->cb->close != NULL) {
 		dialog->cb->close(dialog, dialog->arg);
 	}
 }
@@ -372,15 +372,18 @@ static void new_file_dlg_wnd_kbd(ui_window_t *window, void *arg,
     kbd_event_t *event)
 {
 	new_file_dlg_t *dialog = (new_file_dlg_t *) arg;
-	const char *text;
+	const char *fname;
+	const char *fsize;
 
 	if (event->type == KEY_PRESS &&
 	    (event->mods & (KM_CTRL | KM_SHIFT | KM_ALT)) == 0) {
 		if (event->key == KC_ENTER) {
 			/* Confirm */
 			if (dialog->cb != NULL && dialog->cb->bok != NULL) {
-				text = ui_entry_get_text(dialog->ename);
-				dialog->cb->bok(dialog, dialog->arg, text);
+				fname = ui_entry_get_text(dialog->ename);
+				fsize = ui_entry_get_text(dialog->esize);
+				dialog->cb->bok(dialog, dialog->arg, fname,
+				    fsize);
 				return;
 			}
 		} else if (event->key == KC_ESCAPE) {
@@ -403,11 +406,13 @@ static void new_file_dlg_wnd_kbd(ui_window_t *window, void *arg,
 static void new_file_dlg_bok_clicked(ui_pbutton_t *pbutton, void *arg)
 {
 	new_file_dlg_t *dialog = (new_file_dlg_t *) arg;
-	const char *text;
+	const char *fname;
+	const char *fsize;
 
 	if (dialog->cb != NULL && dialog->cb->bok != NULL) {
-		text = ui_entry_get_text(dialog->ename);
-		dialog->cb->bok(dialog, dialog->arg, text);
+		fname = ui_entry_get_text(dialog->ename);
+		fsize = ui_entry_get_text(dialog->esize);
+		dialog->cb->bok(dialog, dialog->arg, fname, fsize);
 	}
 }
 

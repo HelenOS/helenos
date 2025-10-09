@@ -34,6 +34,7 @@
  * HelenOS file manager.
  */
 
+#include <fibril.h>
 #include <gfx/coord.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -532,6 +533,66 @@ void navigator_panel_file_open(void *arg, panel_t *panel, const char *fname)
 
 	(void)panel;
 	navigator_open_file(navigator, fname);
+}
+
+/** Wrapper fibril function for worker function.
+ *
+ * This is the main fibril function for the worker fibril. It executes
+ * the worker function, then clears worker FID to indicate the worker
+ * is finished.
+ *
+ * @param arg Argument (navigator_worker_job_t *)
+ * @return EOK
+ */
+static errno_t navigator_worker_func(void *arg)
+{
+	navigator_worker_job_t *job = (navigator_worker_job_t *)arg;
+
+	job->wfunc(job->arg);
+	job->navigator->worker_fid = 0;
+	free(job);
+	return EOK;
+}
+
+/** Start long-time work in a worker fibril.
+ *
+ * Actions which can take time (file operations) cannot block the main UI
+ * fibril. This function will start an action in the worker fibril, i.e.,
+ * in the background. At the same time the caller should create a modal
+ * progress dialog that will be shown until the work is completed.
+ *
+ * (Only a single worker can execute at any given time).
+ *
+ * @param nav Navigator
+ * @param wfunc Worker main function
+ * @param arg Argument to worker function
+ *
+ * @return EOK on success or an error code
+ */
+errno_t navigator_worker_start(navigator_t *nav, void (*wfunc)(void *),
+    void *arg)
+{
+	navigator_worker_job_t *job;
+
+	if (nav->worker_fid != 0)
+		return EBUSY;
+
+	job = calloc(1, sizeof(navigator_worker_job_t));
+	if (job == NULL)
+		return ENOMEM;
+
+	job->navigator = nav;
+	job->wfunc = wfunc;
+	job->arg = arg;
+
+	nav->worker_fid = fibril_create(navigator_worker_func, (void *)job);
+	if (nav->worker_fid == 0) {
+		free(job);
+		return ENOMEM;
+	}
+
+	fibril_add_ready(nav->worker_fid);
+	return EOK;
 }
 
 /** @}

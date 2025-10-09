@@ -27,5 +27,10 @@
 #
 
 src = files(
-	'src/fmgt.c'
+	'src/fmgt.c',
+)
+
+test_src = files(
+	'test/fmgt.c',
+	'test/main.c',
 )

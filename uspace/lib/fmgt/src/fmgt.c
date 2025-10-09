@@ -45,6 +45,7 @@
 #include "fmgt.h"
 
 #define NEWNAME_LEN 64
+#define BUFFER_SIZE 16384
 
 /** Create file management library instance.
  *
@@ -58,6 +59,13 @@ errno_t fmgt_create(fmgt_t **rfmgt)
 	fmgt = calloc(1, sizeof(fmgt_t));
 	if (fmgt == NULL)
 		return ENOMEM;
+
+	fibril_mutex_initialize(&fmgt->lock);
+	fmgt->timer = fibril_timer_create(&fmgt->lock);
+	if (fmgt->timer == NULL) {
+		free(fmgt);
+		return ENOMEM;
+	}
 
 	*rfmgt = fmgt;
 	return EOK;
@@ -76,12 +84,24 @@ void fmgt_set_cb(fmgt_t *fmgt, fmgt_cb_t *cb, void *arg)
 	fmgt->cb_arg = arg;
 }
 
+/** Configure whether to give immediate initial progress update.
+ *
+ * @param fmgt File management object
+ * @param enabled @c true to post and immediate initial progress update
+ */
+void fmgt_set_init_update(fmgt_t *fmgt, bool enabled)
+{
+	fmgt->do_init_update = enabled;
+}
+
 /** Destroy file management library instance.
  *
  * @param fmgt File management object
  */
 void fmgt_destroy(fmgt_t *fmgt)
 {
+	(void)fibril_timer_clear(fmgt->timer);
+	fibril_timer_destroy(fmgt->timer);
 	free(fmgt);
 }
 
@@ -112,6 +132,147 @@ errno_t fmgt_new_file_suggest(char **rstr)
 	if (*rstr == NULL)
 		return ENOMEM;
 
+	return EOK;
+}
+
+/** Get progress update report.
+ *
+ * @param fmgt File management object
+ * @param progress Place to store progress update
+ */
+static void fmgt_get_progress(fmgt_t *fmgt, fmgt_progress_t *progress)
+{
+	unsigned percent;
+
+	if (fmgt->curf_totalb > 0)
+		percent = fmgt->curf_procb * 100 / fmgt->curf_totalb;
+	else
+		percent = 100;
+
+	capa_blocks_format_buf(fmgt->curf_procb, 1, progress->curf_procb,
+	    sizeof(progress->curf_procb));
+	capa_blocks_format_buf(fmgt->curf_totalb, 1, progress->curf_totalb,
+	    sizeof(progress->curf_totalb));
+	snprintf(progress->curf_percent, sizeof(progress->curf_percent), "%u%%",
+	    percent);
+}
+
+/** Give the caller progress update.
+ *
+ * @param fmgt File management object
+ */
+static void fmgt_progress_update(fmgt_t *fmgt)
+{
+	fmgt_progress_t progress;
+
+	if (fmgt->cb != NULL && fmgt->cb->progress != NULL) {
+		fmgt_get_progress(fmgt, &progress);
+		fmgt->curf_progr = true;
+		fmgt->cb->progress(fmgt->cb_arg, &progress);
+	}
+}
+
+/** Provide initial progress update (if required).
+ *
+ * The caller configures the file management object regarding whether
+ * initial updates are required.
+ *
+ * @param fmgt File management object
+ */
+static void fmgt_initial_progress_update(fmgt_t *fmgt)
+{
+	if (fmgt->do_init_update)
+		fmgt_progress_update(fmgt);
+}
+
+/** Provide final progress update (if required).
+ *
+ * Final update is provided only if a previous progress update was given.
+ *
+ * @param fmgt File management object
+ */
+static void fmgt_final_progress_update(fmgt_t *fmgt)
+{
+	if (fmgt->curf_progr)
+		fmgt_progress_update(fmgt);
+}
+
+/** Progress timer function.
+ *
+ * Periodically called to provide progress updates.
+ *
+ * @param arg Argument (fmgt_t *)
+ */
+static void fmgt_timer_fun(void *arg)
+{
+	fmgt_t *fmgt = (fmgt_t *)arg;
+
+	fmgt_progress_update(fmgt);
+	fibril_timer_set(fmgt->timer, 500000, fmgt_timer_fun, (void *)fmgt);
+}
+
+/** Start progress update timer.
+ *
+ * @param fmgt File management object
+ */
+static void fmgt_timer_start(fmgt_t *fmgt)
+{
+	fibril_timer_set(fmgt->timer, 500000, fmgt_timer_fun, (void *)fmgt);
+}
+
+/** Create new file.
+ *
+ * @param fmgt File management object
+ * @param fname File name
+ * @param fsize Size of new file (number of zero bytes to fill in)
+ * @return EOK on success or an error code
+ */
+errno_t fmgt_new_file(fmgt_t *fmgt, const char *fname, uint64_t fsize)
+{
+	int fd;
+	size_t nw;
+	aoff64_t pos = 0;
+	uint64_t now;
+	char *buffer;
+	errno_t rc;
+
+	buffer = calloc(BUFFER_SIZE, 1);
+	if (buffer == NULL)
+		return ENOMEM;
+
+	rc = vfs_lookup_open(fname, WALK_REGULAR | WALK_MUST_CREATE,
+	    MODE_WRITE, &fd);
+	if (rc != EOK) {
+		free(buffer);
+		return rc;
+	}
+
+	fmgt->curf_procb = 0;
+	fmgt->curf_totalb = fsize;
+	fmgt->curf_progr = false;
+	fmgt_timer_start(fmgt);
+
+	fmgt_initial_progress_update(fmgt);
+
+	while (fmgt->curf_procb < fsize) {
+		now = fsize - fmgt->curf_procb;
+		if (now > BUFFER_SIZE)
+			now = BUFFER_SIZE;
+
+		rc = vfs_write(fd, &pos, buffer, now, &nw);
+		if (rc != EOK) {
+			free(buffer);
+			vfs_put(fd);
+			fmgt_final_progress_update(fmgt);
+			return rc;
+		}
+
+		fmgt->curf_procb += nw;
+	}
+
+	free(buffer);
+	vfs_put(fd);
+	fmgt_final_progress_update(fmgt);
 	return EOK;
 }
 

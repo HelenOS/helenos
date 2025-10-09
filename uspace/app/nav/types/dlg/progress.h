@@ -26,29 +26,48 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup fmgt
+/** @addtogroup nav
  * @{
  */
 /**
- * @file
- * @brief File management library.
+ * @file Progress dialog
  */
 
-#ifndef FMGT_H
-#define FMGT_H
+#ifndef TYPES_DLG_PROGRESS_H
+#define TYPES_DLG_PROGRESS_H
 
 #include <errno.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
-#include "types/fmgt.h"
+#include <ui/label.h>
+#include <ui/pbutton.h>
+#include <ui/window.h>
 
-extern errno_t fmgt_create(fmgt_t **);
-extern void fmgt_set_cb(fmgt_t *, fmgt_cb_t *, void *);
-extern void fmgt_destroy(fmgt_t *);
-extern void fmgt_set_init_update(fmgt_t *, bool);
-extern errno_t fmgt_new_file_suggest(char **);
-extern errno_t fmgt_new_file(fmgt_t *, const char *, uint64_t);
+/** Progress dialog */
+typedef struct progress_dlg {
+	/** Dialog window */
+	ui_window_t *window;
+	/** Label with current file progress */
+	ui_label_t *lcurf_prog;
+	/** Abort button */
+	ui_pbutton_t *babort;
+	/** New file dialog callbacks */
+	struct progress_dlg_cb *cb;
+	/** Callback argument */
+	void *arg;
+} progress_dlg_t;
+
+/** Progress dialog callbacks */
+typedef struct progress_dlg_cb {
+	/** Abort button was pressed */
+	void (*babort)(progress_dlg_t *, void *);
+	/** Window closure requested (e.g. via close button) */
+	void (*close)(progress_dlg_t *, void *);
+} progress_dlg_cb_t;
+
+/** Progress dialog parameters */
+typedef struct {
+	/** Window caption */
+	const char *caption;
+} progress_dlg_params_t;
 
 #endif
 

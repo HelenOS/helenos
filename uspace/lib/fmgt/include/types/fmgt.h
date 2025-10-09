@@ -37,15 +37,41 @@
 #ifndef TYPES_FMGT_H
 #define TYPES_FMGT_H
 
+#include <capa.h>
+#include <fibril_synch.h>
+
+/** File management progress update */
+typedef struct {
+	/** Current file processed bytes */
+	char curf_procb[CAPA_BLOCKS_BUFSIZE];
+	/** Total bytes to process for current file */
+	char curf_totalb[CAPA_BLOCKS_BUFSIZE];
+	/** Percent of current file processed */
+	char curf_percent[5];
+} fmgt_progress_t;
+
 /** File management callbacks */
 typedef struct {
+	void (*progress)(void *, fmgt_progress_t *);
 } fmgt_cb_t;
 
 typedef struct {
+	/** Lock */
+	fibril_mutex_t lock;
+	/** Progress update timer */
+	fibril_timer_t *timer;
 	/** Callback functions */
 	fmgt_cb_t *cb;
 	/** Argument to callback functions */
 	void *cb_arg;
+	/** Bytes processed from current file */
+	uint64_t curf_procb;
+	/** Total size of current file */
+	uint64_t curf_totalb;
+	/** Progress was displayed for current file */
+	bool curf_progr;
+	/** Post an immediate initial progress update */
+	bool do_init_update;
 } fmgt_t;
 
 #endif

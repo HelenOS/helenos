@@ -29,6 +29,7 @@
 deps = [ 'fmgt', 'ui' ]
 src = files(
 	'dlg/newfiledlg.c',
+	'dlg/progress.c',
 	'main.c',
 	'menu.c',
 	'nav.c',
@@ -38,6 +39,7 @@ src = files(
 
 test_src = files(
 	'dlg/newfiledlg.c',
+	'dlg/progress.c',
 	'menu.c',
 	'nav.c',
 	'newfile.c',

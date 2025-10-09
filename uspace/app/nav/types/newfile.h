@@ -26,29 +26,27 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup fmgt
+/** @addtogroup nav
  * @{
  */
 /**
- * @file
- * @brief File management library.
+ * @file Navigator New File types
  */
 
-#ifndef FMGT_H
-#define FMGT_H
+#ifndef TYPES_NEWFILE_H
+#define TYPES_NEWFILE_H
 
-#include <errno.h>
-#include <stdbool.h>
-#include <stddef.h>
 #include <stdint.h>
-#include "types/fmgt.h"
 
-extern errno_t fmgt_create(fmgt_t **);
-extern void fmgt_set_cb(fmgt_t *, fmgt_cb_t *, void *);
-extern void fmgt_destroy(fmgt_t *);
-extern void fmgt_set_init_update(fmgt_t *, bool);
-extern errno_t fmgt_new_file_suggest(char **);
-extern errno_t fmgt_new_file(fmgt_t *, const char *, uint64_t);
+/** Navigator New File job */
+typedef struct {
+	/** Navigator */
+	struct navigator *navigator;
+	/** New file name */
+	const char *fname;
+	/** New file size */
+	uint64_t nbytes;
+} navigator_new_file_job_t;
 
 #endif
 

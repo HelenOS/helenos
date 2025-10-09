@@ -26,29 +26,27 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup fmgt
+/** @addtogroup nav
  * @{
  */
 /**
- * @file
- * @brief File management library.
+ * @file Progress dialog
  */
 
-#ifndef FMGT_H
-#define FMGT_H
+#ifndef DLG_PROGRESS_H
+#define DLG_PROGRESS_H
 
 #include <errno.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
-#include "types/fmgt.h"
+#include <types/ui/ui.h>
+#include "../types/dlg/progress.h"
 
-extern errno_t fmgt_create(fmgt_t **);
-extern void fmgt_set_cb(fmgt_t *, fmgt_cb_t *, void *);
-extern void fmgt_destroy(fmgt_t *);
-extern void fmgt_set_init_update(fmgt_t *, bool);
-extern errno_t fmgt_new_file_suggest(char **);
-extern errno_t fmgt_new_file(fmgt_t *, const char *, uint64_t);
+extern void progress_dlg_params_init(progress_dlg_params_t *);
+extern errno_t progress_dlg_create(ui_t *, progress_dlg_params_t *,
+    progress_dlg_t **);
+extern void progress_dlg_set_cb(progress_dlg_t *, progress_dlg_cb_t *,
+    void *);
+extern errno_t progress_dlg_set_curf_prog(progress_dlg_t *, const char *);
+extern void progress_dlg_destroy(progress_dlg_t *);
 
 #endif
 

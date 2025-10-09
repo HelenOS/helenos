@@ -59,10 +59,10 @@ typedef struct new_file_dlg {
 	void *arg;
 } new_file_dlg_t;
 
-/** Prompt dialog callback */
+/** New File dialog callbacks */
 typedef struct new_file_dlg_cb {
 	/** OK button was pressed */
-	void (*bok)(new_file_dlg_t *, void *, const char *);
+	void (*bok)(new_file_dlg_t *, void *, const char *, const char *);
 	/** Cancel button was pressed */
 	void (*bcancel)(new_file_dlg_t *, void *);
 	/** Window closure requested (e.g. via close button) */
