@@ -198,6 +198,12 @@ void capa_simplify(capa_spec_t *capa)
 	}
 }
 
+/** Format capacity as string into a newly allocated buffer.
+ *
+ * @param capa Capacity
+ * @param rstr Place to store pointer to newly allocated string
+ * @return EOK on success or an error code
+ */
 errno_t capa_format(capa_spec_t *capa, char **rstr)
 {
 	errno_t rc;
@@ -232,6 +238,13 @@ errno_t capa_format(capa_spec_t *capa, char **rstr)
 	return EOK;
 }
 
+/** Format capacity as string into an existing buffer.
+ *
+ * @param capa Capacity
+ * @param buf Buffer for storing string
+ * @param bufsize Size of buffer in bytes
+ * @return EOK on success or an error code
+ */
 errno_t capa_format_buf(capa_spec_t *capa, char *buf, size_t bufsize)
 {
 	errno_t rc;
@@ -262,6 +275,16 @@ errno_t capa_format_buf(capa_spec_t *capa, char *buf, size_t bufsize)
 	return EOK;
 }
 
+/** Format capacity of n blocks as string into a newly allocated buffer.
+ *
+ * This computes the total capacity of the blocks, simplifies it
+ * and formats it as string.
+ *
+ * @param nblocks Number of blocks
+ * @param block_size Size of each block in bytes
+ * @param rstr Place to store pointer to newly allocated string
+ * @return EOK on success or an error code
+ */
 errno_t capa_blocks_format(uint64_t nblocks, size_t block_size,
     char **rptr)
 {
@@ -272,8 +295,22 @@ errno_t capa_blocks_format(uint64_t nblocks, size_t block_size,
 	return capa_format(&capa, rptr);
 }
 
+/** Format capacity of n blocks as string into an existing buffer.
+ *
+ * This computes the total capacity of the blocks, simplifies it
+ * and formats it as string.
+ *
+ * This function does not return error. If the buffer is too small,
+ * the string will be truncated. To make sure it is not truncated,
+ * bufsize should be at least CAPA_BLOCKS_BUFSIZE.
+ *
+ * @param nblocks Number of blocks
+ * @param block_size Size of each block in bytes
+ * @param buf Buffer for storing string
+ * @param bufsize Size of buffer in bytes
+ */
 void capa_blocks_format_buf(uint64_t nblocks, size_t block_size,
-    char *buf, size_t bsize)
+    char *buf, size_t bufsize)
 {
 	capa_spec_t capa;
 	errno_t rc;
@@ -282,7 +319,7 @@ void capa_blocks_format_buf(uint64_t nblocks, size_t block_size,
 	capa_simplify(&capa);
 
 	/* Should not get range error because of nblocks * block_size limits */
-	rc = capa_format_buf(&capa, buf, bsize);
+	rc = capa_format_buf(&capa, buf, bufsize);
 	assert(rc == EOK);
 	(void)rc;
 }
@@ -327,6 +364,12 @@ static errno_t capa_digit_val(char c, int *val)
 	return EOK;
 }
 
+/** Parse string as capacity specification.
+ *
+ * @param str String (e.g. "100 kB")
+ * @param capa Place to store capacity
+ * @return EOK on success or an error code
+ */
 errno_t capa_parse(const char *str, capa_spec_t *capa)
 {
 	const char *eptr;
