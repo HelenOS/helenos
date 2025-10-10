@@ -35,6 +35,9 @@
 #include <capa.h>
 #include <errno.h>
 #include <fmgt.h>
+#include <io/console.h>
+#include <io/cons_event.h>
+#include <io/kbd_event.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,12 +46,16 @@
 
 #define NAME  "newfile"
 
+static bool newfile_abort_query(void *);
 static void newfile_progress(void *, fmgt_progress_t *);
 
 static bool prog_upd = false;
 static bool quiet = false;
 
+static console_ctrl_t *con;
+
 static fmgt_cb_t newfile_fmgt_cb = {
+	.abort_query = newfile_abort_query,
 	.progress = newfile_progress
 };
 
@@ -61,6 +68,39 @@ static void print_syntax(void)
 	printf("\t-p           create sparse file\n");
 	printf("\t-q           quiet\n");
 	printf("\t-size=<cap>  file size (<number>[<kB>|<MB>|...])\n");
+}
+
+/** Called by fmgt to query for user abort.
+ *
+ * @param arg Argument (not used)
+ * @return @c true iff user requested abort
+ */
+static bool newfile_abort_query(void *arg)
+{
+	cons_event_t event;
+	kbd_event_t *ev;
+	errno_t rc;
+	usec_t timeout;
+
+	if (con == NULL)
+		return false;
+
+	timeout = 0;
+	rc = console_get_event_timeout(con, &event, &timeout);
+	if (rc != EOK)
+		return false;
+
+	if (event.type == CEV_KEY && event.ev.key.type == KEY_PRESS) {
+		ev = &event.ev.key;
+		if ((ev->mods & KM_ALT) == 0 &&
+		    (ev->mods & KM_SHIFT) == 0 &&
+		    (ev->mods & KM_CTRL) != 0) {
+			if (ev->key == KC_C)
+				return true;
+		}
+	}
+
+	return false;
 }
 
 /** Called by fmgt to give the user progress update.
@@ -91,6 +131,8 @@ int main(int argc, char *argv[])
 	char *fname = NULL;
 	capa_spec_t fcap;
 	uint64_t nbytes = 0;
+
+	con = console_init(stdin, stdout);
 
 	i = 1;
 	while (i < argc && argv[i][0] == '-') {
@@ -166,13 +208,12 @@ int main(int argc, char *argv[])
 	fmgt_set_cb(fmgt, &newfile_fmgt_cb, NULL);
 
 	rc = fmgt_new_file(fmgt, fname, nbytes, sparse ? nf_sparse : nf_none);
+	if (prog_upd)
+		printf("\n");
 	if (rc != EOK) {
 		printf("Error creating file: %s.\n", str_error(rc));
 		goto error;
 	}
-
-	if (prog_upd)
-		printf("\n");
 
 	free(fname);
 	fmgt_destroy(fmgt);

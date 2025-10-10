@@ -37,8 +37,11 @@
 #define NAV_H
 
 #include <errno.h>
+#include "types/dlg/progress.h"
 #include "types/nav.h"
 #include "types/panel.h"
+
+extern progress_dlg_cb_t navigator_progress_cb;
 
 extern errno_t navigator_create(const char *, navigator_t **);
 extern void navigator_destroy(navigator_t *);

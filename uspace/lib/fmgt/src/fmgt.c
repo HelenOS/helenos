@@ -220,6 +220,19 @@ static void fmgt_timer_start(fmgt_t *fmgt)
 	fibril_timer_set(fmgt->timer, 500000, fmgt_timer_fun, (void *)fmgt);
 }
 
+/** Query caller whether operation should be aborted.
+ *
+ * @param fmgt File management object
+ * @return @c true iff operation should be aborted
+ */
+static bool fmgt_abort_query(fmgt_t *fmgt)
+{
+	if (fmgt->cb != NULL && fmgt->cb->abort_query!= NULL)
+		return fmgt->cb->abort_query(fmgt->cb_arg);
+	else
+		return false;
+}
+
 /** Create new file.
  *
  * @param fmgt File management object
@@ -275,6 +288,14 @@ errno_t fmgt_new_file(fmgt_t *fmgt, const char *fname, uint64_t fsize,
 		}
 
 		fmgt->curf_procb += nw;
+
+		/* User requested abort? */
+		if (fmgt_abort_query(fmgt)) {
+			free(buffer);
+			vfs_put(fd);
+			fmgt_final_progress_update(fmgt);
+			return EINTR;
+		}
 	}
 
 	free(buffer);

@@ -26,5 +26,5 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'fmgt' ]
+deps = [ 'console', 'fmgt', 'input' ]
 src = files('newfile.c')

@@ -37,6 +37,7 @@
 #define TYPES_NAV_H
 
 #include <fibril.h>
+#include <stdbool.h>
 #include <ui/fixed.h>
 #include <ui/ui.h>
 #include <ui/window.h>
@@ -61,6 +62,8 @@ typedef struct navigator {
 	struct progress_dlg *progress_dlg;
 	/** Worker fibril ID */
 	fid_t worker_fid;
+	/** Abort current file management operation */
+	bool abort_op;
 } navigator_t;
 
 /** Navigator worker job */

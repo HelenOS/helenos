@@ -39,6 +39,7 @@
 
 #include <capa.h>
 #include <fibril_synch.h>
+#include <stdbool.h>
 
 /** File management progress update */
 typedef struct {
@@ -52,6 +53,7 @@ typedef struct {
 
 /** File management callbacks */
 typedef struct {
+	bool (*abort_query)(void *);
 	void (*progress)(void *, fmgt_progress_t *);
 } fmgt_cb_t;
 

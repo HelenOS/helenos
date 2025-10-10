@@ -80,6 +80,14 @@ static panel_cb_t navigator_panel_cb = {
 	.file_open = navigator_panel_file_open
 };
 
+static void navigator_progress_babort(progress_dlg_t *, void *);
+static void navigator_progress_close(progress_dlg_t *, void *);
+
+progress_dlg_cb_t navigator_progress_cb = {
+	.babort = navigator_progress_babort,
+	.close = navigator_progress_close
+};
+
 /** Window close button was clicked.
  *
  * @param window Window
@@ -593,6 +601,32 @@ errno_t navigator_worker_start(navigator_t *nav, void (*wfunc)(void *),
 
 	fibril_add_ready(nav->worker_fid);
 	return EOK;
+}
+
+/** Abort button pressed in progress dialog.
+ *
+ * @param dlg Progress dialog
+ * @param arg Argument (navigator_t *)
+ */
+static void navigator_progress_babort(progress_dlg_t *dlg, void *arg)
+{
+	navigator_t *nav = (navigator_t *)arg;
+
+	(void)dlg;
+	nav->abort_op = true;
+}
+
+/** Progress dialog closed,
+ *
+ * @param dlg Progress dialog
+ * @param arg Argument (navigator_t *)
+ */
+static void navigator_progress_close(progress_dlg_t *dlg, void *arg)
+{
+	navigator_t *nav = (navigator_t *)arg;
+
+	(void)dlg;
+	nav->abort_op = true;
 }
 
 /** @}

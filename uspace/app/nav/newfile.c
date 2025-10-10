@@ -63,10 +63,12 @@ static new_file_dlg_cb_t new_file_cb = {
 	.close = new_file_close
 };
 
+static bool new_file_abort_query(void *);
 static void new_file_progress(void *, fmgt_progress_t *);
 
 static fmgt_cb_t new_file_fmgt_cb = {
-	.progress = new_file_progress
+	.abort_query = new_file_abort_query,
+	.progress = new_file_progress,
 };
 
 /** Open New File dialog.
@@ -123,8 +125,10 @@ static void new_file_wfunc(void *arg)
 	free(job);
 	return;
 error:
+	fmgt_destroy(fmgt);
 	ui_lock(nav->ui);
 	progress_dlg_destroy(nav->progress_dlg);
+	navigator_refresh_panels(nav);
 	ui_msg_dialog_params_init(&params);
 	params.caption = "Error";
 	params.text = msg;
@@ -191,6 +195,9 @@ static void new_file_bok(new_file_dlg_t *dlg, void *arg, const char *fname,
 		goto error;
 	}
 
+	progress_dlg_set_cb(nav->progress_dlg, &navigator_progress_cb,
+	    (void *)nav);
+
 	rc = navigator_worker_start(nav, new_file_wfunc, (void *)job);
 	if (rc != EOK) {
 		msg = str_dup("Out of memory.");
@@ -228,6 +235,18 @@ static void new_file_close(new_file_dlg_t *dlg, void *arg)
 {
 	(void)arg;
 	new_file_dlg_destroy(dlg);
+}
+
+/** New file abort query.
+ *
+ * @param arg Argument (navigator_t *)
+ * @return @c true iff abort is requested
+ */
+static bool new_file_abort_query(void *arg)
+{
+	navigator_t *nav = (navigator_t *)arg;
+
+	return nav->abort_op;
 }
 
 /** New file progress update.
