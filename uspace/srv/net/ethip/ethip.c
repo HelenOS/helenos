@@ -52,6 +52,7 @@
 #include "std.h"
 
 #define NAME "ethip"
+/** Interface for dumping packets */
 
 static errno_t ethip_open(iplink_srv_t *srv);
 static errno_t ethip_close(iplink_srv_t *srv);
@@ -196,7 +197,6 @@ static errno_t ethip_send(iplink_srv_t *srv, iplink_sdu_t *sdu)
 	rc = eth_pdu_encode(&frame, &data, &size);
 	if (rc != EOK)
 		return rc;
-
 	rc = ethip_nic_send(nic, data, size);
 	free(data);
 

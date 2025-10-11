@@ -1,0 +1,264 @@
+/*
+ * Copyright (c) 2023 Nataliia Korop
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * - Redistributions of source code must retain the above copyright
+ *   notice, this list of conditions and the following disclaimer.
+ * - Redistributions in binary form must reproduce the above copyright
+ *   notice, this list of conditions and the following disclaimer in the
+ *   documentation and/or other materials provided with the distribution.
+ * - The name of the author may not be used to endorse or promote products
+ *   derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+/** @addtogroup libpcap
+ * @{
+ */
+/** @file Client side of the pcapctl. Functions are called from the app pcapctl.
+ */
+
+#include <errno.h>
+#include <async.h>
+#include <str.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <ctype.h>
+#include "pcapdump_client.h"
+#include "pcapdump_ipc.h"
+
+/** Finish an async exchange on the pcapctl session
+ *
+ * @param exch  Exchange to be finished
+ */
+static void pcapctl_dump_exchange_end(async_exch_t *exch)
+{
+	async_exchange_end(exch);
+}
+
+/** Get service based on the index of the device.
+ *  @param index of the device.
+ *  @param svc placeholder for service ide.
+ *  @return EOK if successful, error code otherwise.
+ */
+static errno_t pcapctl_cat_get_svc(int *index, service_id_t *svc)
+{
+	errno_t rc;
+	category_id_t pcap_cat;
+	size_t count;
+	service_id_t *pcap_svcs = NULL;
+
+	rc = loc_category_get_id("pcap", &pcap_cat, 0);
+	if (rc != EOK) {
+		fprintf(stderr, "Error resolving category 'pcap'.\n");
+		return rc;
+	}
+
+	rc = loc_category_get_svcs(pcap_cat, &pcap_svcs, &count);
+	if (rc != EOK) {
+		fprintf(stderr, "Error resolving list of pcap services.\n");
+		free(pcap_svcs);
+		return rc;
+	}
+	if (*index < (int)count) {
+		*svc =  pcap_svcs[*index];
+		free(pcap_svcs);
+		return EOK;
+	}
+
+	return ENOENT;
+}
+
+/** Check if the index is an index of valid device.
+ *  @param index to check.
+ *  @return EOK if device is valid, error code otherwise.
+ */
+errno_t pcapctl_is_valid_device(int *index)
+{
+	errno_t rc;
+	category_id_t pcap_cat;
+	size_t count;
+	service_id_t *pcap_svcs = NULL;
+
+	rc = loc_category_get_id("pcap", &pcap_cat, 0);
+	if (rc != EOK) {
+		fprintf(stderr, "Error resolving category pcap.\n");
+		return rc;
+	}
+
+	rc = loc_category_get_svcs(pcap_cat, &pcap_svcs, &count);
+	if (rc != EOK) {
+		fprintf(stderr, "Error resolving list of pcap services.\n");
+		free(pcap_svcs);
+		return rc;
+	}
+	if (*index + 1 > (int)count || *index < 0) {
+		return EINVAL;
+	}
+	return EOK;
+}
+
+/** Check if the index is an index of valid writer operations.
+ * @param index to check.
+ * @param sess 	pcapctl session for IPC communictaion.
+ */
+errno_t pcapctl_is_valid_ops_number(int *index, pcapctl_sess_t *sess)
+{
+	async_exch_t *exch = async_exchange_begin(sess->sess);
+	ipc_call_t answer;
+	aid_t req = async_send_0(exch, PCAP_CONTROL_GET_OPS_NUM, &answer);
+
+	async_exchange_end(exch);
+
+	errno_t retval;
+	async_wait_for(req, &retval);
+
+	if (retval != EOK) {
+		return retval;
+	}
+
+	int ops_count = (int)ipc_get_arg1(&answer);
+	if (*index + 1 > ops_count || *index < 0) {
+		return EINVAL;
+	}
+	return EOK;
+}
+
+/** Get all devices that can dump packets. */
+errno_t pcapctl_list(void)
+{
+	errno_t rc;
+	category_id_t pcap_cat;
+	size_t count;
+	service_id_t *pcap_svcs = NULL;
+
+	rc = loc_category_get_id("pcap", &pcap_cat, 0);
+	if (rc != EOK) {
+		fprintf(stderr, "Error resolving category pcap.\n");
+		return rc;
+	}
+
+	rc = loc_category_get_svcs(pcap_cat, &pcap_svcs, &count);
+	if (rc != EOK) {
+		fprintf(stderr, "Error resolving list of pcap services.\n");
+		free(pcap_svcs);
+		return rc;
+	}
+
+	fprintf(stdout, "Devices:\n");
+	for (unsigned i = 0; i < count; ++i) {
+		char *name = NULL;
+		loc_service_get_name(pcap_svcs[i], &name);
+		fprintf(stdout, "%d. %s\n", i, name);
+	}
+	free(pcap_svcs);
+	return EOK;
+}
+
+/** Start pcapctl IPC session.
+ *  @param index 	index of the device which can dump packets.
+ *  @param rsess 	placeholder for the session.
+ *  @return			EOK if successful, error code otherwise.
+ */
+errno_t pcapctl_dump_open(int *index, pcapctl_sess_t **rsess)
+{
+	errno_t rc;
+	service_id_t svc;
+	pcapctl_sess_t *sess = calloc(1, sizeof(pcapctl_sess_t));
+	if (sess == NULL)
+		return ENOMEM;
+
+	if (*index == -1) {
+		*index = 0;
+	}
+
+	rc  = pcapctl_cat_get_svc(index, &svc);
+	if (rc != EOK) {
+		fprintf(stderr, "Error finding the device with index: %d\n", *index);
+		goto error;
+	}
+
+	async_sess_t *new_session = loc_service_connect(svc, INTERFACE_PCAP_CONTROL, 0);
+	if (new_session == NULL) {
+		fprintf(stderr, "Error connecting to service.\n");
+		rc =  EREFUSED;
+		goto error;
+	}
+
+	sess->sess = new_session;
+	*rsess = sess;
+	return EOK;
+error:
+	pcapctl_dump_close(sess);
+	return rc;
+}
+
+/** Close pcapctl IPC session.
+ *  @param sess Session to close.
+ *  @return EOK if successful, error code otherwise.
+ */
+errno_t pcapctl_dump_close(pcapctl_sess_t *sess)
+{
+	free(sess);
+	return EOK;
+}
+
+/** Send start request via IPC to start dumping.
+ *
+ * @param name 	Name of the destination buffer to dump packets to.
+ * @param sess 	Session that is used for communication.
+ * @return 		EOK on success or an error code.
+ */
+errno_t pcapctl_dump_start(const char *name, int *ops_index, pcapctl_sess_t *sess)
+{
+	errno_t rc;
+	async_exch_t *exch = async_exchange_begin(sess->sess);
+
+	size_t size = str_size(name);
+	aid_t req = async_send_1(exch, PCAP_CONTROL_SET_START, *ops_index, NULL);
+
+	rc = async_data_write_start(exch, name, size);
+
+	pcapctl_dump_exchange_end(exch);
+
+	if (rc != EOK) {
+		async_forget(req);
+		return rc;
+	}
+
+	errno_t retval;
+	async_wait_for(req, &retval);
+	return retval;
+}
+
+/** Send stop request via IPC to start dumping.
+ *
+ * @param sess 	Session that is used for communication.
+ * @return 		EOK on success or an error code.
+ */
+errno_t pcapctl_dump_stop(pcapctl_sess_t *sess)
+{
+	errno_t rc;
+	async_exch_t *exch = async_exchange_begin(sess->sess);
+	rc = async_req_0_0(exch, PCAP_CONTROL_SET_STOP);
+
+	pcapctl_dump_exchange_end(exch);
+	return rc;
+}
+
+/** @}
+ */
