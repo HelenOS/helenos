@@ -92,9 +92,9 @@
  */
 static void read_from_buffer(unsigned char *buffer, size_t start_idx, size_t count, uint8_t *dst)
 {
-    for (size_t i = start_idx; i < start_idx + count; ++i) {
-        dst[i - start_idx] = buffer[i];
-    }
+	for (size_t i = start_idx; i < start_idx + count; ++i) {
+		dst[i - start_idx] = buffer[i];
+	}
 }
 
 /** Parse ARP packet and print out addresses.
@@ -103,25 +103,25 @@ static void read_from_buffer(unsigned char *buffer, size_t start_idx, size_t cou
  */
 static void parse_arp(unsigned char *buffer, size_t size)
 {
-    if (size < ARP_TARGET_IP + IPV4_ADDR_SIZE) {
-        printf("%s %s", ARP_TEXT, MALFORMED_PACKET);
-        return;
-    }
+	if (size < ARP_TARGET_IP + IPV4_ADDR_SIZE) {
+		printf("%s %s", ARP_TEXT, MALFORMED_PACKET);
+		return;
+	}
 
-    uint8_t sender_mac[ETH_ADDR_SIZE];
-    uint8_t sender_ip[IPV4_ADDR_SIZE];
-    uint8_t target_mac[ETH_ADDR_SIZE];
-    uint8_t target_ip[IPV4_ADDR_SIZE];
+	uint8_t sender_mac[ETH_ADDR_SIZE];
+	uint8_t sender_ip[IPV4_ADDR_SIZE];
+	uint8_t target_mac[ETH_ADDR_SIZE];
+	uint8_t target_ip[IPV4_ADDR_SIZE];
 
-    read_from_buffer(buffer, ARP_SENDER_MAC, ETH_ADDR_SIZE, sender_mac);
-    read_from_buffer(buffer, ARP_SENDER_IP, IPV4_ADDR_SIZE, sender_ip);
-    read_from_buffer(buffer, ARP_TARGET_MAC, ETH_ADDR_SIZE, target_mac);
-    read_from_buffer(buffer, ARP_TARGET_IP, IPV4_ADDR_SIZE, target_ip);
+	read_from_buffer(buffer, ARP_SENDER_MAC, ETH_ADDR_SIZE, sender_mac);
+	read_from_buffer(buffer, ARP_SENDER_IP, IPV4_ADDR_SIZE, sender_ip);
+	read_from_buffer(buffer, ARP_TARGET_MAC, ETH_ADDR_SIZE, target_mac);
+	read_from_buffer(buffer, ARP_TARGET_IP, IPV4_ADDR_SIZE, target_ip);
 
-    PRINT_MAC("Sender", sender_mac, ", ");
-    PRINT_IP("Sender", sender_ip, "  ");
-    PRINT_MAC("Target", target_mac, ", ");
-    PRINT_IP("Target", target_ip, "\n");
+	PRINT_MAC("Sender", sender_mac, ", ");
+	PRINT_IP("Sender", sender_ip, "  ");
+	PRINT_MAC("Target", target_mac, ", ");
+	PRINT_IP("Target", target_ip, "\n");
 }
 
 /** Parce TCP and print ports.
@@ -130,14 +130,14 @@ static void parse_arp(unsigned char *buffer, size_t size)
  */
 static void parse_tcp(unsigned char *buffer, size_t size)
 {
-    if (size < TCP_DST_PORT + TCP_PORT_SIZE) {
-        printf("%s %s\n", TCP_TEXT, MALFORMED_PACKET);
-        return;
-    }
+	if (size < TCP_DST_PORT + TCP_PORT_SIZE) {
+		printf("%s %s\n", TCP_TEXT, MALFORMED_PACKET);
+		return;
+	}
 
-    uint16_t src_port = BIG_END_16(buffer, TCP_SRC_PORT);
-    uint16_t dst_port = BIG_END_16(buffer, TCP_DST_PORT);
-    printf("      [%s] source port: %d, destination port: %d\n", TCP_TEXT, src_port, dst_port);
+	uint16_t src_port = BIG_END_16(buffer, TCP_SRC_PORT);
+	uint16_t dst_port = BIG_END_16(buffer, TCP_DST_PORT);
+	printf("      [%s] source port: %d, destination port: %d\n", TCP_TEXT, src_port, dst_port);
 }
 
 /** Parse IP and print interesting parts.
@@ -147,33 +147,33 @@ static void parse_tcp(unsigned char *buffer, size_t size)
  */
 static void parse_ip(unsigned char *buffer, size_t size, bool verbose)
 {
-    uint16_t total_length;
-    uint8_t header_length;
-    uint16_t payload_length;
-    uint8_t ip_protocol;
-    uint8_t src_ip[IPV4_ADDR_SIZE];
-    uint8_t dst_ip[IPV4_ADDR_SIZE];
+	uint16_t total_length;
+	uint8_t header_length;
+	uint16_t payload_length;
+	uint8_t ip_protocol;
+	uint8_t src_ip[IPV4_ADDR_SIZE];
+	uint8_t dst_ip[IPV4_ADDR_SIZE];
 
-    if (size < IP_DST_ADDR + IPV4_ADDR_SIZE) {
-        printf("%s %s", IP_TEXT, MALFORMED_PACKET);
-        return;
-    }
+	if (size < IP_DST_ADDR + IPV4_ADDR_SIZE) {
+		printf("%s %s", IP_TEXT, MALFORMED_PACKET);
+		return;
+	}
 
-    header_length = (buffer[IP_HEADER_LEN] & LOWER_4_BITS) * HDR_SIZE_COEF;
-    total_length = BIG_END_16(buffer, IP_TOTAL_LEN);
-    payload_length = total_length - header_length;
-    ip_protocol = buffer[IP_PROTOCOL];
+	header_length = (buffer[IP_HEADER_LEN] & LOWER_4_BITS) * HDR_SIZE_COEF;
+	total_length = BIG_END_16(buffer, IP_TOTAL_LEN);
+	payload_length = total_length - header_length;
+	ip_protocol = buffer[IP_PROTOCOL];
 
-    read_from_buffer(buffer, IP_SRC_ADDR, IPV4_ADDR_SIZE, src_ip);
-    read_from_buffer(buffer, IP_DST_ADDR, IPV4_ADDR_SIZE, dst_ip);
+	read_from_buffer(buffer, IP_SRC_ADDR, IPV4_ADDR_SIZE, src_ip);
+	read_from_buffer(buffer, IP_DST_ADDR, IPV4_ADDR_SIZE, dst_ip);
 
-    printf("%s header: %dB, payload: %dB, protocol: 0x%x, ", IP_TEXT, header_length, payload_length, ip_protocol);
-    PRINT_IP("Source", src_ip, ", ");
-    PRINT_IP("Destination", dst_ip, "\n");
+	printf("%s header: %dB, payload: %dB, protocol: 0x%x, ", IP_TEXT, header_length, payload_length, ip_protocol);
+	PRINT_IP("Source", src_ip, ", ");
+	PRINT_IP("Destination", dst_ip, "\n");
 
-    if (verbose && ip_protocol == IP_PROTOCOL_TCP) {
-        parse_tcp(buffer, size);
-    }
+	if (verbose && ip_protocol == IP_PROTOCOL_TCP) {
+		parse_tcp(buffer, size);
+	}
 }
 
 /** Parse ethernnet frame based on eth_type of the frame.
@@ -183,27 +183,27 @@ static void parse_ip(unsigned char *buffer, size_t size, bool verbose)
  */
 static void parse_eth_frame(void *data, size_t size, bool verbose_flag)
 {
-    unsigned char* buffer = (unsigned char*)data;
+	unsigned char *buffer = (unsigned char *)data;
 
-    size_t eth_type_offset = 12;
-    uint16_t protocol = BIG_END_16(buffer, eth_type_offset);
+	size_t eth_type_offset = 12;
+	uint16_t protocol = BIG_END_16(buffer, eth_type_offset);
 
-    switch (protocol){
-        case ETHER_TYPE_ARP:
-            printf("[%s] ", ARP_TEXT);
-            parse_arp(buffer, size);
-            break;
-        case ETHER_TYPE_IP4:
-            printf("[%s] ", IPV4_TEXT);
-            parse_ip(buffer, size, verbose_flag);
-            break;
-        case ETHER_TYPE_IP6:
-            printf("[%s]\n", IPV6_TEXT);
-            break;
-        default:
-            printf("[0x%x]\n", protocol);
-            break;
-    }
+	switch (protocol) {
+	case ETHER_TYPE_ARP:
+		printf("[%s] ", ARP_TEXT);
+		parse_arp(buffer, size);
+		break;
+	case ETHER_TYPE_IP4:
+		printf("[%s] ", IPV4_TEXT);
+		parse_ip(buffer, size, verbose_flag);
+		break;
+	case ETHER_TYPE_IP6:
+		printf("[%s]\n", IPV6_TEXT);
+		break;
+	default:
+		printf("[0x%x]\n", protocol);
+		break;
+	}
 }
 
 /** Parse file header of PCAP file.
@@ -211,8 +211,8 @@ static void parse_eth_frame(void *data, size_t size, bool verbose_flag)
  */
 void eth_parse_header(pcap_file_header_t *hdr)
 {
-    printf("LinkType: %d\n", hdr->additional);
-    printf("Magic number:  0x%x\n", hdr->magic_number);
+	printf("LinkType: %d\n", hdr->additional);
+	printf("Magic number:  0x%x\n", hdr->magic_number);
 }
 
 /** Parse PCAP file.
@@ -222,36 +222,35 @@ void eth_parse_header(pcap_file_header_t *hdr)
  */
 void eth_parse_frames(FILE *pcap_file, int count, bool verbose_flag)
 {
-    pcap_packet_header_t hdr;
+	pcap_packet_header_t hdr;
 
-    size_t read_bytes = fread(&hdr, 1, sizeof(pcap_packet_header_t), pcap_file);
-    int packet_index = 1;
-    while (read_bytes > 0)
-    {
-        if (read_bytes < sizeof(pcap_packet_header_t)) {
-            printf("Error: Could not read enough bytes (read %zu bytes)\n", read_bytes);
-            return;
-        }
+	size_t read_bytes = fread(&hdr, 1, sizeof(pcap_packet_header_t), pcap_file);
+	int packet_index = 1;
+	while (read_bytes > 0) {
+		if (read_bytes < sizeof(pcap_packet_header_t)) {
+			printf("Error: Could not read enough bytes (read %zu bytes)\n", read_bytes);
+			return;
+		}
 
-        printf("%04d) ", packet_index++);
+		printf("%04d) ", packet_index++);
 
-        void *data = malloc(hdr.captured_length);
-        read_bytes = fread(data, 1, (size_t)hdr.captured_length, pcap_file);
-        if (read_bytes < (size_t)hdr.captured_length) {
-            printf("Error: Could not read enough bytes (read %zu bytes)\n", read_bytes);
-            return;
-        }
-        parse_eth_frame(data, (size_t)hdr.captured_length, verbose_flag);
-        free(data);
+		void *data = malloc(hdr.captured_length);
+		read_bytes = fread(data, 1, (size_t)hdr.captured_length, pcap_file);
+		if (read_bytes < (size_t)hdr.captured_length) {
+			printf("Error: Could not read enough bytes (read %zu bytes)\n", read_bytes);
+			return;
+		}
+		parse_eth_frame(data, (size_t)hdr.captured_length, verbose_flag);
+		free(data);
 
-        //Read first count packets from file.
-        if (count != -1 && count == packet_index - 1) {
-            return;
-        }
+		//Read first count packets from file.
+		if (count != -1 && count == packet_index - 1) {
+			return;
+		}
 
-        memset(&hdr, 0, sizeof(pcap_packet_header_t));
-        read_bytes = fread(&hdr, 1, sizeof(pcap_packet_header_t), pcap_file);
-    }
+		memset(&hdr, 0, sizeof(pcap_packet_header_t));
+		read_bytes = fread(&hdr, 1, sizeof(pcap_packet_header_t), pcap_file);
+	}
 }
 
 /** @}

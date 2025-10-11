@@ -26,7 +26,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,109 +43,105 @@
 #define NAME "pcapcat"
 
 static const linktype_parser_t eth_parser = {
-    .parse_packets = &eth_parse_frames,
-    .parse_file_header = &eth_parse_header,
-    .linktype = PCAP_LINKTYPE_ETHERNET
+	.parse_packets = &eth_parse_frames,
+	.parse_file_header = &eth_parse_header,
+	.linktype = PCAP_LINKTYPE_ETHERNET
 };
 
-static const linktype_parser_t parsers[1] = {eth_parser};
+static const linktype_parser_t parsers[1] = { eth_parser };
 
 static int parse_file(const char *file_path, int packet_count, bool verbose_flag)
 {
-    FILE *f = fopen(file_path, "rb");
-    if (f == NULL){
-        printf("File %s does not exist.\n", file_path);
-        return 1;
-    }
+	FILE *f = fopen(file_path, "rb");
+	if (f == NULL) {
+		printf("File %s does not exist.\n", file_path);
+		return 1;
+	}
 
-    pcap_file_header_t hdr;
-    memset(&hdr, 0, sizeof(pcap_file_header_t));
+	pcap_file_header_t hdr;
+	memset(&hdr, 0, sizeof(pcap_file_header_t));
 
-    size_t bytes_read = fread(&hdr, 1, sizeof(pcap_file_header_t), f);
-    if (bytes_read < sizeof(pcap_file_header_t)) {
-        printf("Error: Could not read enough bytes (read %zu bytes)\n", bytes_read);
-        fclose(f);
-        return 1;
-    }
+	size_t bytes_read = fread(&hdr, 1, sizeof(pcap_file_header_t), f);
+	if (bytes_read < sizeof(pcap_file_header_t)) {
+		printf("Error: Could not read enough bytes (read %zu bytes)\n", bytes_read);
+		fclose(f);
+		return 1;
+	}
 
-    int parser_count = sizeof(parsers) / sizeof(linktype_parser_t);
-    int parser_index = -1;
-    for (int i = 0; i < parser_count; ++i) {
-        if (parsers[i].linktype == hdr.additional) {
-            parser_index = i;
-            break;
-        }
-    }
+	int parser_count = sizeof(parsers) / sizeof(linktype_parser_t);
+	int parser_index = -1;
+	for (int i = 0; i < parser_count; ++i) {
+		if (parsers[i].linktype == hdr.additional) {
+			parser_index = i;
+			break;
+		}
+	}
 
-    if (parser_index == -1) {
-        printf("There is no parser for Linktype %d.\n", hdr.additional);
-        return 1;
-    }
+	if (parser_index == -1) {
+		printf("There is no parser for Linktype %d.\n", hdr.additional);
+		return 1;
+	}
 
-    parsers[parser_index].parse_file_header(&hdr);
-    parsers[parser_index].parse_packets(f, packet_count, verbose_flag);
+	parsers[parser_index].parse_file_header(&hdr);
+	parsers[parser_index].parse_packets(f, packet_count, verbose_flag);
 
-    fclose(f);
-    return 0;
+	fclose(f);
+	return 0;
 }
 
 static void usage()
 {
-    printf("HelenOS cat utility for PCAP file format.\n"
-    "Can run during dumping process.\n"
-    "Usage:\n"
-    NAME " <filename>\n"
-    "\tPrint all packets from file <filename>.\n"
-    NAME " --count= | -c <number> <filename>\n"
-    "\tPrint first <number> packets from <filename>.\n"
-    NAME " --verbose | -v <filename>\n"
-    "\tPrint verbose description (with TCP ports) of packets.\n"
-    );
+	printf("HelenOS cat utility for PCAP file format.\n"
+	    "Can run during dumping process.\n"
+	    "Usage:\n"
+	    NAME " <filename>\n"
+	    "\tPrint all packets from file <filename>.\n"
+	    NAME " --count= | -c <number> <filename>\n"
+	    "\tPrint first <number> packets from <filename>.\n"
+	    NAME " --verbose | -v <filename>\n"
+	    "\tPrint verbose description (with TCP ports) of packets.\n");
 }
 
 static struct option options[] = {
-    {"count", required_argument, 0, 'c'},
-    {"verbose", no_argument, 0, 'v'},
-    {0, 0, 0, 0}
+	{ "count", required_argument, 0, 'c' },
+	{ "verbose", no_argument, 0, 'v' },
+	{ 0, 0, 0, 0 }
 };
-
 
 int main(int argc, char *argv[])
 {
-    int ret = 0;
-    int idx = 0;
-    int count = -1;
-    bool verbose = false;
-    const char *filename = "";
-    if (argc == 1)
-    {
-        usage();
-        return 0;
-    }
+	int ret = 0;
+	int idx = 0;
+	int count = -1;
+	bool verbose = false;
+	const char *filename = "";
+	if (argc == 1) {
+		usage();
+		return 0;
+	}
 
-    while (ret != -1) {
-        ret = getopt_long(argc, argv, "c:v", options, &idx);
-        switch (ret)
-        {
-        case 'c':
-            count = atoi(optarg);
-            break;
-        case 'v':
-            verbose = true;
-            break;
-        case '?':
-            printf("Unknown option or missing argument.\n");
-            return 1;
-        default:
-            break;
-        }
-    }
+	while (ret != -1) {
+		ret = getopt_long(argc, argv, "c:v", options, &idx);
+		switch (ret) {
+		case 'c':
+			count = atoi(optarg);
+			break;
+		case 'v':
+			verbose = true;
+			break;
+		case '?':
+			printf("Unknown option or missing argument.\n");
+			return 1;
+		default:
+			break;
+		}
+	}
 
-    if (optind < argc) {
-        filename = argv[optind];
-    }
+	if (optind < argc) {
+		filename = argv[optind];
+	}
 
-    int ret_val = parse_file(filename, count, verbose);
+	int ret_val = parse_file(filename, count, verbose);
 
-    return ret_val;
+	return ret_val;
 }

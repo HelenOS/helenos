@@ -38,9 +38,9 @@
 #include <pcap.h>
 
 typedef struct {
-    uint32_t linktype;
-    void (*parse_file_header)(pcap_file_header_t *);
-    void (*parse_packets)(FILE *, int, bool);
+	uint32_t linktype;
+	void (*parse_file_header)(pcap_file_header_t *);
+	void (*parse_packets)(FILE *, int, bool);
 } linktype_parser_t;
 
 /** @}
