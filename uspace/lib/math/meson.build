@@ -1,4 +1,5 @@
 #
+# Copyright (c) 2025 Jiri Svoboda
 # Copyright (c) 2013 Vojtech Horky
 # All rights reserved.
 #
@@ -32,12 +33,18 @@ src = files(
 	'generic/__fcompare.c',
 	'generic/__fpclassify.c',
 	'generic/__signbit.c',
+	'generic/atan2.c',
 	'generic/cos.c',
 	'generic/fabs.c',
+	'generic/floor.c',
 	'generic/fmod.c',
 	'generic/fmodf.c',
 	'generic/nearbyint.c',
+	'generic/pow.c',
+	'generic/log.c',
+	'generic/sqrt.c',
 	'generic/round.c',
+	'generic/tan.c',
 	'generic/trig.c',
 	'generic/sin.c',
 	'generic/cos.c',
