@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2018 Jaroslav Jindrak
  * All rights reserved.
  *
@@ -28,6 +29,8 @@
 
 #ifndef LIBCPP_BITS_ADT_LIST_NODE
 #define LIBCPP_BITS_ADT_LIST_NODE
+
+#include <utility>
 
 namespace std::aux
 {
