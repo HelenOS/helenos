@@ -38,6 +38,7 @@ message(['Compiler directory is:', cc_path])
 export_cppflags = [
 	'-isystem', '$(HELENOS_EXPORT_ROOT)/include/libposix',
 	'-isystem', '$(HELENOS_EXPORT_ROOT)/include/libc',
+	'-isystem', '$(HELENOS_EXPORT_ROOT)/include/libcpp',
 	'-idirafter', '$(HELENOS_EXPORT_ROOT)/include',
 ]
 
