@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2019 Jaroslav Jindrak
  * All rights reserved.
  *
@@ -78,6 +79,11 @@ namespace std
                 {
                     return current_->value;
                 }
+
+		pointer operator->() const
+		{
+		    return &current_->value;
+		}
 
                 list_const_iterator& operator++()
                 {
@@ -208,6 +214,11 @@ namespace std
                 {
                     return current_->value;
                 }
+
+		pointer operator->() const
+		{
+		    return &current_->value;
+		}
 
                 list_iterator& operator++()
                 {
