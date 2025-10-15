@@ -227,7 +227,7 @@ static void fmgt_timer_start(fmgt_t *fmgt)
  */
 static bool fmgt_abort_query(fmgt_t *fmgt)
 {
-	if (fmgt->cb != NULL && fmgt->cb->abort_query!= NULL)
+	if (fmgt->cb != NULL && fmgt->cb->abort_query != NULL)
 		return fmgt->cb->abort_query(fmgt->cb_arg);
 	else
 		return false;
