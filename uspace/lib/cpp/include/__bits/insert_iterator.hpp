@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2018 Jaroslav Jindrak
  * All rights reserved.
  *
@@ -32,6 +33,7 @@
 namespace std
 {
     struct forward_iterator_tag;
+    struct input_iterator_tag;
 }
 
 namespace std::aux
