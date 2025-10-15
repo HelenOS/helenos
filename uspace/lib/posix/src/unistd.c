@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2011 Jiri Zarevucky
  * Copyright (c) 2011 Petr Koupy
  * All rights reserved.
@@ -523,6 +524,19 @@ int execv(const char *path, char *const argv[])
 int execvp(const char *file, char *const argv[])
 {
 	// TODO: low priority, just a compile-time dependency of binutils
+	not_implemented();
+	return -1;
+}
+
+/**
+ *
+ * @param file
+ * @param argv
+ * @return
+ */
+int execlp(const char *file, const char *arg, ...)
+{
+	// TODO: low priority, just a compile-time dependency of dosbox
 	not_implemented();
 	return -1;
 }

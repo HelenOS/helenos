@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2011 Jiri Zarevucky
  * Copyright (c) 2011 Petr Koupy
  * All rights reserved.
@@ -163,6 +164,7 @@ extern pid_t fork(void);
 /* Executing a File */
 extern int execv(const char *path, char *const argv[]);
 extern int execvp(const char *file, char *const argv[]);
+extern int execlp(const char *file, const char *arg, ...);
 
 /* Creating a Pipe */
 extern int pipe(int fildes[2]);
