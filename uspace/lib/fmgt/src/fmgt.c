@@ -220,6 +220,15 @@ static void fmgt_timer_start(fmgt_t *fmgt)
 	fibril_timer_set(fmgt->timer, 500000, fmgt_timer_fun, (void *)fmgt);
 }
 
+/** Stop progress update timer.
+ *
+ * @param fmgt File management object
+ */
+static void fmgt_timer_stop(fmgt_t *fmgt)
+{
+	(void)fibril_timer_clear(fmgt->timer);
+}
+
 /** Query caller whether operation should be aborted.
  *
  * @param fmgt File management object
@@ -231,6 +240,21 @@ static bool fmgt_abort_query(fmgt_t *fmgt)
 		return fmgt->cb->abort_query(fmgt->cb_arg);
 	else
 		return false;
+}
+
+/** Query caller how to recover from I/O error.
+ *
+ * @param fmgt File management object
+ * @param err I/O error report
+ * @return What error recovery action should be taken.
+ */
+static fmgt_error_action_t fmgt_io_error_query(fmgt_t *fmgt,
+    fmgt_io_error_t *err)
+{
+	if (fmgt->cb != NULL && fmgt->cb->io_error_query != NULL)
+		return fmgt->cb->io_error_query(fmgt->cb_arg, err);
+	else
+		return fmgt_er_abort;
 }
 
 /** Create new file.
@@ -249,6 +273,8 @@ errno_t fmgt_new_file(fmgt_t *fmgt, const char *fname, uint64_t fsize,
 	aoff64_t pos = 0;
 	uint64_t now;
 	char *buffer;
+	fmgt_io_error_t err;
+	fmgt_error_action_t action;
 	errno_t rc;
 
 	buffer = calloc(BUFFER_SIZE, 1);
@@ -269,6 +295,7 @@ errno_t fmgt_new_file(fmgt_t *fmgt, const char *fname, uint64_t fsize,
 
 	fmgt_initial_progress_update(fmgt);
 
+	/* Create sparse file? */
 	if ((flags & nf_sparse) != 0) {
 		fmgt->curf_procb = fsize - 1;
 		pos = fsize - 1;
@@ -279,7 +306,21 @@ errno_t fmgt_new_file(fmgt_t *fmgt, const char *fname, uint64_t fsize,
 		if (now > BUFFER_SIZE)
 			now = BUFFER_SIZE;
 
-		rc = vfs_write(fd, &pos, buffer, now, &nw);
+		do {
+			rc = vfs_write(fd, &pos, buffer, now, &nw);
+			if (rc == EOK)
+				break;
+
+			/* I/O error */
+			err.fname = fname;
+			err.optype = fmgt_io_write;
+			err.rc = rc;
+			fmgt_timer_stop(fmgt);
+			action = fmgt_io_error_query(fmgt, &err);
+			fmgt_timer_start(fmgt);
+		} while (action == fmgt_er_retry);
+
+		/* Not recovered? */
 		if (rc != EOK) {
 			free(buffer);
 			vfs_put(fd);

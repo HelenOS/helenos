@@ -35,16 +35,19 @@
  */
 
 #include <fibril.h>
+#include <fmgt.h>
 #include <gfx/coord.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
+#include <str_error.h>
 #include <task.h>
 #include <ui/fixed.h>
 #include <ui/filelist.h>
 #include <ui/resource.h>
 #include <ui/ui.h>
 #include <ui/window.h>
+#include "dlg/ioerrdlg.h"
 #include "menu.h"
 #include "newfile.h"
 #include "nav.h"
@@ -86,6 +89,16 @@ static void navigator_progress_close(progress_dlg_t *, void *);
 progress_dlg_cb_t navigator_progress_cb = {
 	.babort = navigator_progress_babort,
 	.close = navigator_progress_close
+};
+
+static void navigator_io_err_abort(io_err_dlg_t *, void *);
+static void navigator_io_err_retry(io_err_dlg_t *, void *);
+static void navigator_io_err_close(io_err_dlg_t *, void *);
+
+static io_err_dlg_cb_t navigator_io_err_dlg_cb = {
+	.babort = navigator_io_err_abort,
+	.bretry = navigator_io_err_retry,
+	.close = navigator_io_err_close
 };
 
 /** Window close button was clicked.
@@ -242,6 +255,10 @@ errno_t navigator_create(const char *display_spec,
 		printf("Error painting window.\n");
 		goto error;
 	}
+
+	fibril_mutex_initialize(&navigator->io_err_act_lock);
+	fibril_condvar_initialize(&navigator->io_err_act_cv);
+	navigator->io_err_act_sel = false;
 
 	*rnavigator = navigator;
 	return EOK;
@@ -627,6 +644,113 @@ static void navigator_progress_close(progress_dlg_t *dlg, void *arg)
 
 	(void)dlg;
 	nav->abort_op = true;
+}
+
+/** Called by fmgt to query for I/O error recovery action.
+ *
+ * @param arg Argument (navigator_t *)
+ * @param err I/O error report
+ * @return Recovery action to take.
+ */
+fmgt_error_action_t navigator_io_error_query(void *arg, fmgt_io_error_t *err)
+{
+	navigator_t *nav = (navigator_t *)arg;
+	io_err_dlg_t *dlg;
+	io_err_dlg_params_t params;
+	fmgt_error_action_t err_act;
+	char *text1;
+	errno_t rc;
+	int rv;
+
+	io_err_dlg_params_init(&params);
+	rv = asprintf(&text1, err->optype == fmgt_io_write ?
+	    "Error writing file %s." : "Error reading file %s.",
+	    err->fname);
+	if (rv < 0)
+		return fmgt_er_abort;
+
+	params.text1 = text1;
+	params.text2 = str_error(err->rc);
+
+	ui_lock(nav->ui);
+	rc = io_err_dlg_create(nav->ui, &params, &dlg);
+	if (rc != EOK) {
+		ui_unlock(nav->ui);
+		free(text1);
+		return fmgt_er_abort;
+	}
+
+	io_err_dlg_set_cb(dlg, &navigator_io_err_dlg_cb, (void *)nav);
+
+	ui_unlock(nav->ui);
+	free(text1);
+
+	fibril_mutex_lock(&nav->io_err_act_lock);
+
+	while (!nav->io_err_act_sel) {
+		fibril_condvar_wait(&nav->io_err_act_cv,
+		    &nav->io_err_act_lock);
+	}
+
+	err_act = nav->io_err_act;
+	nav->io_err_act_sel = false;
+	fibril_mutex_unlock(&nav->io_err_act_lock);
+
+	return err_act;
+}
+
+/** I/O error dialog abort button was pressed.
+ *
+ * @param dlg I/O error dialog
+ * @param arg Argument (navigator_t *)
+ */
+static void navigator_io_err_abort(io_err_dlg_t *dlg, void *arg)
+{
+	navigator_t *nav = (navigator_t *)arg;
+
+	io_err_dlg_destroy(dlg);
+
+	fibril_mutex_lock(&nav->io_err_act_lock);
+	nav->io_err_act = fmgt_er_abort;
+	nav->io_err_act_sel = true;
+	fibril_condvar_signal(&nav->io_err_act_cv);
+	fibril_mutex_unlock(&nav->io_err_act_lock);
+}
+
+/** I/O error dialog retry button was pressed.
+ *
+ * @param dlg I/O error dialog
+ * @param arg Argument (navigator_t *)
+ */
+static void navigator_io_err_retry(io_err_dlg_t *dlg, void *arg)
+{
+	navigator_t *nav = (navigator_t *)arg;
+
+	io_err_dlg_destroy(dlg);
+
+	fibril_mutex_lock(&nav->io_err_act_lock);
+	nav->io_err_act = fmgt_er_retry;
+	nav->io_err_act_sel = true;
+	fibril_condvar_signal(&nav->io_err_act_cv);
+	fibril_mutex_unlock(&nav->io_err_act_lock);
+}
+
+/** I/O error dialog closure requested.
+ *
+ * @param dlg I/O error dialog
+ * @param arg Argument (navigator_t *)
+ */
+static void navigator_io_err_close(io_err_dlg_t *dlg, void *arg)
+{
+	navigator_t *nav = (navigator_t *)arg;
+
+	io_err_dlg_destroy(dlg);
+
+	fibril_mutex_lock(&nav->io_err_act_lock);
+	nav->io_err_act = fmgt_er_abort;
+	nav->io_err_act_sel = true;
+	fibril_condvar_signal(&nav->io_err_act_cv);
+	fibril_mutex_unlock(&nav->io_err_act_lock);
 }
 
 /** @}

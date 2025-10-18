@@ -37,6 +37,7 @@
 #define NAV_H
 
 #include <errno.h>
+#include <fmgt.h>
 #include "types/dlg/progress.h"
 #include "types/nav.h"
 #include "types/panel.h"
@@ -51,6 +52,7 @@ extern void navigator_switch_panel(navigator_t *);
 extern void navigator_refresh_panels(navigator_t *);
 extern errno_t navigator_worker_start(navigator_t *, void (*)(void *),
     void *);
+extern fmgt_error_action_t navigator_io_error_query(void *, fmgt_io_error_t *);
 
 #endif
 

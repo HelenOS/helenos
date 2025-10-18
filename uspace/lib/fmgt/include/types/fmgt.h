@@ -38,6 +38,7 @@
 #define TYPES_FMGT_H
 
 #include <capa.h>
+#include <errno.h>
 #include <fibril_synch.h>
 #include <stdbool.h>
 
@@ -51,9 +52,36 @@ typedef struct {
 	char curf_percent[5];
 } fmgt_progress_t;
 
+/** File management I/O operation type */
+typedef enum {
+	/** Read */
+	fmgt_io_read,
+	/** Write */
+	fmgt_io_write
+} fmgt_io_op_type_t;
+
+/** File management I/O error report */
+typedef struct {
+	/** File name */
+	const char *fname;
+	/** Operation type */
+	fmgt_io_op_type_t optype;
+	/** Error code */
+	errno_t rc;
+} fmgt_io_error_t;
+
+/** File management I/O error recovery action */
+typedef enum {
+	/** Retry */
+	fmgt_er_retry,
+	/** Abort */
+	fmgt_er_abort
+} fmgt_error_action_t;
+
 /** File management callbacks */
 typedef struct {
 	bool (*abort_query)(void *);
+	fmgt_error_action_t (*io_error_query)(void *, fmgt_io_error_t *);
 	void (*progress)(void *, fmgt_progress_t *);
 } fmgt_cb_t;
 

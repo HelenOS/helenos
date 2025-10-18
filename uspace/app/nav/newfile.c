@@ -68,6 +68,7 @@ static void new_file_progress(void *, fmgt_progress_t *);
 
 static fmgt_cb_t new_file_fmgt_cb = {
 	.abort_query = new_file_abort_query,
+	.io_error_query = navigator_io_error_query,
 	.progress = new_file_progress,
 };
 

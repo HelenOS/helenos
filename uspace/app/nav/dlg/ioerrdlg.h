@@ -30,61 +30,22 @@
  * @{
  */
 /**
- * @file Navigator types
+ * @file I/O Error Dialog
  */
 
-#ifndef TYPES_NAV_H
-#define TYPES_NAV_H
+#ifndef DLG_IOERRDLG_H
+#define DLG_IOERRDLG_H
 
-#include <fibril.h>
-#include <fmgt.h>
-#include <stdbool.h>
-#include <ui/fixed.h>
-#include <ui/ui.h>
-#include <ui/window.h>
+#include <errno.h>
+#include <types/ui/ui.h>
+#include "../types/dlg/ioerrdlg.h"
 
-enum {
-	navigator_panels = 2
-};
-
-/** Navigator */
-typedef struct navigator {
-	/** User interface */
-	ui_t *ui;
-	/** Window */
-	ui_window_t *window;
-	/** Fixed layout */
-	ui_fixed_t *fixed;
-	/** Menu */
-	struct nav_menu *menu;
-	/** Panels */
-	struct panel *panel[navigator_panels];
-	/** Progress dialog */
-	struct progress_dlg *progress_dlg;
-	/** Worker fibril ID */
-	fid_t worker_fid;
-	/** Abort current file management operation */
-	bool abort_op;
-
-	/** @c true if user selected I/O error recovery action */
-	bool io_err_act_sel;
-	/** Selected I/O error recovery action */
-	fmgt_error_action_t io_err_act;
-	/** Signalled when user selects I/O error recovery action */
-	fibril_condvar_t io_err_act_cv;
-	/** Synchronizes access to I/O error recovery action */
-	fibril_mutex_t io_err_act_lock;
-} navigator_t;
-
-/** Navigator worker job */
-typedef struct {
-	/** Navigator */
-	navigator_t *navigator;
-	/** Worker function */
-	void (*wfunc)(void *);
-	/** Worker argument */
-	void *arg;
-} navigator_worker_job_t;
+extern void io_err_dlg_params_init(io_err_dlg_params_t *);
+extern errno_t io_err_dlg_create(ui_t *, io_err_dlg_params_t *,
+    io_err_dlg_t **);
+extern void io_err_dlg_set_cb(io_err_dlg_t *, io_err_dlg_cb_t *,
+    void *);
+extern void io_err_dlg_destroy(io_err_dlg_t *);
 
 #endif
 

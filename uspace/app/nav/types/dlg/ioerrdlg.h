@@ -30,61 +30,66 @@
  * @{
  */
 /**
- * @file Navigator types
+ * @file I/O Error Dialog
  */
 
-#ifndef TYPES_NAV_H
-#define TYPES_NAV_H
+#ifndef TYPES_DLG_IOERRDLG_H
+#define TYPES_DLG_IOERRDLG_H
 
-#include <fibril.h>
-#include <fmgt.h>
-#include <stdbool.h>
-#include <ui/fixed.h>
-#include <ui/ui.h>
+#include <errno.h>
+#include <io/kbd_event.h>
+#include <io/pos_event.h>
+#include <ui/entry.h>
+#include <ui/pbutton.h>
 #include <ui/window.h>
 
+struct io_err_dlg;
+typedef struct io_err_dlg io_err_dlg_t;
+
 enum {
-	navigator_panels = 2
+	/** Maximum number of buttons in I/O error dialog. */
+	io_err_dlg_maxbtn = 2
 };
 
-/** Navigator */
-typedef struct navigator {
-	/** User interface */
-	ui_t *ui;
-	/** Window */
-	ui_window_t *window;
-	/** Fixed layout */
-	ui_fixed_t *fixed;
-	/** Menu */
-	struct nav_menu *menu;
-	/** Panels */
-	struct panel *panel[navigator_panels];
-	/** Progress dialog */
-	struct progress_dlg *progress_dlg;
-	/** Worker fibril ID */
-	fid_t worker_fid;
-	/** Abort current file management operation */
-	bool abort_op;
+/** Which choices the user can select from. */
+typedef enum {
+	/** Abort, Retry */
+	iedc_abort_retry
+} io_err_dlg_choice_t;
 
-	/** @c true if user selected I/O error recovery action */
-	bool io_err_act_sel;
-	/** Selected I/O error recovery action */
-	fmgt_error_action_t io_err_act;
-	/** Signalled when user selects I/O error recovery action */
-	fibril_condvar_t io_err_act_cv;
-	/** Synchronizes access to I/O error recovery action */
-	fibril_mutex_t io_err_act_lock;
-} navigator_t;
-
-/** Navigator worker job */
+/** I/O error dialog parameters */
 typedef struct {
-	/** Navigator */
-	navigator_t *navigator;
-	/** Worker function */
-	void (*wfunc)(void *);
-	/** Worker argument */
+	/** First line of text */
+	const char *text1;
+	/** Second line of text */
+	const char *text2;
+	/** The choice that the user is given */
+	io_err_dlg_choice_t choice;
+} io_err_dlg_params_t;
+
+/** I/O error dialog callback */
+typedef struct io_err_dlg_cb {
+	/** Abort button was pressed */
+	void (*babort)(io_err_dlg_t *, void *);
+	/** Retry button was pressed */
+	void (*bretry)(io_err_dlg_t *, void *);
+	/** Window closure requested (e.g. via close button) */
+	void (*close)(io_err_dlg_t *, void *);
+} io_err_dlg_cb_t;
+
+/** I/O error dialog */
+typedef struct io_err_dlg {
+	/** Dialog window */
+	ui_window_t *window;
+	/** Abort button */
+	ui_pbutton_t *babort;
+	/** Retry button */
+	ui_pbutton_t *bretry;
+	/** New file dialog callbacks */
+	io_err_dlg_cb_t *cb;
+	/** Callback argument */
 	void *arg;
-} navigator_worker_job_t;
+} io_err_dlg_t;
 
 #endif
 

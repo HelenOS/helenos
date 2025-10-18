@@ -351,9 +351,9 @@ error:
 	return rc;
 }
 
-/** Destroy prompt dialog.
+/** Destroy new file dialog.
  *
- * @param dialog Prompt dialog or @c NULL
+ * @param dialog New file dialog or @c NULL
  */
 void new_file_dlg_destroy(new_file_dlg_t *dialog)
 {
@@ -364,10 +364,10 @@ void new_file_dlg_destroy(new_file_dlg_t *dialog)
 	free(dialog);
 }
 
-/** Set mesage dialog callback.
+/** Set new file dialog callback.
  *
- * @param dialog Prompt dialog
- * @param cb Prompt dialog callbacks
+ * @param dialog new file dialog
+ * @param cb New file dialog callbacks
  * @param arg Callback argument
  */
 void new_file_dlg_set_cb(new_file_dlg_t *dialog, new_file_dlg_cb_t *cb,
@@ -377,7 +377,7 @@ void new_file_dlg_set_cb(new_file_dlg_t *dialog, new_file_dlg_cb_t *cb,
 	dialog->arg = arg;
 }
 
-/** Prompt dialog window close handler.
+/** New file dialog window close handler.
  *
  * @param window Window
  * @param arg Argument (new_file_dlg_t *)
@@ -392,7 +392,7 @@ static void new_file_dlg_wnd_close(ui_window_t *window, void *arg)
 	}
 }
 
-/** Prompt dialog window keyboard event handler.
+/** New file dialog window keyboard event handler.
  *
  * @param window Window
  * @param arg Argument (new_file_dlg_t *)
@@ -431,7 +431,7 @@ static void new_file_dlg_wnd_kbd(ui_window_t *window, void *arg,
 	ui_window_def_kbd(window, event);
 }
 
-/** Prompt dialog OK button click handler.
+/** New file dialog OK button click handler.
  *
  * @param pbutton Push button
  * @param arg Argument (new_file_dlg_t *)
@@ -451,7 +451,7 @@ static void new_file_dlg_bok_clicked(ui_pbutton_t *pbutton, void *arg)
 	}
 }
 
-/** Prompt dialog cancel button click handler.
+/** New file dialog cancel button click handler.
  *
  * @param pbutton Push button
  * @param arg Argument (new_file_dlg_t *)

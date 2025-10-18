@@ -48,15 +48,18 @@
 
 static bool newfile_abort_query(void *);
 static void newfile_progress(void *, fmgt_progress_t *);
+static fmgt_error_action_t newfile_io_error_query(void *, fmgt_io_error_t *);
 
 static bool prog_upd = false;
+static bool nonint = false;
 static bool quiet = false;
 
 static console_ctrl_t *con;
 
 static fmgt_cb_t newfile_fmgt_cb = {
 	.abort_query = newfile_abort_query,
-	.progress = newfile_progress
+	.io_error_query = newfile_io_error_query,
+	.progress = newfile_progress,
 };
 
 static void print_syntax(void)
@@ -120,12 +123,68 @@ static void newfile_progress(void *arg, fmgt_progress_t *progress)
 	}
 }
 
+/** Called by fmgt to let user choose I/O error recovery action.
+ *
+ * @param arg Argument (not used)
+ * @param err I/O error report
+ * @return Error recovery action.
+ */
+static fmgt_error_action_t newfile_io_error_query(void *arg,
+    fmgt_io_error_t *err)
+{
+	cons_event_t event;
+	kbd_event_t *ev;
+	errno_t rc;
+
+	(void)arg;
+
+	if (nonint)
+		return fmgt_er_abort;
+
+	if (prog_upd)
+		putchar('\n');
+
+	fprintf(stderr, "I/O error %s file '%s' (%s).\n",
+	    err->optype == fmgt_io_write ? "writing" : "reading",
+	    err->fname, str_error(err->rc));
+	fprintf(stderr, "[A]bort or [R]etry?\n");
+
+	if (con == NULL)
+		return fmgt_er_abort;
+
+	while (true) {
+		rc = console_get_event(con, &event);
+		if (rc != EOK)
+			return fmgt_er_abort;
+
+		if (event.type == CEV_KEY && event.ev.key.type == KEY_PRESS) {
+			ev = &event.ev.key;
+			if ((ev->mods & KM_ALT) == 0 &&
+			    (ev->mods & KM_CTRL) == 0) {
+				if (ev->c == 'r' || ev->c == 'R')
+					return fmgt_er_retry;
+				if (ev->c == 'a' || ev->c == 'A')
+					return fmgt_er_abort;
+			}
+		}
+
+		if (event.type == CEV_KEY && event.ev.key.type == KEY_PRESS) {
+			ev = &event.ev.key;
+			if ((ev->mods & KM_ALT) == 0 &&
+			    (ev->mods & KM_SHIFT) == 0 &&
+			    (ev->mods & KM_CTRL) != 0) {
+				if (ev->key == KC_C)
+					return fmgt_er_abort;
+			}
+		}
+	}
+}
+
 int main(int argc, char *argv[])
 {
 	fmgt_t *fmgt = NULL;
 	errno_t rc;
 	int i;
-	bool nonint = false;
 	bool sparse = false;
 	char *fsize = NULL;
 	char *fname = NULL;
@@ -209,7 +268,7 @@ int main(int argc, char *argv[])
 
 	rc = fmgt_new_file(fmgt, fname, nbytes, sparse ? nf_sparse : nf_none);
 	if (prog_upd)
-		printf("\n");
+		putchar('\n');
 	if (rc != EOK) {
 		printf("Error creating file: %s.\n", str_error(rc));
 		goto error;
