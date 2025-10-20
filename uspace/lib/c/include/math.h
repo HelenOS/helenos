@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2018 CZ.NIC, z.s.p.o.
  * All rights reserved.
  *
@@ -29,9 +30,12 @@
 #ifndef _MATH_H
 #define _MATH_H
 
+#include <_bits/decls.h>
 #include <limits.h>
 #include <stddef.h>
 #include <float.h>
+
+__C_DECLS_BEGIN;
 
 #if defined(_XOPEN_SOURCE) || defined(_GNU_SOURCE) || defined(_BSD_SOURCE) || defined(_HELENOS_SOURCE)
 
@@ -320,5 +324,7 @@ long double fmal(long double, long double, long double);
 #define nextafterl __builtin_nextafterl
 
 #endif
+
+__C_DECLS_END;
 
 #endif /* _MATH_H */

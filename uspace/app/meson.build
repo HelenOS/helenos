@@ -1,4 +1,5 @@
 #
+# Copyright (c) 2025 Jiri Svoboda
 # Copyright (c) 2019 Jiří Zárevúcky
 # All rights reserved.
 #
@@ -68,6 +69,7 @@ apps = [
 	'modplay',
 	'nav',
 	'netecho',
+	'newfile',
 	'nic',
 	'nterm',
 	'ofw',

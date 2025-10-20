@@ -42,9 +42,28 @@
 
 #include "vhcd.h"
 
-static fibril_local uintptr_t plugged_device_handle = 0;
 #define PLUGGED_DEVICE_NAME_MAXLEN 256
-static fibril_local char plugged_device_name[PLUGGED_DEVICE_NAME_MAXLEN + 1] = "<unknown>";
+
+static fibril_local uintptr_t plugged_device_handle = 0;
+
+/*
+ * The explicit "initial-exec" TLS model attribute is a temporary workaround
+ * for a bug in GCC (observed in 14.2 and 15.2) that manifests in combination
+ * with the binutils 2.45 linker on MIPS.
+ *
+ * Without the attribute, the linker reports the following error:
+ *
+ *  can't find matching LO16 reloc against `plugged_device_name' for
+ *  R_MIPS_TLS_TPREL_HI16 at 0x238 in section
+ *  `.text.default_connection_handler'
+ *
+ * The immediate cause is a missing R_MIPS_TLS_TPREL_LO16 relocation that
+ * matches the R_MIPS_TLS_TPREL_HI16 relocation. The root cause is probably
+ * an aggressive optimization in the compiler that removes the relocation
+ * despite being needed.
+ */
+static fibril_local char plugged_device_name[PLUGGED_DEVICE_NAME_MAXLEN + 1]
+    __attribute__((tls_model("initial-exec"))) = "<unknown>";
 
 /** Receive device name.
  *

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -1649,6 +1649,62 @@ int ui_list_entry_ptr_cmp(const void *pa, const void *pb)
 	ui_list_entry_t *b = *(ui_list_entry_t **)pb;
 
 	return a->list->cb->compare(a, b);
+}
+
+/** Save list position for later.
+ *
+ * The position will be valid even if the list is cleaned and re-populated
+ * (it just counts position from the top.)
+ *
+ * @param list UI list
+ * @param pos Place to store position
+ */
+void ui_list_save_pos(ui_list_t *list, ui_list_pos_t *pos)
+{
+	pos->page_idx = list->page_idx;
+	pos->cursor_idx = list->cursor_idx;
+}
+
+/** Restore saved list position.
+ *
+ * The position will be valid even if the list is cleaned and re-populated
+ * (it just counts position from the top.)
+ *
+ * @param list UI list
+ * @param pos Saved list position
+ */
+void ui_list_restore_pos(ui_list_t *list, ui_list_pos_t *pos)
+{
+	size_t idx, i;
+	ui_list_entry_t *entry, *next;
+
+	idx = 0;
+	entry = ui_list_first(list);
+
+	for (i = 0; i < pos->cursor_idx; i++) {
+		next = ui_list_next(entry);
+		if (next != NULL) {
+			entry = next;
+			++idx;
+		}
+	}
+
+	list->cursor = entry;
+	list->cursor_idx = idx;
+
+	idx = 0;
+	entry = ui_list_first(list);
+
+	for (i = 0; i < pos->page_idx; i++) {
+		next = ui_list_next(entry);
+		if (next != NULL) {
+			entry = next;
+			++idx;
+		}
+	}
+
+	list->page = entry;
+	list->page_idx = idx;
 }
 
 /** @}

@@ -30,15 +30,12 @@
 
 BINUTILS_GDB_GIT="https://github.com/HelenOS/binutils-gdb.git"
 
-BINUTILS_BRANCH="binutils-2_43-helenos"
-BINUTILS_VERSION="2.43"
-
-GDB_BRANCH="gdb-13.2-helenos"
-GDB_VERSION="13.2"
+BINUTILS_BRANCH="binutils-2_45-helenos"
+BINUTILS_VERSION="2.45"
 
 GCC_GIT="https://github.com/HelenOS/gcc.git"
-GCC_BRANCH="14_2_0-helenos"
-GCC_VERSION="14.2"
+GCC_BRANCH="15_2_0-helenos"
+GCC_VERSION="15.2"
 
 BASEDIR="$PWD"
 SRCDIR="$(readlink -f $(dirname "$0"))"
@@ -50,7 +47,6 @@ INSTALL_DIR="${BASEDIR}/PKG"
 
 SYSTEM_INSTALL=false
 
-BUILD_GDB=false
 BUILD_BINUTILS=true
 BUILD_GCC=true
 
@@ -71,7 +67,6 @@ show_usage() {
 	echo "HelenOS cross-compiler toolchain build script"
 	echo
 	echo "Syntax:"
-	echo " $0 [--system-wide] [--with-gdb|--only-gdb] <platform>"
 	echo " $0 [--system-wide] --test-version [<platform>]"
 	echo
 	echo "Possible target platforms are:"
@@ -146,7 +141,6 @@ test_version() {
 		echo "== $PLATFORM =="
 		test_app_version "Binutils" "ld" "GNU ld (.*) \([.0-9]*\)" "$BINUTILS_VERSION"
 		test_app_version "GCC" "gcc" "gcc version \([.0-9]*\)" "$GCC_VERSION"
-		test_app_version "GDB" "gdb" "GNU gdb (.*)[[:space:]]\+\([.0-9]*\)" "$GDB_VERSION"
 	done
 }
 
@@ -263,7 +257,7 @@ check_dirs() {
 		ring_bell
 		( set -x ; sudo -k mkdir -p "${CROSS_PREFIX}" )
 	else
-		mkdir -p "${CROSS_PREFIX}"
+		( set -x ; mkdir -p "${CROSS_PREFIX}" )
 	fi
 
 	cd "${CROSS_PREFIX}"
@@ -309,11 +303,6 @@ prepare() {
 		cd "gcc-${GCC_VERSION}"
 		./contrib/download_prerequisites
 		cd ..
-	fi
-
-	if $BUILD_GDB ; then
-		git clone --depth 1 -b "$GDB_BRANCH" "$BINUTILS_GDB_GIT" "gdb-$GDB_VERSION"
-		git -C "gdb-$GDB_VERSION" pull
 	fi
 
 	# This sets the CROSS_PREFIX variable
@@ -465,46 +454,13 @@ build_libgcc() {
 	check_error $? "Error installing libgcc."
 }
 
-build_gdb() {
-	# This sets the TARGET variable
-	set_target_from_platform "$1"
-
-	WORKDIR="${BASEDIR}/${TARGET}"
-	GDBDIR="${WORKDIR}/gdb-${GDB_VERSION}"
-
-	echo ">>> Removing previous content"
-	cleanup_dir "${WORKDIR}"
-	mkdir -p "${WORKDIR}"
-
-	echo ">>> Processing GDB (${TARGET})"
-	mkdir -p "${GDBDIR}"
-	cd "${GDBDIR}"
-	check_error $? "Change directory failed."
-
-	change_title "GDB: configure (${TARGET})"
-	CFLAGS="-fcommon" "${BASEDIR}/downloads/gdb-${GDB_VERSION}/configure" \
-		"--target=${TARGET}" \
-		"--prefix=${CROSS_PREFIX}" \
-		"--program-prefix=${TARGET}-" \
-		--enable-werror=no
-	check_error $? "Error configuring GDB."
-
-	change_title "GDB: make (${TARGET})"
-	make all-gdb -j$JOBS
-	check_error $? "Error compiling GDB."
-
-	change_title "GDB: install (${TARGET})"
-	make install-gdb $DESTDIR_SPEC
-	check_error $? "Error installing GDB."
-}
-
 install_pkg() {
 	echo ">>> Moving to the destination directory."
 	if $SYSTEM_INSTALL ; then
 		ring_bell
-		( set -x ; sudo -k cp -r -t "${CROSS_PREFIX}" "${INSTALL_DIR}${CROSS_PREFIX}/"* )
+		( set -x ; tar -C "${INSTALL_DIR}${CROSS_PREFIX}" -cpf - . | sudo -k tar -C "${CROSS_PREFIX}" -xpf - )
 	else
-		( set -x ; cp -r -t "${CROSS_PREFIX}" "${INSTALL_DIR}${CROSS_PREFIX}/"* )
+		( set -x ; tar -C "${INSTALL_DIR}${CROSS_PREFIX}" -cpf - . | tar -C "${CROSS_PREFIX}" -xpf - )
 	fi
 }
 
@@ -528,16 +484,6 @@ while [ "$#" -gt 1 ] ; do
 		--test-version)
 			test_version "$2"
 			exit
-			;;
-		--with-gdb)
-			BUILD_GDB=true
-			shift
-			;;
-		--only-gdb)
-			BUILD_GDB=true
-			BUILD_BINUTILS=false
-			BUILD_GCC=false
-			shift
 			;;
 		*)
 			show_usage
@@ -613,10 +559,6 @@ everything() {
 		install_pkg
 
 		$RUNNER build_libgcc
-	fi
-
-	if $BUILD_GDB ; then
-		$RUNNER build_gdb
 	fi
 
 	echo ">>> Installing all files"

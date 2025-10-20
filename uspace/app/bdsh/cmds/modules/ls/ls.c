@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2008 Tim Post
  * All rights reserved.
  *
@@ -105,26 +106,17 @@ static errno_t ls_print(struct dir_elem_t *de)
 			return EOK;
 		}
 
-		capa_spec_t capa;
-		capa_from_blocks(de->s.size, 1, &capa);
-		capa_simplify(&capa);
+		char fsize[CAPA_BLOCKS_BUFSIZE];
+		capa_blocks_format_buf(de->s.size, 1, fsize, sizeof(fsize));
 
-		char *rptr;
-		errno_t rc = capa_format(&capa, &rptr);
-		if (rc != EOK) {
-			return rc;
-		}
-
-		char *sep = str_rchr(rptr, ' ');
+		char *sep = str_rchr(fsize, ' ');
 		if (sep == NULL) {
-			free(rptr);
 			return ENOENT;
 		}
 
 		*sep = '\0';
 
-		printf("%-40s\t%*s %2s\n", de->name, width - 3, rptr, sep + 1);
-		free(rptr);
+		printf("%-40s\t%*s %2s\n", de->name, width - 3, fsize, sep + 1);
 	} else if (de->s.is_directory)
 		printf("%-40s\t%*s\n", de->name, width, "<dir>");
 	else

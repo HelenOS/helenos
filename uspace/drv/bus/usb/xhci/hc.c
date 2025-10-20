@@ -165,7 +165,7 @@ static errno_t hc_parse_ec(xhci_hc_t *hc)
 					// Custom speed
 					speeds[psiv].major = major;
 					speeds[psiv].minor = minor;
-					str_ncpy(speeds[psiv].name, 4, name.str, 4);
+					memcpy(speeds[psiv].name, name.str, 4);
 					speeds[psiv].usb_speed = USB_SPEED_MAX;
 
 					if (sim == XHCI_PSI_PLT_SYMM || sim == XHCI_PSI_PLT_RX)

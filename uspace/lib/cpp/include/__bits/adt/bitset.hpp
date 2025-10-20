@@ -41,6 +41,15 @@ namespace std
     template<size_t N>
     class bitset
     {
+        private:
+            /**
+             * While this might be a bit more wasteful
+             * than using unsigned or unsigned long,
+             * it will make parts of out code easier
+             * to read.
+             */
+            using data_type = unsigned long long;
+
         public:
             class reference
             {
@@ -364,14 +373,6 @@ namespace std
             }
 
         private:
-            /**
-             * While this might be a bit more wasteful
-             * than using unsigned or unsigned long,
-             * it will make parts of out code easier
-             * to read.
-             */
-            using data_type = unsigned long long;
-
             static constexpr size_t bits_in_data_type_ = sizeof(data_type) * 8;
             static constexpr size_t data_size_ = N / bits_in_data_type_ + 1;
 

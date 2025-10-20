@@ -489,6 +489,7 @@ static void cons_write_char(console_t *cons, char32_t ch)
 		updated = chargrid_newline(cons->frontbuf);
 		break;
 	case '\r':
+		updated = chargrid_cr(cons->frontbuf);
 		break;
 	case '\t':
 		updated = chargrid_tabstop(cons->frontbuf, 8);

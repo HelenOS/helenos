@@ -41,14 +41,10 @@
 #define DECLARE_GCD(type, name) \
 	static inline type name(type a, type b) \
 	{ \
-		if (a == 0) \
-			return b; \
-		 \
 		while (b != 0) { \
-			if (a > b) \
-				a -= b; \
-			else \
-				b -= a; \
+			type remainder = a % b; \
+			a = b; \
+			b = remainder; \
 		} \
 		 \
 		return a; \
@@ -57,7 +53,7 @@
 #define DECLARE_LCM(type, name, gcd) \
 	static inline type name(type a, type b) \
 	{ \
-		return (a * b) / gcd(a, b); \
+		return (a / gcd(a, b)) * b; \
 	}
 
 DECLARE_GCD(uint32_t, gcd32);

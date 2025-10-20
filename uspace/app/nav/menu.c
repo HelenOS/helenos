@@ -53,6 +53,7 @@ errno_t nav_menu_create(ui_window_t *window, nav_menu_t **rmenu)
 {
 	nav_menu_t *menu;
 	ui_menu_t *mfile;
+	ui_menu_entry_t *mnew;
 	ui_menu_entry_t *mopen;
 	ui_menu_entry_t *medit;
 	ui_menu_entry_t *mfsep;
@@ -76,6 +77,12 @@ errno_t nav_menu_create(ui_window_t *window, nav_menu_t **rmenu)
 	rc = ui_menu_dd_create(menu->menubar, "~F~ile", NULL, &mfile);
 	if (rc != EOK)
 		goto error;
+
+	rc = ui_menu_entry_create(mfile, "~N~ew File", "Ctrl-M", &mnew);
+	if (rc != EOK)
+		goto error;
+
+	ui_menu_entry_set_cb(mnew, nav_menu_file_new_file, (void *) menu);
 
 	rc = ui_menu_entry_create(mfile, "~O~pen", "Enter", &mopen);
 	if (rc != EOK)
@@ -145,6 +152,19 @@ void nav_menu_destroy(nav_menu_t *menu)
 ui_control_t *nav_menu_ctl(nav_menu_t *menu)
 {
 	return ui_menu_bar_ctl(menu->menubar);
+}
+
+/** File / New File menu entry selected.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (navigator_t *)
+ */
+void nav_menu_file_new_file(ui_menu_entry_t *mentry, void *arg)
+{
+	nav_menu_t *menu = (nav_menu_t *)arg;
+
+	if (menu->cb != NULL && menu->cb->file_new_file != NULL)
+		menu->cb->file_new_file(menu->cb_arg);
 }
 
 /** File / Open menu entry selected.

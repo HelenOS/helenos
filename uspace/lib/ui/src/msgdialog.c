@@ -284,6 +284,8 @@ static void ui_msg_dialog_wnd_close(ui_window_t *window, void *arg)
 
 	if (dialog->cb != NULL && dialog->cb->close != NULL)
 		dialog->cb->close(dialog, dialog->arg);
+	else
+		ui_msg_dialog_destroy(dialog);
 }
 
 /** Message dialog window keyboard event handler.
@@ -309,12 +311,16 @@ static void ui_msg_dialog_wnd_kbd(ui_window_t *window, void *arg,
 			if (dialog->cb != NULL && dialog->cb->button != NULL) {
 				dialog->cb->button(dialog, dialog->arg, 0);
 				return;
+			} else {
+				ui_msg_dialog_destroy(dialog);
 			}
 		} else if (event->key == KC_ESCAPE) {
 			/* Cancel */
 			if (dialog->cb != NULL && dialog->cb->close != NULL) {
 				dialog->cb->close(dialog, dialog->arg);
 				return;
+			} else {
+				ui_msg_dialog_destroy(dialog);
 			}
 		}
 	}
@@ -336,6 +342,8 @@ static void ui_msg_dialog_btn_clicked(ui_pbutton_t *pbutton, void *arg)
 			if (dialog->btn[i] == pbutton)
 				dialog->cb->button(dialog, dialog->arg, i);
 		}
+	} else {
+		ui_msg_dialog_destroy(dialog);
 	}
 }
 

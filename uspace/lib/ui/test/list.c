@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -3057,6 +3057,75 @@ PCUT_TEST(entry_get_idx)
 
 	PCUT_ASSERT_INT_EQUALS(0, ui_list_entry_get_idx(a));
 	PCUT_ASSERT_INT_EQUALS(1, ui_list_entry_get_idx(b));
+
+	ui_list_destroy(list);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
+/** ui_list_save_pos() / ui_list_restore_pos() saves/restores position */
+PCUT_TEST(save_pos_restore_pos)
+{
+	ui_t *ui;
+	ui_window_t *window;
+	ui_wnd_params_t params;
+	ui_list_t *list;
+	ui_list_entry_t *a, *b;
+	ui_list_entry_attr_t attr;
+	ui_list_pos_t pos;
+	test_resp_t resp;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Test";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_list_create(window, true, &list);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_list_set_cb(list, &test_cb, &resp);
+
+	ui_list_entry_attr_init(&attr);
+
+	attr.caption = "a";
+	attr.arg = (void *)2;
+	rc = ui_list_entry_append(list, &attr, &a);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	attr.caption = "b";
+	attr.arg = (void *)1;
+	rc = ui_list_entry_append(list, &attr, &b);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_list_set_cursor(list, b);
+
+	ui_list_save_pos(list, &pos);
+
+	/* Empty and re-build list. */
+
+	ui_list_entry_destroy(a);
+	ui_list_entry_destroy(b);
+
+	ui_list_entry_attr_init(&attr);
+
+	attr.caption = "a";
+	attr.arg = (void *)2;
+	rc = ui_list_entry_append(list, &attr, &a);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	attr.caption = "b";
+	attr.arg = (void *)1;
+	rc = ui_list_entry_append(list, &attr, &b);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_list_restore_pos(list, &pos);
+
+	PCUT_ASSERT_STR_EQUALS("b", list->cursor->caption);
 
 	ui_list_destroy(list);
 	ui_window_destroy(window);

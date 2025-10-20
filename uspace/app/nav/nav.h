@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,14 +37,22 @@
 #define NAV_H
 
 #include <errno.h>
+#include <fmgt.h>
+#include "types/dlg/progress.h"
 #include "types/nav.h"
 #include "types/panel.h"
+
+extern progress_dlg_cb_t navigator_progress_cb;
 
 extern errno_t navigator_create(const char *, navigator_t **);
 extern void navigator_destroy(navigator_t *);
 extern errno_t navigator_run(const char *);
 extern panel_t *navigator_get_active_panel(navigator_t *);
 extern void navigator_switch_panel(navigator_t *);
+extern void navigator_refresh_panels(navigator_t *);
+extern errno_t navigator_worker_start(navigator_t *, void (*)(void *),
+    void *);
+extern fmgt_error_action_t navigator_io_error_query(void *, fmgt_io_error_t *);
 
 #endif
 

@@ -616,6 +616,38 @@ void ui_window_remove(ui_window_t *window, ui_control_t *control)
 	control->elemp = NULL;
 }
 
+/** Get first (lowermost) window (only valid in fullscreen mode).
+ *
+ * @param ui User interface
+ * @return First window
+ */
+ui_window_t *ui_window_first(ui_t *ui)
+{
+	link_t *link;
+
+	link = list_first(&ui->windows);
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, ui_window_t, lwindows);
+}
+
+/** Get next window (only valid in fullscreen mode).
+ *
+ * @param cur Current window
+ * @return First window
+ */
+ui_window_t *ui_window_next(ui_window_t *cur)
+{
+	link_t *link;
+
+	link = list_next(&cur->lwindows, &cur->ui->windows);
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, ui_window_t, lwindows);
+}
+
 /** Get active window (only valid in fullscreen mode).
  *
  * @param ui User interface

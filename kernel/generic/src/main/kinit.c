@@ -85,7 +85,7 @@
 #define ALIVE_CHARS  4
 
 #ifdef CONFIG_KCONSOLE
-static char alive[ALIVE_CHARS] = "-\\|/";
+static char alive[ALIVE_CHARS] __attribute__((nonstring)) = "-\\|/";
 #endif
 
 #define INIT_PREFIX      "init:"

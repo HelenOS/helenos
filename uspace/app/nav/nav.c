@@ -34,17 +34,22 @@
  * HelenOS file manager.
  */
 
+#include <fibril.h>
+#include <fmgt.h>
 #include <gfx/coord.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
+#include <str_error.h>
 #include <task.h>
 #include <ui/fixed.h>
 #include <ui/filelist.h>
 #include <ui/resource.h>
 #include <ui/ui.h>
 #include <ui/window.h>
+#include "dlg/ioerrdlg.h"
 #include "menu.h"
+#include "newfile.h"
 #include "nav.h"
 #include "panel.h"
 
@@ -58,11 +63,13 @@ static ui_window_cb_t window_cb = {
 	.kbd = wnd_kbd
 };
 
+static void navigator_file_new_file(void *);
 static void navigator_file_open(void *);
 static void navigator_file_edit(void *);
 static void navigator_file_exit(void *);
 
 static nav_menu_cb_t navigator_menu_cb = {
+	.file_new_file = navigator_file_new_file,
 	.file_open = navigator_file_open,
 	.file_edit = navigator_file_edit,
 	.file_exit = navigator_file_exit
@@ -74,6 +81,24 @@ static void navigator_panel_file_open(void *, panel_t *, const char *);
 static panel_cb_t navigator_panel_cb = {
 	.activate_req = navigator_panel_activate_req,
 	.file_open = navigator_panel_file_open
+};
+
+static void navigator_progress_babort(progress_dlg_t *, void *);
+static void navigator_progress_close(progress_dlg_t *, void *);
+
+progress_dlg_cb_t navigator_progress_cb = {
+	.babort = navigator_progress_babort,
+	.close = navigator_progress_close
+};
+
+static void navigator_io_err_abort(io_err_dlg_t *, void *);
+static void navigator_io_err_retry(io_err_dlg_t *, void *);
+static void navigator_io_err_close(io_err_dlg_t *, void *);
+
+static io_err_dlg_cb_t navigator_io_err_dlg_cb = {
+	.babort = navigator_io_err_abort,
+	.bretry = navigator_io_err_retry,
+	.close = navigator_io_err_close
 };
 
 /** Window close button was clicked.
@@ -103,6 +128,9 @@ static void wnd_kbd(ui_window_t *window, void *arg, kbd_event_t *event)
 	    ((event->mods & KM_SHIFT) == 0) &&
 	    (event->mods & KM_CTRL) != 0) {
 		switch (event->key) {
+		case KC_M:
+			navigator_new_file_dlg(navigator);
+			break;
 		case KC_E:
 			navigator_file_edit((void *)navigator);
 			break;
@@ -228,6 +256,10 @@ errno_t navigator_create(const char *display_spec,
 		goto error;
 	}
 
+	fibril_mutex_initialize(&navigator->io_err_act_lock);
+	fibril_condvar_initialize(&navigator->io_err_act_cv);
+	navigator->io_err_act_sel = false;
+
 	*rnavigator = navigator;
 	return EOK;
 error:
@@ -317,6 +349,50 @@ void navigator_switch_panel(navigator_t *navigator)
 	}
 }
 
+/** Refresh navigator panels.
+ *
+ * This needs to be called when the disk/directory contents might have
+ * changed.
+ *
+ * @param navigator Navigator
+ */
+void navigator_refresh_panels(navigator_t *navigator)
+{
+	errno_t rc;
+	unsigned i;
+
+	/* First refresh inactive panel. */
+
+	for (i = 0; i < 2; i++) {
+		if (!panel_is_active(navigator->panel[i])) {
+			rc = panel_refresh(navigator->panel[i]);
+			if (rc != EOK)
+				return;
+		}
+	}
+
+	/*
+	 * Refresh active panel last so that working directory is left
+	 * to that of the active panel.
+	 */
+
+	for (i = 0; i < 2; i++) {
+		if (panel_is_active(navigator->panel[i])) {
+			rc = panel_refresh(navigator->panel[i]);
+			if (rc != EOK)
+				return;
+		}
+	}
+}
+
+/** File / New File menu entry selected */
+static void navigator_file_new_file(void *arg)
+{
+	navigator_t *navigator = (navigator_t *)arg;
+
+	navigator_new_file_dlg(navigator);
+}
+
 /** File / Open menu entry selected */
 static void navigator_file_open(void *arg)
 {
@@ -360,6 +436,7 @@ static errno_t navigator_edit_file(navigator_t *navigator, const char *fname)
 	if (rc != EOK)
 		return rc;
 
+	navigator_refresh_panels(navigator);
 	(void) ui_paint(navigator->ui);
 	return EOK;
 error:
@@ -400,6 +477,8 @@ static errno_t navigator_exec_file(navigator_t *navigator, const char *fname)
 	rc = ui_resume(navigator->ui);
 	if (rc != EOK)
 		return rc;
+
+	navigator_refresh_panels(navigator);
 
 	(void) ui_paint(navigator->ui);
 	return EOK;
@@ -479,6 +558,199 @@ void navigator_panel_file_open(void *arg, panel_t *panel, const char *fname)
 
 	(void)panel;
 	navigator_open_file(navigator, fname);
+}
+
+/** Wrapper fibril function for worker function.
+ *
+ * This is the main fibril function for the worker fibril. It executes
+ * the worker function, then clears worker FID to indicate the worker
+ * is finished.
+ *
+ * @param arg Argument (navigator_worker_job_t *)
+ * @return EOK
+ */
+static errno_t navigator_worker_func(void *arg)
+{
+	navigator_worker_job_t *job = (navigator_worker_job_t *)arg;
+
+	job->wfunc(job->arg);
+	job->navigator->worker_fid = 0;
+	free(job);
+	return EOK;
+}
+
+/** Start long-time work in a worker fibril.
+ *
+ * Actions which can take time (file operations) cannot block the main UI
+ * fibril. This function will start an action in the worker fibril, i.e.,
+ * in the background. At the same time the caller should create a modal
+ * progress dialog that will be shown until the work is completed.
+ *
+ * (Only a single worker can execute at any given time).
+ *
+ * @param nav Navigator
+ * @param wfunc Worker main function
+ * @param arg Argument to worker function
+ *
+ * @return EOK on success or an error code
+ */
+errno_t navigator_worker_start(navigator_t *nav, void (*wfunc)(void *),
+    void *arg)
+{
+	navigator_worker_job_t *job;
+
+	if (nav->worker_fid != 0)
+		return EBUSY;
+
+	job = calloc(1, sizeof(navigator_worker_job_t));
+	if (job == NULL)
+		return ENOMEM;
+
+	job->navigator = nav;
+	job->wfunc = wfunc;
+	job->arg = arg;
+
+	nav->worker_fid = fibril_create(navigator_worker_func, (void *)job);
+	if (nav->worker_fid == 0) {
+		free(job);
+		return ENOMEM;
+	}
+
+	fibril_add_ready(nav->worker_fid);
+	return EOK;
+}
+
+/** Abort button pressed in progress dialog.
+ *
+ * @param dlg Progress dialog
+ * @param arg Argument (navigator_t *)
+ */
+static void navigator_progress_babort(progress_dlg_t *dlg, void *arg)
+{
+	navigator_t *nav = (navigator_t *)arg;
+
+	(void)dlg;
+	nav->abort_op = true;
+}
+
+/** Progress dialog closed,
+ *
+ * @param dlg Progress dialog
+ * @param arg Argument (navigator_t *)
+ */
+static void navigator_progress_close(progress_dlg_t *dlg, void *arg)
+{
+	navigator_t *nav = (navigator_t *)arg;
+
+	(void)dlg;
+	nav->abort_op = true;
+}
+
+/** Called by fmgt to query for I/O error recovery action.
+ *
+ * @param arg Argument (navigator_t *)
+ * @param err I/O error report
+ * @return Recovery action to take.
+ */
+fmgt_error_action_t navigator_io_error_query(void *arg, fmgt_io_error_t *err)
+{
+	navigator_t *nav = (navigator_t *)arg;
+	io_err_dlg_t *dlg;
+	io_err_dlg_params_t params;
+	fmgt_error_action_t err_act;
+	char *text1;
+	errno_t rc;
+	int rv;
+
+	io_err_dlg_params_init(&params);
+	rv = asprintf(&text1, err->optype == fmgt_io_write ?
+	    "Error writing file %s." : "Error reading file %s.",
+	    err->fname);
+	if (rv < 0)
+		return fmgt_er_abort;
+
+	params.text1 = text1;
+	params.text2 = str_error(err->rc);
+
+	ui_lock(nav->ui);
+	rc = io_err_dlg_create(nav->ui, &params, &dlg);
+	if (rc != EOK) {
+		ui_unlock(nav->ui);
+		free(text1);
+		return fmgt_er_abort;
+	}
+
+	io_err_dlg_set_cb(dlg, &navigator_io_err_dlg_cb, (void *)nav);
+
+	ui_unlock(nav->ui);
+	free(text1);
+
+	fibril_mutex_lock(&nav->io_err_act_lock);
+
+	while (!nav->io_err_act_sel) {
+		fibril_condvar_wait(&nav->io_err_act_cv,
+		    &nav->io_err_act_lock);
+	}
+
+	err_act = nav->io_err_act;
+	nav->io_err_act_sel = false;
+	fibril_mutex_unlock(&nav->io_err_act_lock);
+
+	return err_act;
+}
+
+/** I/O error dialog abort button was pressed.
+ *
+ * @param dlg I/O error dialog
+ * @param arg Argument (navigator_t *)
+ */
+static void navigator_io_err_abort(io_err_dlg_t *dlg, void *arg)
+{
+	navigator_t *nav = (navigator_t *)arg;
+
+	io_err_dlg_destroy(dlg);
+
+	fibril_mutex_lock(&nav->io_err_act_lock);
+	nav->io_err_act = fmgt_er_abort;
+	nav->io_err_act_sel = true;
+	fibril_condvar_signal(&nav->io_err_act_cv);
+	fibril_mutex_unlock(&nav->io_err_act_lock);
+}
+
+/** I/O error dialog retry button was pressed.
+ *
+ * @param dlg I/O error dialog
+ * @param arg Argument (navigator_t *)
+ */
+static void navigator_io_err_retry(io_err_dlg_t *dlg, void *arg)
+{
+	navigator_t *nav = (navigator_t *)arg;
+
+	io_err_dlg_destroy(dlg);
+
+	fibril_mutex_lock(&nav->io_err_act_lock);
+	nav->io_err_act = fmgt_er_retry;
+	nav->io_err_act_sel = true;
+	fibril_condvar_signal(&nav->io_err_act_cv);
+	fibril_mutex_unlock(&nav->io_err_act_lock);
+}
+
+/** I/O error dialog closure requested.
+ *
+ * @param dlg I/O error dialog
+ * @param arg Argument (navigator_t *)
+ */
+static void navigator_io_err_close(io_err_dlg_t *dlg, void *arg)
+{
+	navigator_t *nav = (navigator_t *)arg;
+
+	io_err_dlg_destroy(dlg);
+
+	fibril_mutex_lock(&nav->io_err_act_lock);
+	nav->io_err_act = fmgt_er_abort;
+	nav->io_err_act_sel = true;
+	fibril_condvar_signal(&nav->io_err_act_cv);
+	fibril_mutex_unlock(&nav->io_err_act_lock);
 }
 
 /** @}

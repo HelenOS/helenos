@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2013 Manuele Conti
  * All rights reserved.
  *
@@ -55,16 +56,14 @@
 
 static bool display_blocks;
 
-static errno_t size_to_human_readable(uint64_t, size_t, char **);
 static void print_header(void);
-static errno_t print_statfs(vfs_statfs_t *, char *, char *);
+static void print_statfs(vfs_statfs_t *, char *, char *);
 static void print_usage(void);
 
 int main(int argc, char *argv[])
 {
 	int optres, errflg = 0;
 	vfs_statfs_t st;
-	errno_t rc;
 
 	display_blocks = false;
 
@@ -108,9 +107,7 @@ int main(int argc, char *argv[])
 	print_header();
 	list_foreach(mtab_list, link, mtab_ent_t, mtab_ent) {
 		if (vfs_statfs_path(mtab_ent->mp, &st) == 0) {
-			rc = print_statfs(&st, mtab_ent->fs_name, mtab_ent->mp);
-			if (rc != EOK)
-				return 1;
+			print_statfs(&st, mtab_ent->fs_name, mtab_ent->mp);
 		} else {
 			fprintf(stderr, "Cannot get information for '%s' (%s).\n",
 			    mtab_ent->mp, str_error(errno));
@@ -119,15 +116,6 @@ int main(int argc, char *argv[])
 
 	putchar('\n');
 	return 0;
-}
-
-static errno_t size_to_human_readable(uint64_t nblocks, size_t block_size, char **rptr)
-{
-	capa_spec_t capa;
-
-	capa_from_blocks(nblocks, block_size, &capa);
-	capa_simplify(&capa);
-	return capa_format(&capa, rptr);
 }
 
 static void print_header(void)
@@ -140,36 +128,29 @@ static void print_header(void)
 	putchar('\n');
 }
 
-static errno_t print_statfs(vfs_statfs_t *st, char *name, char *mountpoint)
+static void print_statfs(vfs_statfs_t *st, char *name, char *mountpoint)
 {
 	uint64_t const used_blocks = st->f_blocks - st->f_bfree;
 	unsigned const perc_used = PERCENTAGE(used_blocks, st->f_blocks);
-	char *str;
-	errno_t rc;
+	char str[CAPA_BLOCKS_BUFSIZE];
 
 	printf("%10s", name);
 
 	if (!display_blocks) {
 		/* Print size */
-		rc = size_to_human_readable(st->f_blocks, st->f_bsize, &str);
-		if (rc != EOK)
-			goto error;
+		capa_blocks_format_buf(st->f_blocks, st->f_bsize, str,
+		    sizeof(str));
 		printf(" %14s", str);
-		free(str);
 
 		/* Number of used blocks */
-		rc = size_to_human_readable(used_blocks, st->f_bsize, &str);
-		if (rc != EOK)
-			goto error;
+		capa_blocks_format_buf(used_blocks, st->f_bsize, str,
+		    sizeof(str));
 		printf(" %14s", str);
-		free(str);
 
 		/* Number of available blocks */
-		rc = size_to_human_readable(st->f_bfree, st->f_bsize, &str);
-		if (rc != EOK)
-			goto error;
+		capa_blocks_format_buf(st->f_bfree, st->f_bsize, str,
+		    sizeof(str));
 		printf(" %14s", str);
-		free(str);
 
 		/* Percentage of used blocks */
 		printf(" %4u%%", perc_used);
@@ -182,11 +163,6 @@ static errno_t print_statfs(vfs_statfs_t *st, char *name, char *mountpoint)
 		    st->f_bsize, st->f_blocks, used_blocks, st->f_bfree,
 		    perc_used, mountpoint);
 	}
-
-	return EOK;
-error:
-	printf("\nError: Out of memory.\n");
-	return ENOMEM;
 }
 
 static void print_usage(void)

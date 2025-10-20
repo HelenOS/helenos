@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2019 Matthieu Riolo
  * All rights reserved.
  *
@@ -282,6 +283,25 @@ PCUT_TEST(capa_to_blocks)
 		PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 		PCUT_ASSERT_INT_EQUALS(out_max[i], ret);
 	}
+}
+
+PCUT_TEST(capa_blocks_format)
+{
+	errno_t rc;
+	char *str;
+
+	rc = capa_blocks_format(42, 1, &str);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_STR_EQUALS("42 B", str);
+	free(str);
+}
+
+PCUT_TEST(capa_blocks_format_buf)
+{
+	char str[CAPA_BLOCKS_BUFSIZE];
+
+	capa_blocks_format_buf(42, 1, str, sizeof(str));
+	PCUT_ASSERT_STR_EQUALS("42 B", str);
 }
 
 PCUT_EXPORT(capa);

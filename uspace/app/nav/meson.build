@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2021 Jiri Svoboda
+# Copyright (c) 2025 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,17 +26,25 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'ui' ]
+deps = [ 'fmgt', 'ui' ]
 src = files(
+	'dlg/ioerrdlg.c',
+	'dlg/newfiledlg.c',
+	'dlg/progress.c',
 	'main.c',
 	'menu.c',
 	'nav.c',
+	'newfile.c',
 	'panel.c',
 )
 
 test_src = files(
+	'dlg/ioerrdlg.c',
+	'dlg/newfiledlg.c',
+	'dlg/progress.c',
 	'menu.c',
 	'nav.c',
+	'newfile.c',
 	'panel.c',
 	'test/main.c',
 	'test/menu.c',

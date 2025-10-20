@@ -411,7 +411,7 @@ errno_t ui_paint(ui_t *ui)
 {
 	errno_t rc;
 	gfx_context_t *gc;
-	ui_window_t *awnd;
+	ui_window_t *wnd;
 	gfx_color_t *color = NULL;
 
 	/* In case of null output */
@@ -438,16 +438,21 @@ errno_t ui_paint(ui_t *ui)
 
 	gfx_color_delete(color);
 
-	/* XXX Should repaint all windows */
-	awnd = ui_window_get_active(ui);
-	if (awnd == NULL)
-		return EOK;
+	/* Repaint all windows */
+	wnd = ui_window_first(ui);
+	while (wnd != NULL) {
+		rc = ui_wdecor_paint(wnd->wdecor);
+		if (rc != EOK)
+			return rc;
 
-	rc = ui_wdecor_paint(awnd->wdecor);
-	if (rc != EOK)
-		return rc;
+		rc = ui_window_paint(wnd);
+		if (rc != EOK)
+			return rc;
 
-	return ui_window_paint(awnd);
+		wnd = ui_window_next(wnd);
+	}
+
+	return EOK;
 }
 
 /** Free up console for other users.

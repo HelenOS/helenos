@@ -550,7 +550,7 @@ typedef struct xhci_extcap {
 #define XHCI_EC_SP_SLOT_TYPE   cap_specific[2], 32, RANGE,  4,  0
 
 typedef union {
-	char str [4];
+	char str[4] __attribute__((nonstring));
 	uint32_t packed;
 } xhci_sp_name_t;
 

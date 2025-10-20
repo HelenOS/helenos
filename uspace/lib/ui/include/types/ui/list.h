@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,6 +37,7 @@
 #define _UI_TYPES_LIST_H
 
 #include <gfx/color.h>
+#include <stddef.h>
 
 struct ui_list;
 typedef struct ui_list ui_list_t;
@@ -65,6 +66,14 @@ typedef struct ui_list_cb {
 	/** Compare two entries (for sorting) */
 	int (*compare)(ui_list_entry_t *, ui_list_entry_t *);
 } ui_list_cb_t;
+
+/** Saved list position. */
+typedef struct {
+	/** Page index */
+	size_t page_idx;
+	/** Cursor index */
+	size_t cursor_idx;
+} ui_list_pos_t;
 
 #endif
 

@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2006 Josef Cejka
  * All rights reserved.
  *
@@ -177,6 +178,23 @@ sysarg_t chargrid_newline(chargrid_t *scrbuf)
 	scrbuf->row++;
 
 	return chargrid_update_rows(scrbuf);
+}
+
+/** Return cursor to the beginning of the line.
+ *
+ * @param scrbuf Chargrid.
+ *
+ * @return Number of rows which have been affected. In usual
+ *         situations this is 1.
+ *
+ */
+sysarg_t chargrid_cr(chargrid_t *scrbuf)
+{
+	assert(scrbuf->col < scrbuf->cols);
+	assert(scrbuf->row < scrbuf->rows);
+
+	scrbuf->col = 0;
+	return 1;
 }
 
 /** Jump to a new row in chargrid.

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -86,7 +86,13 @@ typedef struct {
 	capa_unit_t cunit;
 } capa_spec_t;
 
+/** Size of buffer large enough for capa_blocks_format_buf */
+#define CAPA_BLOCKS_BUFSIZE 16
+
 extern errno_t capa_format(capa_spec_t *, char **);
+extern errno_t capa_format_buf(capa_spec_t *, char *, size_t);
+extern errno_t capa_blocks_format(uint64_t, size_t, char **);
+extern void capa_blocks_format_buf(uint64_t, size_t, char *, size_t);
 extern errno_t capa_parse(const char *, capa_spec_t *);
 extern void capa_simplify(capa_spec_t *);
 extern void capa_from_blocks(uint64_t, size_t, capa_spec_t *);

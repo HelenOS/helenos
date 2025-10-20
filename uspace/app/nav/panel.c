@@ -364,6 +364,22 @@ errno_t panel_read_dir(panel_t *panel, const char *dirname)
 	return ui_file_list_read_dir(panel->flist, dirname);
 }
 
+/** Refresh panel contents.
+ *
+ * @param panel Panel
+ * @return EOK on success or an error code
+ */
+errno_t panel_refresh(panel_t *panel)
+{
+	errno_t rc;
+
+	rc = ui_file_list_refresh(panel->flist);
+	if (rc != EOK)
+		return rc;
+
+	return panel_paint(panel);
+}
+
 /** Request panel activation.
  *
  * Call back to request panel activation.

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -57,6 +57,7 @@ extern bool panel_is_active(panel_t *);
 extern errno_t panel_activate(panel_t *);
 extern void panel_deactivate(panel_t *);
 extern errno_t panel_read_dir(panel_t *, const char *);
+extern errno_t panel_refresh(panel_t *);
 extern void panel_activate_req(panel_t *);
 
 #endif
