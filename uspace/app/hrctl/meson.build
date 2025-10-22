@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2025 Jiri Svoboda
-# Copyright (c) 2019 Jiří Zárevúcky
+# Copyright (c) 2025 Miroslav Cimerman
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,91 +26,9 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-apps = [
-	'aboutos',
-	'barber',
-	'bdsh',
-	'bdwrite',
-	'bithenge',
-	'blkdump',
-	'calculator',
-	'corecfg',
-	'cpptest',
-	'date',
-	'devctl',
-	'df',
-	'disp',
-	'display-cfg',
-	'dnscfg',
-	'dnsres',
-	'download',
-	'edit',
-	'fdisk',
-	'fontedit',
-	'getterm',
-	'gfxdemo',
-	'gunzip',
-	'hbench',
-	'hello',
-	'hrctl',
-	'inet',
-	'init',
-	'kill',
-	'killall',
-	'kio',
-	'loc',
-	'logset',
-	'lprint',
-	'mixerctl',
-	'mkbd',
-	'mkexfat',
-	'mkext4',
-	'mkfat',
-	'mkmfs',
-	'modplay',
-	'nav',
-	'netecho',
-	'newfile',
-	'nic',
-	'nterm',
-	'ofw',
-	'pci',
-	'ping',
-	'pkg',
-	'redir',
-	'sbi',
-	'shutdown',
-	'shutdown-dlg',
-	'sportdmp',
-	'stats',
-	'sysinfo',
-	'sysinst',
-	'taskbar',
-	'taskbar-cfg',
-	'taskdump',
-	'terminal',
-	'tester',
-	'testread',
-	'testrunner',
-	'testwrit',
-	'tetris',
-	'tmon',
-	'top',
-	'trace',
-	'uidemo',
-	'untar',
-	'usbinfo',
-	'viewer',
-	'vol',
-	'vuhid',
-	'wavplay',
-	'websrv',
-	'wifi_supplicant',
-]
+deps = [ 'device', 'sif' ]
+src = files('hrctl.c')
 
-if CONFIG_BUILD_SHARED_LIBS
-	apps += [
-		'dltest',
-		'dltests',
-	]
-endif
+installed_data += { 'name': 'sample_hrconfig_pci.sif', 'dir': '/cfg' }
+installed_data += { 'name': 'sample_hrconfig_file_bd.sif', 'dir': '/cfg' }
+installed_data += { 'name': 'create_file_bd_disks.bdsh', 'dir': '/cfg' }
