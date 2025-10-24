@@ -63,6 +63,8 @@ static errno_t ext4_read_file(ipc_call_t *, aoff64_t, size_t, ext4_instance_t *,
     ext4_inode_ref_t *, size_t *);
 static bool ext4_is_dots(const uint8_t *, size_t);
 static errno_t ext4_instance_get(service_id_t, ext4_instance_t **);
+static errno_t handle_sparse_or_unallocated_fblock(ext4_filesystem_t *,
+    ext4_inode_ref_t *, uint32_t, uint32_t, uint32_t *, int *, bool *);
 
 /* Forward declarations of ext4 libfs operations. */
 
@@ -157,10 +159,6 @@ errno_t ext4_global_fini(void)
 	return EOK;
 }
 
-/*
- * Ext4 libfs operations.
- */
-
 /** Get instance from internal table by service_id.
  *
  * @param service_id Device identifier
@@ -169,7 +167,7 @@ errno_t ext4_global_fini(void)
  * @return Error code
  *
  */
-errno_t ext4_instance_get(service_id_t service_id, ext4_instance_t **inst)
+static errno_t ext4_instance_get(service_id_t service_id, ext4_instance_t **inst)
 {
 	fibril_mutex_lock(&instance_list_mutex);
 
@@ -189,6 +187,10 @@ errno_t ext4_instance_get(service_id_t service_id, ext4_instance_t **inst)
 	fibril_mutex_unlock(&instance_list_mutex);
 	return EINVAL;
 }
+
+/*
+ * Ext4 libfs operations.
+ */
 
 /** Get root node of filesystem specified by service_id.
  *
@@ -1285,6 +1287,8 @@ static errno_t ext4_write(service_id_t service_id, fs_index_t index, aoff64_t po
 {
 	fs_node_t *fn;
 	errno_t rc2;
+	bool fblock_allocated = false;
+
 	errno_t rc = ext4_node_get(&fn, service_id, index);
 	if (rc != EOK)
 		return rc;
@@ -1321,48 +1325,14 @@ static errno_t ext4_write(service_id_t service_id, fs_index_t index, aoff64_t po
 		goto exit;
 	}
 
-	/* Check for sparse file */
+	/* Handle sparse or unallocated block */
 	if (fblock == 0) {
-		if ((ext4_superblock_has_feature_incompatible(fs->superblock,
-		    EXT4_FEATURE_INCOMPAT_EXTENTS)) &&
-		    (ext4_inode_has_flag(inode_ref->inode, EXT4_INODE_FLAG_EXTENTS))) {
-			uint32_t last_iblock =
-			    ext4_inode_get_size(fs->superblock, inode_ref->inode) /
-			    block_size;
-
-			while (last_iblock < iblock) {
-				rc = ext4_extent_append_block(inode_ref, &last_iblock,
-				    &fblock, true);
-				if (rc != EOK) {
-					async_answer_0(&call, rc);
-					goto exit;
-				}
-			}
-
-			rc = ext4_extent_append_block(inode_ref, &last_iblock,
-			    &fblock, false);
-			if (rc != EOK) {
-				async_answer_0(&call, rc);
-				goto exit;
-			}
-		} else {
-			rc = ext4_balloc_alloc_block(inode_ref, &fblock);
-			if (rc != EOK) {
-				async_answer_0(&call, rc);
-				goto exit;
-			}
-
-			rc = ext4_filesystem_set_inode_data_block_index(inode_ref,
-			    iblock, fblock);
-			if (rc != EOK) {
-				ext4_balloc_free_block(inode_ref, fblock);
-				async_answer_0(&call, rc);
-				goto exit;
-			}
+		rc = handle_sparse_or_unallocated_fblock(fs, inode_ref,
+		    block_size, iblock, &fblock, &flags, &fblock_allocated);
+		if (rc != EOK) {
+			async_answer_0(&call, rc);
+			goto exit;
 		}
-
-		flags = BLOCK_FLAGS_NOREAD;
-		inode_ref->dirty = true;
 	}
 
 	/* Load target block */
@@ -1401,8 +1371,72 @@ static errno_t ext4_write(service_id_t service_id, fs_index_t index, aoff64_t po
 	*wbytes = bytes;
 
 exit:
+	if (rc != EOK && fblock_allocated)
+		ext4_balloc_free_block(inode_ref, fblock);
+
 	rc2 = ext4_node_put(fn);
 	return rc == EOK ? rc2 : rc;
+}
+
+/** Handle sparse or unallocated block.
+ *
+ * @param fs		Filesystem handle
+ * @param inode_ref	I-node reference
+ * @param block_size	Filesystem block size
+ * @param iblock	Logical block
+ * @param fblock	Place to store allocated block address
+ * @param flags		BLOCK_FLAGS to update
+ * @param allocated	Place to store whether new block was allocated
+ *
+ * @return Error code
+ *
+ */
+static errno_t handle_sparse_or_unallocated_fblock(ext4_filesystem_t *fs,
+    ext4_inode_ref_t *inode_ref, uint32_t block_size, uint32_t iblock,
+    uint32_t *fblock, int *flags, bool *allocated)
+{
+	errno_t rc;
+
+	/* Check for sparse file */
+	if ((ext4_superblock_has_feature_incompatible(fs->superblock,
+	    EXT4_FEATURE_INCOMPAT_EXTENTS)) &&
+	    (ext4_inode_has_flag(inode_ref->inode, EXT4_INODE_FLAG_EXTENTS))) {
+		uint32_t last_iblock =
+		    ext4_inode_get_size(fs->superblock, inode_ref->inode) /
+		    block_size;
+
+		while (last_iblock < iblock) {
+			rc = ext4_extent_append_block(inode_ref, &last_iblock,
+			    fblock, true);
+			if (rc != EOK)
+				return rc;
+		}
+
+		rc = ext4_extent_append_block(inode_ref, &last_iblock, fblock,
+		    false);
+		if (rc != EOK)
+			return rc;
+
+		*allocated = false;
+	} else { /* Allocate new block */
+		rc = ext4_balloc_alloc_block(inode_ref, fblock);
+		if (rc != EOK)
+			return rc;
+
+		rc = ext4_filesystem_set_inode_data_block_index(inode_ref,
+		    iblock, *fblock);
+		if (rc != EOK) {
+			ext4_balloc_free_block(inode_ref, *fblock);
+			return rc;
+		}
+
+		*allocated = true;
+	}
+
+	*flags = BLOCK_FLAGS_NOREAD;
+	inode_ref->dirty = true;
+
+	return EOK;
 }
 
 /** Truncate file.
