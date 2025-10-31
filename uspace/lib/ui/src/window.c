@@ -1282,6 +1282,9 @@ display_stock_cursor_t wnd_dcursor_from_cursor(ui_stock_cursor_t cursor)
 	case ui_curs_ibeam:
 		dcursor = dcurs_ibeam;
 		break;
+	case ui_curs_pointer:
+		dcursor = dcurs_pointer;
+		break;
 	}
 
 	return dcursor;
