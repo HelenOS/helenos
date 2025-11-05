@@ -205,7 +205,7 @@ char *ctime(const time_t *timep)
 }
 
 /**
- * Get clock resolution. Only CLOCK_REALTIME is supported.
+ * Get clock resolution.
  *
  * @param clock_id Clock ID.
  * @param res Pointer to the variable where the resolution is to be written.
@@ -217,6 +217,7 @@ int clock_getres(clockid_t clock_id, struct timespec *res)
 
 	switch (clock_id) {
 	case CLOCK_REALTIME:
+	case CLOCK_MONOTONIC:
 		res->tv_sec = 0;
 		res->tv_nsec = USEC2NSEC(1); /* Microsecond resolution. */
 		return 0;
@@ -227,7 +228,7 @@ int clock_getres(clockid_t clock_id, struct timespec *res)
 }
 
 /**
- * Get time. Only CLOCK_REALTIME is supported.
+ * Get time.
  *
  * @param clock_id ID of the clock to query.
  * @param tp Pointer to the variable where the time is to be written.
@@ -244,6 +245,9 @@ int clock_gettime(clockid_t clock_id, struct timespec *tp)
 		gettimeofday(&tv, NULL);
 		tp->tv_sec = tv.tv_sec;
 		tp->tv_nsec = USEC2NSEC(tv.tv_usec);
+		return 0;
+	case CLOCK_MONOTONIC:
+		getuptime(tp);
 		return 0;
 	default:
 		errno = EINVAL;
@@ -266,6 +270,7 @@ int clock_settime(clockid_t clock_id,
 
 	switch (clock_id) {
 	case CLOCK_REALTIME:
+	case CLOCK_MONOTONIC:
 		// TODO: setting clock
 		// FIXME: HelenOS doesn't actually support hardware
 		//        clock yet

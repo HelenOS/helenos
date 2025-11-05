@@ -41,6 +41,7 @@
 #include <libc/time.h>
 
 #define CLOCK_REALTIME ((clockid_t) 0)
+#define CLOCK_MONOTONIC ((clockid_t) 1)
 
 #define ASCTIME_BUF_LEN  26
 
