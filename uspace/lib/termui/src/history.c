@@ -299,8 +299,8 @@ static void _alloc_line(struct history *history)
 		lines->tail = 0;
 
 	if (viewport_inactive) {
-	    /* Ensure consistent state so asserts don't trigger inside _evict_oldest_line(). */
-	    history->viewport_top = lines->tail;
+		/* Ensure consistent state so asserts don't trigger inside _evict_oldest_line(). */
+		history->viewport_top = lines->tail;
 	}
 
 	if (lines->tail == lines->head)

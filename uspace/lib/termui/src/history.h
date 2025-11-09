@@ -65,11 +65,13 @@ struct line_buffer {
 	size_t max_len;
 };
 
-/* History consists of two circular buffers.
+/*
+ * History consists of two circular buffers.
  * The cell buffer is a linear array of character cells.
  * The line buffer contains offsets into the cell buffer, and segments it into logical lines.
  * Both of these buffers have a maximum size, so history is limited both by maximum number
- * of characters, and maximum number of lines.  */
+ * of characters, and maximum number of lines.
+ */
 struct history {
 	size_t viewport_top;
 	size_t row_delta;
