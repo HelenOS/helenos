@@ -364,7 +364,7 @@ build_binutils() {
 		"--program-prefix=${TARGET}-" \
 		--disable-nls \
 		--disable-werror \
-		--enable-gold \
+		--disable-gold \
 		--enable-deterministic-archives \
 		--disable-gdb \
 		--with-sysroot
