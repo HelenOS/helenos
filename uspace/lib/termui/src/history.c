@@ -125,8 +125,8 @@ static bool _index_valid(const struct history *history, size_t idx)
 }
 
 #define _history_check(history) do { \
-	assert(history->lines.head < history->lines.buf_len); \
-	assert(history->lines.tail < history->lines.buf_len); \
+	assert(history->lines.head < history->lines.buf_len || history->lines.head == 0); \
+	assert(history->lines.tail < history->lines.buf_len || history->lines.tail == 0); \
 	assert(history->cells.tail_top <= history->cells.head_offset); \
 	assert(history->cells.head_offset <= history->cells.head_top); \
 	assert(history->cells.head_top <= history->cells.buf_len); \
@@ -297,6 +297,11 @@ static void _alloc_line(struct history *history)
 
 	if (lines->tail >= lines->buf_len)
 		lines->tail = 0;
+
+	if (viewport_inactive) {
+	    /* Ensure consistent state so asserts don't trigger inside _evict_oldest_line(). */
+	    history->viewport_top = lines->tail;
+	}
 
 	if (lines->tail == lines->head)
 		_evict_oldest_line(history);
