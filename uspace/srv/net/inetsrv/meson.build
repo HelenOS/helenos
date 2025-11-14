@@ -26,7 +26,8 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'inet', 'sif' ]
+deps = [ 'inet', 'sif', 'pcap' ]
+
 src = files(
 	'addrobj.c',
 	'icmp.c',

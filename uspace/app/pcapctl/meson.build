@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2011 Radim Vansa
+# Copyright (c) 2023 Nataliia Korop
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -25,14 +25,5 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
-
-deps = [ 'drv' , 'pcap' ]
-c_args = [ '-DLIBNIC_INTERNAL', ]
-src = files(
-	'src/nic_driver.c',
-	'src/nic_ev.c',
-	'src/nic_addr_db.c',
-	'src/nic_rx_control.c',
-	'src/nic_wol_virtues.c',
-	'src/nic_impl.c',
-)
+deps = ['pcap']
+src = files('main.c')
