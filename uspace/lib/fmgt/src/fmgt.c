@@ -43,9 +43,7 @@
 #include <dirent.h>
 
 #include "fmgt.h"
-
-#define NEWNAME_LEN 64
-#define BUFFER_SIZE 16384
+#include "../private/fmgt.h"
 
 /** Create file management library instance.
  *
@@ -105,36 +103,6 @@ void fmgt_destroy(fmgt_t *fmgt)
 	free(fmgt);
 }
 
-/** Suggest file name for new file.
- *
- * @param fmgt File management object
- * @param rstr Place to store pointer to newly allocated string
- * @return EOK on success or an error code
- */
-errno_t fmgt_new_file_suggest(char **rstr)
-{
-	errno_t rc;
-	vfs_stat_t stat;
-	unsigned u;
-	char name[NEWNAME_LEN];
-
-	u = 0;
-	while (true) {
-		snprintf(name, sizeof(name), "noname%02u.txt", u);
-		rc = vfs_stat_path(name, &stat);
-		if (rc != EOK)
-			break;
-
-		++u;
-	}
-
-	*rstr = str_dup(name);
-	if (*rstr == NULL)
-		return ENOMEM;
-
-	return EOK;
-}
-
 /** Get progress update report.
  *
  * @param fmgt File management object
@@ -179,7 +147,7 @@ static void fmgt_progress_update(fmgt_t *fmgt)
  *
  * @param fmgt File management object
  */
-static void fmgt_initial_progress_update(fmgt_t *fmgt)
+void fmgt_initial_progress_update(fmgt_t *fmgt)
 {
 	if (fmgt->do_init_update)
 		fmgt_progress_update(fmgt);
@@ -191,7 +159,7 @@ static void fmgt_initial_progress_update(fmgt_t *fmgt)
  *
  * @param fmgt File management object
  */
-static void fmgt_final_progress_update(fmgt_t *fmgt)
+void fmgt_final_progress_update(fmgt_t *fmgt)
 {
 	if (fmgt->curf_progr)
 		fmgt_progress_update(fmgt);
@@ -215,7 +183,7 @@ static void fmgt_timer_fun(void *arg)
  *
  * @param fmgt File management object
  */
-static void fmgt_timer_start(fmgt_t *fmgt)
+void fmgt_timer_start(fmgt_t *fmgt)
 {
 	fibril_timer_set(fmgt->timer, 500000, fmgt_timer_fun, (void *)fmgt);
 }
@@ -224,7 +192,7 @@ static void fmgt_timer_start(fmgt_t *fmgt)
  *
  * @param fmgt File management object
  */
-static void fmgt_timer_stop(fmgt_t *fmgt)
+void fmgt_timer_stop(fmgt_t *fmgt)
 {
 	(void)fibril_timer_clear(fmgt->timer);
 }
@@ -234,7 +202,7 @@ static void fmgt_timer_stop(fmgt_t *fmgt)
  * @param fmgt File management object
  * @return @c true iff operation should be aborted
  */
-static bool fmgt_abort_query(fmgt_t *fmgt)
+bool fmgt_abort_query(fmgt_t *fmgt)
 {
 	if (fmgt->cb != NULL && fmgt->cb->abort_query != NULL)
 		return fmgt->cb->abort_query(fmgt->cb_arg);
@@ -248,101 +216,13 @@ static bool fmgt_abort_query(fmgt_t *fmgt)
  * @param err I/O error report
  * @return What error recovery action should be taken.
  */
-static fmgt_error_action_t fmgt_io_error_query(fmgt_t *fmgt,
+fmgt_error_action_t fmgt_io_error_query(fmgt_t *fmgt,
     fmgt_io_error_t *err)
 {
 	if (fmgt->cb != NULL && fmgt->cb->io_error_query != NULL)
 		return fmgt->cb->io_error_query(fmgt->cb_arg, err);
 	else
 		return fmgt_er_abort;
-}
-
-/** Create new file.
- *
- * @param fmgt File management object
- * @param fname File name
- * @param fsize Size of new file (number of zero bytes to fill in)
- * @param flags New file flags
- * @return EOK on success or an error code
- */
-errno_t fmgt_new_file(fmgt_t *fmgt, const char *fname, uint64_t fsize,
-    fmgt_nf_flags_t flags)
-{
-	int fd;
-	size_t nw;
-	aoff64_t pos = 0;
-	uint64_t now;
-	char *buffer;
-	fmgt_io_error_t err;
-	fmgt_error_action_t action;
-	errno_t rc;
-
-	buffer = calloc(BUFFER_SIZE, 1);
-	if (buffer == NULL)
-		return ENOMEM;
-
-	rc = vfs_lookup_open(fname, WALK_REGULAR | WALK_MUST_CREATE,
-	    MODE_WRITE, &fd);
-	if (rc != EOK) {
-		free(buffer);
-		return rc;
-	}
-
-	fmgt->curf_procb = 0;
-	fmgt->curf_totalb = fsize;
-	fmgt->curf_progr = false;
-	fmgt_timer_start(fmgt);
-
-	fmgt_initial_progress_update(fmgt);
-
-	/* Create sparse file? */
-	if ((flags & nf_sparse) != 0) {
-		fmgt->curf_procb = fsize - 1;
-		pos = fsize - 1;
-	}
-
-	while (fmgt->curf_procb < fsize) {
-		now = fsize - fmgt->curf_procb;
-		if (now > BUFFER_SIZE)
-			now = BUFFER_SIZE;
-
-		do {
-			rc = vfs_write(fd, &pos, buffer, now, &nw);
-			if (rc == EOK)
-				break;
-
-			/* I/O error */
-			err.fname = fname;
-			err.optype = fmgt_io_write;
-			err.rc = rc;
-			fmgt_timer_stop(fmgt);
-			action = fmgt_io_error_query(fmgt, &err);
-			fmgt_timer_start(fmgt);
-		} while (action == fmgt_er_retry);
-
-		/* Not recovered? */
-		if (rc != EOK) {
-			free(buffer);
-			vfs_put(fd);
-			fmgt_final_progress_update(fmgt);
-			return rc;
-		}
-
-		fmgt->curf_procb += nw;
-
-		/* User requested abort? */
-		if (fmgt_abort_query(fmgt)) {
-			free(buffer);
-			vfs_put(fd);
-			fmgt_final_progress_update(fmgt);
-			return EINTR;
-		}
-	}
-
-	free(buffer);
-	vfs_put(fd);
-	fmgt_final_progress_update(fmgt);
-	return EOK;
 }
 
 /** @}

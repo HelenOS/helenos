@@ -28,9 +28,11 @@
 
 src = files(
 	'src/fmgt.c',
+	'src/newfile.c'
 )
 
 test_src = files(
 	'test/fmgt.c',
 	'test/main.c',
+	'test/newfile.c'
 )

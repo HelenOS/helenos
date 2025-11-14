@@ -26,27 +26,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <fmgt.h>
-#include <pcut/pcut.h>
-#include <stdio.h>
-#include <str.h>
-#include <vfs/vfs.h>
+/** @addtogroup fmgt
+ * @{
+ */
+/**
+ * @file
+ * @brief File management library - private definitions.
+ */
 
-PCUT_INIT;
+#ifndef PRIVATE_FMGT_H
+#define PRIVATE_FMGT_H
 
-PCUT_TEST_SUITE(fmgt);
+#include <stdbool.h>
+#include "../include/types/fmgt.h"
 
-/** Create and destroy file management object succeeds. */
-PCUT_TEST(create_destroy)
-{
-	fmgt_t *fmgt = NULL;
-	errno_t rc;
+#define BUFFER_SIZE 16384
 
-	rc = fmgt_create(&fmgt);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(fmgt);
+extern void fmgt_timer_start(fmgt_t *);
+extern void fmgt_timer_stop(fmgt_t *);
+extern bool fmgt_abort_query(fmgt_t *);
+extern fmgt_error_action_t fmgt_io_error_query(fmgt_t *, fmgt_io_error_t *);
+extern void fmgt_initial_progress_update(fmgt_t *);
+extern void fmgt_final_progress_update(fmgt_t *);
 
-	fmgt_destroy(fmgt);
-}
+#endif
 
-PCUT_EXPORT(fmgt);
+/** @}
+ */

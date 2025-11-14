@@ -31,5 +31,6 @@
 PCUT_INIT;
 
 PCUT_IMPORT(fmgt);
+PCUT_IMPORT(newfile);
 
 PCUT_MAIN();

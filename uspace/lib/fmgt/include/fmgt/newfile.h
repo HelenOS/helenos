@@ -26,27 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <fmgt.h>
-#include <pcut/pcut.h>
-#include <stdio.h>
-#include <str.h>
-#include <vfs/vfs.h>
+/** @addtogroup fmgt
+ * @{
+ */
+/**
+ * @file
+ * @brief File management library - creating new files.
+ */
 
-PCUT_INIT;
+#ifndef FMGT_NEWFILE_H
+#define FMGT_NEWFILE_H
 
-PCUT_TEST_SUITE(fmgt);
+#include <errno.h>
+#include <stdint.h>
+#include "types/fmgt.h"
 
-/** Create and destroy file management object succeeds. */
-PCUT_TEST(create_destroy)
-{
-	fmgt_t *fmgt = NULL;
-	errno_t rc;
+extern errno_t fmgt_new_file_suggest(char **);
+extern errno_t fmgt_new_file(fmgt_t *, const char *, uint64_t, fmgt_nf_flags_t);
 
-	rc = fmgt_create(&fmgt);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(fmgt);
+#endif
 
-	fmgt_destroy(fmgt);
-}
-
-PCUT_EXPORT(fmgt);
+/** @}
+ */
