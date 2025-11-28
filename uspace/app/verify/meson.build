@@ -26,16 +26,5 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-src = files(
-	'src/flist.c',
-	'src/fmgt.c',
-	'src/newfile.c',
-	'src/verify.c',
-	'src/walk.c'
-)
-
-test_src = files(
-	'test/fmgt.c',
-	'test/main.c',
-	'test/newfile.c'
-)
+deps = [ 'console', 'fmgt', 'input' ]
+src = files('verify.c')

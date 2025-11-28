@@ -31,7 +31,7 @@
  */
 /**
  * @file
- * @brief File management library - creating new files.
+ * @brief Create new files.
  */
 
 #ifndef FMGT_NEWFILE_H

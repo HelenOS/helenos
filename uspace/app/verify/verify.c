@@ -26,13 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup newfile
+/** @addtogroup verify
  * @{
  */
-/** @file Create new file.
+/** @file Verify that file can be read.
  */
 
-#include <capa.h>
 #include <errno.h>
 #include <fmgt.h>
 #include <io/console.h>
@@ -44,11 +43,11 @@
 #include <str.h>
 #include <str_error.h>
 
-#define NAME  "newfile"
+#define NAME  "verify"
 
-static bool newfile_abort_query(void *);
-static void newfile_progress(void *, fmgt_progress_t *);
-static fmgt_error_action_t newfile_io_error_query(void *, fmgt_io_error_t *);
+static bool verify_abort_query(void *);
+static void verify_progress(void *, fmgt_progress_t *);
+static fmgt_error_action_t verify_io_error_query(void *, fmgt_io_error_t *);
 
 static bool prog_upd = false;
 static bool nonint = false;
@@ -56,21 +55,19 @@ static bool quiet = false;
 
 static console_ctrl_t *con;
 
-static fmgt_cb_t newfile_fmgt_cb = {
-	.abort_query = newfile_abort_query,
-	.io_error_query = newfile_io_error_query,
-	.progress = newfile_progress,
+static fmgt_cb_t verify_fmgt_cb = {
+	.abort_query = verify_abort_query,
+	.io_error_query = verify_io_error_query,
+	.progress = verify_progress,
 };
 
 static void print_syntax(void)
 {
-	printf("Create new file.\n");
-	printf("Syntax: %s [<options] [<file-name>]\n", NAME);
+	printf("Verify that file can be read.\n");
+	printf("Syntax: %s [<options] <file-name>...\n", NAME);
 	printf("\t-h           help\n");
 	printf("\t-n           non-interactive\n");
-	printf("\t-p           create sparse file\n");
 	printf("\t-q           quiet\n");
-	printf("\t-size=<cap>  file size (<number>[<kB>|<MB>|...])\n");
 }
 
 /** Called by fmgt to query for user abort.
@@ -78,7 +75,7 @@ static void print_syntax(void)
  * @param arg Argument (not used)
  * @return @c true iff user requested abort
  */
-static bool newfile_abort_query(void *arg)
+static bool verify_abort_query(void *arg)
 {
 	cons_event_t event;
 	kbd_event_t *ev;
@@ -111,13 +108,14 @@ static bool newfile_abort_query(void *arg)
  * @param arg Argument (not used)
  * @param progress Progress report
  */
-static void newfile_progress(void *arg, fmgt_progress_t *progress)
+static void verify_progress(void *arg, fmgt_progress_t *progress)
 {
 	(void)arg;
 
 	if (!quiet) {
-		printf("\rWritten %s of %s (%s done).", progress->curf_procb,
-		    progress->curf_totalb, progress->curf_percent);
+		printf("\rVerified %s files, %s; current file: %s done.  "
+		    "\b\b", progress->total_procf, progress->total_procb,
+		    progress->curf_percent);
 		fflush(stdout);
 		prog_upd = true;
 	}
@@ -129,7 +127,7 @@ static void newfile_progress(void *arg, fmgt_progress_t *progress)
  * @param err I/O error report
  * @return Error recovery action.
  */
-static fmgt_error_action_t newfile_io_error_query(void *arg,
+static fmgt_error_action_t verify_io_error_query(void *arg,
     fmgt_io_error_t *err)
 {
 	cons_event_t event;
@@ -185,11 +183,13 @@ int main(int argc, char *argv[])
 	fmgt_t *fmgt = NULL;
 	errno_t rc;
 	int i;
-	bool sparse = false;
-	char *fsize = NULL;
-	char *fname = NULL;
-	capa_spec_t fcap;
-	uint64_t nbytes = 0;
+	fmgt_flist_t *flist = NULL;
+
+	rc = fmgt_flist_create(&flist);
+	if (rc != EOK) {
+		printf("Out of memory.\n");
+		goto error;
+	}
 
 	con = console_init(stdin, stdout);
 
@@ -201,16 +201,9 @@ int main(int argc, char *argv[])
 		} else if (str_cmp(argv[i], "-n") == 0) {
 			++i;
 			nonint = true;
-		} else if (str_cmp(argv[i], "-p") == 0) {
-			++i;
-			sparse = true;
 		} else if (str_cmp(argv[i], "-q") == 0) {
 			++i;
 			quiet = true;
-		} else if (str_lcmp(argv[i], "-size=",
-		    str_length("-size=")) == 0) {
-			fsize = argv[i] + str_length("-size=");
-			++i;
 		} else {
 			printf("Invalid option '%s'.\n", argv[i]);
 			print_syntax();
@@ -218,41 +211,18 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	if (i < argc) {
-		fname = str_dup(argv[i++]);
-		if (fname == NULL) {
-			printf("Out of memory.\n");
-			goto error;
-		}
-	}
-
-	if (i < argc) {
-		printf("Unexpected argument.\n");
+	if (i >= argc) {
 		print_syntax();
 		goto error;
 	}
 
-	if (fname == NULL) {
-		rc = fmgt_new_file_suggest(&fname);
+	do {
+		rc = fmgt_flist_append(flist, argv[i++]);
 		if (rc != EOK) {
 			printf("Out of memory.\n");
 			goto error;
 		}
-	}
-
-	if (fsize != NULL) {
-		rc = capa_parse(fsize, &fcap);
-		if (rc != EOK) {
-			printf("Invalid file size '%s'.\n", fsize);
-			goto error;
-		}
-
-		rc = capa_to_blocks(&fcap, cv_nom, 1, &nbytes);
-		if (rc != EOK) {
-			printf("File size too large '%s'.\n", fsize);
-			goto error;
-		}
-	}
+	} while (i < argc);
 
 	rc = fmgt_create(&fmgt);
 	if (rc != EOK) {
@@ -260,9 +230,9 @@ int main(int argc, char *argv[])
 		goto error;
 	}
 
-	fmgt_set_cb(fmgt, &newfile_fmgt_cb, NULL);
+	fmgt_set_cb(fmgt, &verify_fmgt_cb, NULL);
 
-	rc = fmgt_new_file(fmgt, fname, nbytes, sparse ? nf_sparse : nf_none);
+	rc = fmgt_verify(fmgt, flist);
 	if (prog_upd)
 		putchar('\n');
 	if (rc != EOK) {
@@ -270,12 +240,12 @@ int main(int argc, char *argv[])
 		goto error;
 	}
 
-	free(fname);
+	fmgt_flist_destroy(flist);
 	fmgt_destroy(fmgt);
 	return 0;
 error:
-	if (fname != NULL)
-		free(fname);
+	if (flist != NULL)
+		fmgt_flist_destroy(flist);
 	if (fmgt != NULL)
 		fmgt_destroy(fmgt);
 	return 1;

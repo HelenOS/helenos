@@ -41,7 +41,9 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include "fmgt/flist.h"
 #include "fmgt/newfile.h"
+#include "fmgt/verify.h"
 #include "types/fmgt.h"
 
 extern errno_t fmgt_create(fmgt_t **);

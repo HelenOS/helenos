@@ -26,32 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup fmgt
+/** @addtogroup nav
  * @{
  */
 /**
- * @file
- * @brief File management library - private definitions.
+ * @file Verify dialog
  */
 
-#ifndef PRIVATE_FMGT_H
-#define PRIVATE_FMGT_H
+#ifndef DLG_VERIFYDLG_H
+#define DLG_VERIFYDLG_H
 
-#include <stdbool.h>
-#include "../include/types/fmgt.h"
+#include <errno.h>
+#include <fmgt.h>
+#include <types/ui/ui.h>
+#include "../types/dlg/verifydlg.h"
 
-#define BUFFER_SIZE 16384
-
-extern void fmgt_timer_start(fmgt_t *);
-extern void fmgt_timer_stop(fmgt_t *);
-extern bool fmgt_abort_query(fmgt_t *);
-extern fmgt_error_action_t fmgt_io_error_query(fmgt_t *, fmgt_io_error_t *);
-extern void fmgt_progress_init(fmgt_t *);
-extern void fmgt_progress_init_file(fmgt_t *, const char *);
-extern void fmgt_progress_incr_bytes(fmgt_t *, uint64_t);
-extern void fmgt_progress_incr_files(fmgt_t *);
-extern void fmgt_initial_progress_update(fmgt_t *);
-extern void fmgt_final_progress_update(fmgt_t *);
+extern errno_t verify_dlg_create(ui_t *, fmgt_flist_t *, verify_dlg_t **);
+extern void verify_dlg_set_cb(verify_dlg_t *, verify_dlg_cb_t *,
+    void *);
+extern void verify_dlg_destroy(verify_dlg_t *);
 
 #endif
 

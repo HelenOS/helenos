@@ -45,6 +45,8 @@
 typedef struct progress_dlg {
 	/** Dialog window */
 	ui_window_t *window;
+	/** Label with total progress */
+	ui_label_t *ltotal_prog;
 	/** Label with current file progress */
 	ui_label_t *lcurf_prog;
 	/** Abort button */

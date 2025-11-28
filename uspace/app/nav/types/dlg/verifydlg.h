@@ -26,32 +26,50 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup fmgt
+/** @addtogroup nav
  * @{
  */
 /**
- * @file
- * @brief File management library - private definitions.
+ * @file Verify dialog
  */
 
-#ifndef PRIVATE_FMGT_H
-#define PRIVATE_FMGT_H
+#ifndef TYPES_DLG_VERIFYDLG_H
+#define TYPES_DLG_VERIFYDLG_H
 
+#include <errno.h>
+#include <fmgt.h>
+#include <ui/label.h>
+#include <ui/pbutton.h>
+#include <ui/window.h>
 #include <stdbool.h>
-#include "../include/types/fmgt.h"
 
-#define BUFFER_SIZE 16384
+/** Verify dialog */
+typedef struct verify_dlg {
+	/** Dialog window */
+	ui_window_t *window;
+	/** "Verify 'xxx'" */
+	ui_label_t *lverify;
+	/** OK button */
+	ui_pbutton_t *bok;
+	/** Cancel button */
+	ui_pbutton_t *bcancel;
+	/** Verify dialog callbacks */
+	struct verify_dlg_cb *cb;
+	/** Callback argument */
+	void *arg;
+	/** File list */
+	fmgt_flist_t *flist;
+} verify_dlg_t;
 
-extern void fmgt_timer_start(fmgt_t *);
-extern void fmgt_timer_stop(fmgt_t *);
-extern bool fmgt_abort_query(fmgt_t *);
-extern fmgt_error_action_t fmgt_io_error_query(fmgt_t *, fmgt_io_error_t *);
-extern void fmgt_progress_init(fmgt_t *);
-extern void fmgt_progress_init_file(fmgt_t *, const char *);
-extern void fmgt_progress_incr_bytes(fmgt_t *, uint64_t);
-extern void fmgt_progress_incr_files(fmgt_t *);
-extern void fmgt_initial_progress_update(fmgt_t *);
-extern void fmgt_final_progress_update(fmgt_t *);
+/** Verify dialog callbacks */
+typedef struct verify_dlg_cb {
+	/** OK button was pressed */
+	void (*bok)(verify_dlg_t *, void *);
+	/** Cancel button was pressed */
+	void (*bcancel)(verify_dlg_t *, void *);
+	/** Window closure requested (e.g. via close button) */
+	void (*close)(verify_dlg_t *, void *);
+} verify_dlg_cb_t;
 
 #endif
 

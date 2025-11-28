@@ -52,6 +52,7 @@
 #include "newfile.h"
 #include "nav.h"
 #include "panel.h"
+#include "verify.h"
 
 #define EDITOR_CMD "/app/edit"
 
@@ -66,12 +67,14 @@ static ui_window_cb_t window_cb = {
 static void navigator_file_new_file(void *);
 static void navigator_file_open(void *);
 static void navigator_file_edit(void *);
+static void navigator_file_verify(void *);
 static void navigator_file_exit(void *);
 
 static nav_menu_cb_t navigator_menu_cb = {
 	.file_new_file = navigator_file_new_file,
 	.file_open = navigator_file_open,
 	.file_edit = navigator_file_edit,
+	.file_verify = navigator_file_verify,
 	.file_exit = navigator_file_exit
 };
 
@@ -133,6 +136,9 @@ static void wnd_kbd(ui_window_t *window, void *arg, kbd_event_t *event)
 			break;
 		case KC_E:
 			navigator_file_edit((void *)navigator);
+			break;
+		case KC_V:
+			navigator_file_verify((void *)navigator);
 			break;
 		case KC_Q:
 			ui_quit(navigator->ui);
@@ -523,6 +529,35 @@ static void navigator_file_edit(void *arg)
 	ui_file_list_entry_get_attr(entry, &attr);
 
 	(void)navigator_edit_file(navigator, attr.name);
+}
+
+/** File / Verify menu entry selected */
+static void navigator_file_verify(void *arg)
+{
+	navigator_t *navigator = (navigator_t *)arg;
+
+	ui_file_list_entry_t *entry;
+	ui_file_list_entry_attr_t attr;
+	fmgt_flist_t *flist;
+	panel_t *panel;
+	errno_t rc;
+
+	panel = navigator_get_active_panel(navigator);
+	entry = ui_file_list_get_cursor(panel->flist);
+	ui_file_list_entry_get_attr(entry, &attr);
+
+	rc = fmgt_flist_create(&flist);
+	if (rc != EOK)
+		return;
+
+	rc = fmgt_flist_append(flist, attr.name);
+	if (rc != EOK) {
+		fmgt_flist_destroy(flist);
+		return;
+	}
+
+	/* flist ownership transferred */
+	navigator_verify_dlg(navigator, flist);
 }
 
 /** File / Exit menu entry selected */

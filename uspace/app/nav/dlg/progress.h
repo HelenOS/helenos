@@ -37,6 +37,7 @@
 #define DLG_PROGRESS_H
 
 #include <errno.h>
+#include <fmgt.h>
 #include <types/ui/ui.h>
 #include "../types/dlg/progress.h"
 
@@ -45,7 +46,7 @@ extern errno_t progress_dlg_create(ui_t *, progress_dlg_params_t *,
     progress_dlg_t **);
 extern void progress_dlg_set_cb(progress_dlg_t *, progress_dlg_cb_t *,
     void *);
-extern errno_t progress_dlg_set_curf_prog(progress_dlg_t *, const char *);
+extern errno_t progress_dlg_set_progress(progress_dlg_t *, fmgt_progress_t *);
 extern void progress_dlg_destroy(progress_dlg_t *);
 
 #endif

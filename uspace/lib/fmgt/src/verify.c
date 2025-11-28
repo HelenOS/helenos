@@ -29,69 +29,35 @@
 /** @addtogroup fmgt
  * @{
  */
-/** @file Create new files.
+/** @file Verify files.
  */
 
-#include <dirent.h>
+//#include <dirent.h>
 #include <errno.h>
 #include <stdbool.h>
-#include <stdio.h>
+//#include <stdio.h>
 #include <stdlib.h>
-#include <stddef.h>
-#include <str.h>
+//#include <stddef.h>
+//#include <str.h>
 #include <vfs/vfs.h>
-#include <dirent.h>
+//#include <dirent.h>
 
 #include "fmgt.h"
+#include "fmgt/walk.h"
 #include "../private/fmgt.h"
 
-#define NEWNAME_LEN 64
+static errno_t fmgt_verify_file(void *, const char *);
 
-/** Suggest file name for new file.
- *
- * @param fmgt File management object
- * @param rstr Place to store pointer to newly allocated string
- * @return EOK on success or an error code
- */
-errno_t fmgt_new_file_suggest(char **rstr)
+static fmgt_walk_cb_t fmgt_verify_cb = {
+	.file = fmgt_verify_file
+};
+
+static errno_t fmgt_verify_file(void *arg, const char *fname)
 {
-	errno_t rc;
-	vfs_stat_t stat;
-	unsigned u;
-	char name[NEWNAME_LEN];
-
-	u = 0;
-	while (true) {
-		snprintf(name, sizeof(name), "noname%02u.txt", u);
-		rc = vfs_stat_path(name, &stat);
-		if (rc != EOK)
-			break;
-
-		++u;
-	}
-
-	*rstr = str_dup(name);
-	if (*rstr == NULL)
-		return ENOMEM;
-
-	return EOK;
-}
-
-/** Create new file.
- *
- * @param fmgt File management object
- * @param fname File name
- * @param fsize Size of new file (number of zero bytes to fill in)
- * @param flags New file flags
- * @return EOK on success or an error code
- */
-errno_t fmgt_new_file(fmgt_t *fmgt, const char *fname, uint64_t fsize,
-    fmgt_nf_flags_t flags)
-{
+	fmgt_t *fmgt = (fmgt_t *)arg;
 	int fd;
-	size_t nw;
+	size_t nr;
 	aoff64_t pos = 0;
-	uint64_t now;
 	char *buffer;
 	fmgt_io_error_t err;
 	fmgt_error_action_t action;
@@ -101,36 +67,23 @@ errno_t fmgt_new_file(fmgt_t *fmgt, const char *fname, uint64_t fsize,
 	if (buffer == NULL)
 		return ENOMEM;
 
-	rc = vfs_lookup_open(fname, WALK_REGULAR | WALK_MUST_CREATE,
-	    MODE_WRITE, &fd);
+	rc = vfs_lookup_open(fname, WALK_REGULAR, MODE_READ, &fd);
 	if (rc != EOK) {
 		free(buffer);
 		return rc;
 	}
 
-	/* Clear statistics. */
-	fmgt_progress_init(fmgt);
-	fmgt_initial_progress_update(fmgt);
+	fmgt_progress_init_file(fmgt, fname);
 
-	/* Create sparse file? */
-	if ((flags & nf_sparse) != 0) {
-		fmgt->curf_procb = fsize - 1;
-		pos = fsize - 1;
-	}
-
-	while (fmgt->curf_procb < fsize) {
-		now = fsize - fmgt->curf_procb;
-		if (now > BUFFER_SIZE)
-			now = BUFFER_SIZE;
-
+	do {
 		do {
-			rc = vfs_write(fd, &pos, buffer, now, &nw);
+			rc = vfs_read(fd, &pos, buffer, BUFFER_SIZE, &nr);
 			if (rc == EOK)
 				break;
 
 			/* I/O error */
 			err.fname = fname;
-			err.optype = fmgt_io_write;
+			err.optype = fmgt_io_read;
 			err.rc = rc;
 			fmgt_timer_stop(fmgt);
 			action = fmgt_io_error_query(fmgt, &err);
@@ -141,25 +94,49 @@ errno_t fmgt_new_file(fmgt_t *fmgt, const char *fname, uint64_t fsize,
 		if (rc != EOK) {
 			free(buffer);
 			vfs_put(fd);
-			fmgt_final_progress_update(fmgt);
 			return rc;
 		}
 
-		fmgt_progress_incr_bytes(fmgt, nw);
+		fmgt_progress_incr_bytes(fmgt, nr);
 
 		/* User requested abort? */
 		if (fmgt_abort_query(fmgt)) {
 			free(buffer);
 			vfs_put(fd);
-			fmgt_final_progress_update(fmgt);
 			return EINTR;
 		}
-	}
+	} while (nr > 0);
 
 	free(buffer);
 	vfs_put(fd);
-	fmgt_final_progress_update(fmgt);
+	fmgt_progress_incr_files(fmgt);
 	return EOK;
+}
+
+/** Verify files.
+ *
+ * @param fmgt File management object
+ * @param flist File list
+ * @return EOK on success or an error code
+ */
+errno_t fmgt_verify(fmgt_t *fmgt, fmgt_flist_t *flist)
+{
+	fmgt_walk_params_t params;
+	errno_t rc;
+
+	fmgt_walk_params_init(&params);
+
+	params.flist = flist;
+	params.cb = &fmgt_verify_cb;
+	params.arg = (void *)fmgt;
+
+	fmgt_progress_init(fmgt);
+
+	fmgt_timer_start(fmgt);
+	fmgt_initial_progress_update(fmgt);
+	rc = fmgt_walk(&params);
+	fmgt_final_progress_update(fmgt);
+	return rc;
 }
 
 /** @}

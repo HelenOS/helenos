@@ -56,6 +56,7 @@ errno_t nav_menu_create(ui_window_t *window, nav_menu_t **rmenu)
 	ui_menu_entry_t *mnew;
 	ui_menu_entry_t *mopen;
 	ui_menu_entry_t *medit;
+	ui_menu_entry_t *mverify;
 	ui_menu_entry_t *mfsep;
 	ui_menu_entry_t *mexit;
 	gfx_rect_t arect;
@@ -95,6 +96,12 @@ errno_t nav_menu_create(ui_window_t *window, nav_menu_t **rmenu)
 		goto error;
 
 	ui_menu_entry_set_cb(medit, nav_menu_file_edit, (void *) menu);
+
+	rc = ui_menu_entry_create(mfile, "~V~erify", "Ctrl-V", &mverify);
+	if (rc != EOK)
+		goto error;
+
+	ui_menu_entry_set_cb(mverify, nav_menu_file_verify, (void *) menu);
 
 	rc = ui_menu_entry_sep_create(mfile, &mfsep);
 	if (rc != EOK)
@@ -191,6 +198,19 @@ void nav_menu_file_edit(ui_menu_entry_t *mentry, void *arg)
 
 	if (menu->cb != NULL && menu->cb->file_edit != NULL)
 		menu->cb->file_edit(menu->cb_arg);
+}
+
+/** File / Verify menu entry selected.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (navigator_t *)
+ */
+void nav_menu_file_verify(ui_menu_entry_t *mentry, void *arg)
+{
+	nav_menu_t *menu = (nav_menu_t *)arg;
+
+	if (menu->cb != NULL && menu->cb->file_verify != NULL)
+		menu->cb->file_verify(menu->cb_arg);
 }
 
 /** File / Exit menu entry selected.

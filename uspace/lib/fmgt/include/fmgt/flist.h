@@ -31,27 +31,21 @@
  */
 /**
  * @file
- * @brief File management library - private definitions.
+ * @brief File list.
  */
 
-#ifndef PRIVATE_FMGT_H
-#define PRIVATE_FMGT_H
+#ifndef FMGT_FLIST_H
+#define FMGT_FLIST_H
 
-#include <stdbool.h>
-#include "../include/types/fmgt.h"
+#include <errno.h>
+#include "types/fmgt.h"
 
-#define BUFFER_SIZE 16384
-
-extern void fmgt_timer_start(fmgt_t *);
-extern void fmgt_timer_stop(fmgt_t *);
-extern bool fmgt_abort_query(fmgt_t *);
-extern fmgt_error_action_t fmgt_io_error_query(fmgt_t *, fmgt_io_error_t *);
-extern void fmgt_progress_init(fmgt_t *);
-extern void fmgt_progress_init_file(fmgt_t *, const char *);
-extern void fmgt_progress_incr_bytes(fmgt_t *, uint64_t);
-extern void fmgt_progress_incr_files(fmgt_t *);
-extern void fmgt_initial_progress_update(fmgt_t *);
-extern void fmgt_final_progress_update(fmgt_t *);
+extern errno_t fmgt_flist_create(fmgt_flist_t **);
+extern errno_t fmgt_flist_append(fmgt_flist_t *, const char *);
+extern void fmgt_flist_destroy(fmgt_flist_t *);
+extern fmgt_flist_entry_t *fmgt_flist_first(fmgt_flist_t *);
+extern fmgt_flist_entry_t *fmgt_flist_next(fmgt_flist_entry_t *);
+extern unsigned fmgt_flist_count(fmgt_flist_t *);
 
 #endif
 

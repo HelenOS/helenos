@@ -30,10 +30,9 @@
  * @{
  */
 /**
- * @file Navigator New File.
+ * @file Navigator Verify File.
  */
 
-#include <capa.h>
 #include <fmgt.h>
 #include <stdlib.h>
 #include <str_error.h>
@@ -45,53 +44,57 @@
 #include <ui/window.h>
 #include <stdbool.h>
 #include <str.h>
-#include "dlg/newfiledlg.h"
 #include "dlg/progress.h"
+#include "dlg/verifydlg.h"
 #include "menu.h"
-#include "newfile.h"
 #include "nav.h"
-#include "types/newfile.h"
+#include "types/verify.h"
+#include "verify.h"
 
-static void new_file_bok(new_file_dlg_t *, void *, const char *, const char *,
-    bool);
-static void new_file_bcancel(new_file_dlg_t *, void *);
-static void new_file_close(new_file_dlg_t *, void *);
+static void verify_bok(verify_dlg_t *, void *);
+static void verify_bcancel(verify_dlg_t *, void *);
+static void verify_close(verify_dlg_t *, void *);
 
-static new_file_dlg_cb_t new_file_cb = {
-	.bok = new_file_bok,
-	.bcancel = new_file_bcancel,
-	.close = new_file_close
+static verify_dlg_cb_t verify_cb = {
+	.bok = verify_bok,
+	.bcancel = verify_bcancel,
+	.close = verify_close
 };
 
-static bool new_file_abort_query(void *);
-static void new_file_progress(void *, fmgt_progress_t *);
+static bool verify_abort_query(void *);
+static void verify_progress(void *, fmgt_progress_t *);
 
-static fmgt_cb_t new_file_fmgt_cb = {
-	.abort_query = new_file_abort_query,
+static fmgt_cb_t verify_fmgt_cb = {
+	.abort_query = verify_abort_query,
 	.io_error_query = navigator_io_error_query,
-	.progress = new_file_progress,
+	.progress = verify_progress,
 };
 
-/** Open New File dialog.
+/** Open Verify dialog.
  *
  * @param navigator Navigator
+ * @param flist File list
  */
-void navigator_new_file_dlg(navigator_t *navigator)
+void navigator_verify_dlg(navigator_t *navigator, fmgt_flist_t *flist)
 {
-	new_file_dlg_t *dlg;
+	verify_dlg_t *dlg;
+	errno_t rc;
 
-	new_file_dlg_create(navigator->ui, &dlg);
-	new_file_dlg_set_cb(dlg, &new_file_cb, (void *)navigator);
+	rc = verify_dlg_create(navigator->ui, flist, &dlg);
+	if (rc != EOK)
+		return;
+
+	verify_dlg_set_cb(dlg, &verify_cb, (void *)navigator);
 }
 
-/** New file worker function.
+/** Verify worker function.
  *
- * @param arg Argument (navigator_new_file_job_t)
+ * @param arg Argument (navigator_verify_job_t)
  */
-static void new_file_wfunc(void *arg)
+static void verify_wfunc(void *arg)
 {
 	fmgt_t *fmgt = NULL;
-	navigator_new_file_job_t *job = (navigator_new_file_job_t *)arg;
+	navigator_verify_job_t *job = (navigator_verify_job_t *)arg;
 	char *msg = NULL;
 	navigator_t *nav = job->navigator;
 	ui_msg_dialog_t *dialog = NULL;
@@ -105,13 +108,12 @@ static void new_file_wfunc(void *arg)
 		return;
 	}
 
-	fmgt_set_cb(fmgt, &new_file_fmgt_cb, (void *)nav);
+	fmgt_set_cb(fmgt, &verify_fmgt_cb, (void *)nav);
 	fmgt_set_init_update(fmgt, true);
 
-	rc = fmgt_new_file(fmgt, job->fname, job->nbytes,
-	    job->sparse ? nf_sparse : nf_none);
+	rc = fmgt_verify(fmgt, job->flist);
 	if (rc != EOK) {
-		rv = asprintf(&msg, "Error creating file (%s).",
+		rv = asprintf(&msg, "Error verifying file(s) (%s).",
 		    str_error(rc));
 		if (rv < 0)
 			return;
@@ -123,6 +125,7 @@ static void new_file_wfunc(void *arg)
 	progress_dlg_destroy(nav->progress_dlg);
 	navigator_refresh_panels(nav);
 	ui_unlock(nav->ui);
+	fmgt_flist_destroy(job->flist);
 	free(job);
 	return;
 error:
@@ -138,55 +141,33 @@ error:
 	free(msg);
 }
 
-/** New file dialog confirmed.
+/** Verify dialog confirmed.
  *
- * @param dlg New file dialog
+ * @param dlg Verify dialog
  * @param arg Argument (navigator_t *)
- * @param fname New file name
- * @param fsize New file size
- * @param sparse @c true to create a sparse file
  */
-static void new_file_bok(new_file_dlg_t *dlg, void *arg, const char *fname,
-    const char *fsize, bool sparse)
+static void verify_bok(verify_dlg_t *dlg, void *arg)
 {
 	navigator_t *nav = (navigator_t *)arg;
 	ui_msg_dialog_t *dialog = NULL;
-	navigator_new_file_job_t *job;
+	navigator_verify_job_t *job;
 	ui_msg_dialog_params_t params;
 	progress_dlg_params_t pd_params;
-	capa_spec_t fcap;
 	char *msg = NULL;
 	errno_t rc;
-	uint64_t nbytes;
-	int rv;
 
-	rc = capa_parse(fsize, &fcap);
-	if (rc != EOK) {
-		/* invalid file size */
-		return;
-	}
+	verify_dlg_destroy(dlg);
 
-	new_file_dlg_destroy(dlg);
-
-	rc = capa_to_blocks(&fcap, cv_nom, 1, &nbytes);
-	if (rc != EOK) {
-		rv = asprintf(&msg, "File size too large (%s).", fsize);
-		if (rv < 0)
-			return;
-		goto error;
-	}
-
-	job = calloc(1, sizeof(navigator_new_file_job_t));
+	job = calloc(1, sizeof(navigator_verify_job_t));
 	if (job == NULL)
 		return;
 
 	job->navigator = nav;
-	job->fname = fname;
-	job->nbytes = nbytes;
-	job->sparse = sparse;
+	job->flist = dlg->flist;
+	dlg->flist = NULL;
 
 	progress_dlg_params_init(&pd_params);
-	pd_params.caption = "Creating new file";
+	pd_params.caption = "Verifying";
 
 	rc = progress_dlg_create(nav->ui, &pd_params, &nav->progress_dlg);
 	if (rc != EOK) {
@@ -199,7 +180,7 @@ static void new_file_bok(new_file_dlg_t *dlg, void *arg, const char *fname,
 	progress_dlg_set_cb(nav->progress_dlg, &navigator_progress_cb,
 	    (void *)nav);
 
-	rc = navigator_worker_start(nav, new_file_wfunc, (void *)job);
+	rc = navigator_worker_start(nav, verify_wfunc, (void *)job);
 	if (rc != EOK) {
 		msg = str_dup("Out of memory.");
 		if (msg == NULL)
@@ -221,10 +202,10 @@ error:
  * @param dlg New file dialog
  * @param arg Argument (navigator_t *)
  */
-static void new_file_bcancel(new_file_dlg_t *dlg, void *arg)
+static void verify_bcancel(verify_dlg_t *dlg, void *arg)
 {
 	(void)arg;
-	new_file_dlg_destroy(dlg);
+	verify_dlg_destroy(dlg);
 }
 
 /** New file dialog closed.
@@ -232,10 +213,10 @@ static void new_file_bcancel(new_file_dlg_t *dlg, void *arg)
  * @param dlg New file dialog
  * @param arg Argument (navigator_t *)
  */
-static void new_file_close(new_file_dlg_t *dlg, void *arg)
+static void verify_close(verify_dlg_t *dlg, void *arg)
 {
 	(void)arg;
-	new_file_dlg_destroy(dlg);
+	verify_dlg_destroy(dlg);
 }
 
 /** New file abort query.
@@ -243,7 +224,7 @@ static void new_file_close(new_file_dlg_t *dlg, void *arg)
  * @param arg Argument (navigator_t *)
  * @return @c true iff abort is requested
  */
-static bool new_file_abort_query(void *arg)
+static bool verify_abort_query(void *arg)
 {
 	navigator_t *nav = (navigator_t *)arg;
 
@@ -255,7 +236,7 @@ static bool new_file_abort_query(void *arg)
  * @param arg Argument (navigator_t *)
  * @param progress Progress update
  */
-static void new_file_progress(void *arg, fmgt_progress_t *progress)
+static void verify_progress(void *arg, fmgt_progress_t *progress)
 {
 	navigator_t *nav = (navigator_t *)arg;
 

@@ -48,6 +48,8 @@ typedef struct nav_menu_cb {
 	void (*file_open)(void *);
 	/** File / Edit */
 	void (*file_edit)(void *);
+	/** File / Verify */
+	void (*file_verify)(void *);
 	/** File / Exit */
 	void (*file_exit)(void *);
 } nav_menu_cb_t;

@@ -103,6 +103,58 @@ void fmgt_destroy(fmgt_t *fmgt)
 	free(fmgt);
 }
 
+/** Initialize progress counters at beginning of operation.
+ *
+ * @param fmgt File management object
+ */
+void fmgt_progress_init(fmgt_t *fmgt)
+{
+	fmgt->total_procf = 0;
+	fmgt->total_procb = 0;
+
+	fmgt->curf_procb = 0;
+	fmgt->curf_totalb = 0;
+	fmgt->curf_progr = false;
+}
+
+/** Initialize progress counters at beginning of processing a file.
+ *
+ * @param fmgt File management object
+ * @param fname File name
+ */
+void fmgt_progress_init_file(fmgt_t *fmgt, const char *fname)
+{
+	vfs_stat_t stat;
+	errno_t rc;
+
+	fmgt->curf_procb = 0;
+	fmgt->curf_totalb = 0;
+
+	rc = vfs_stat_path(fname, &stat);
+	if (rc == EOK)
+		fmgt->curf_totalb = stat.size;
+}
+
+/** Increase count of processed bytes.
+ *
+ * @param fmgt File management object
+ * @param nbytes Number of newly processed bytes
+ */
+void fmgt_progress_incr_bytes(fmgt_t *fmgt, uint64_t nbytes)
+{
+	fmgt->curf_procb += nbytes;
+	fmgt->total_procb += nbytes;
+}
+
+/** Increase count of processed files.
+ *
+ * @parma fmgt File management object
+ */
+void fmgt_progress_incr_files(fmgt_t *fmgt)
+{
+	++fmgt->total_procf;
+}
+
 /** Get progress update report.
  *
  * @param fmgt File management object
@@ -123,6 +175,10 @@ static void fmgt_get_progress(fmgt_t *fmgt, fmgt_progress_t *progress)
 	    sizeof(progress->curf_totalb));
 	snprintf(progress->curf_percent, sizeof(progress->curf_percent), "%u%%",
 	    percent);
+	snprintf(progress->total_procf, sizeof(progress->total_procf), "%u",
+	    fmgt->total_procf);
+	capa_blocks_format_buf(fmgt->total_procb, 1, progress->total_procb,
+	    sizeof(progress->total_procb));
 }
 
 /** Give the caller progress update.

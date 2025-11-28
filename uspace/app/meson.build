@@ -102,6 +102,7 @@ apps = [
 	'untar',
 	'usbinfo',
 	'viewer',
+	'verify',
 	'vol',
 	'vuhid',
 	'wavplay',

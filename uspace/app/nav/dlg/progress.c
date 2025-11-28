@@ -133,10 +133,37 @@ errno_t progress_dlg_create(ui_t *ui, progress_dlg_params_t *params,
 
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
-		rect.p0.x = 3;
+		rect.p0.x = 1;
 		rect.p0.y = 2;
-		rect.p1.x = 47;
+		rect.p1.x = 49;
 		rect.p1.y = 3;
+	} else {
+		rect.p0.x = 10;
+		rect.p0.y = 35;
+		rect.p1.x = 390;
+		rect.p1.y = 50;
+	}
+
+	ui_label_set_rect(label, &rect);
+	ui_label_set_halign(label, gfx_halign_center);
+
+	rc = ui_fixed_add(fixed, ui_label_ctl(label));
+	if (rc != EOK)
+		goto error;
+
+	dialog->ltotal_prog = label;
+	label = NULL;
+
+	rc = ui_label_create(ui_res, "XXX of XXX (XXX%)", &label);
+	if (rc != EOK)
+		goto error;
+
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(ui)) {
+		rect.p0.x = 1;
+		rect.p0.y = 4;
+		rect.p1.x = 49;
+		rect.p1.y = 5;
 	} else {
 		rect.p0.x = 10;
 		rect.p0.y = 35;
@@ -239,19 +266,40 @@ void progress_dlg_set_cb(progress_dlg_t *dialog, progress_dlg_cb_t *cb,
 /** Set current file progress text.
  *
  * @param dialog Progress dialog
- * @param text New text for current file progress
+ * @param progress Progress
  *
  * @return EOK on success or an error code
  */
-errno_t progress_dlg_set_curf_prog(progress_dlg_t *dialog, const char *text)
+errno_t progress_dlg_set_progress(progress_dlg_t *dialog,
+    fmgt_progress_t *progress)
 {
+	char buf[128];
 	errno_t rc;
 
-	rc = ui_label_set_text(dialog->lcurf_prog, text);
+	snprintf(buf, sizeof(buf), "Total: %s files, %s.",
+	    progress->total_procf, progress->total_procb);
+
+	rc = ui_label_set_text(dialog->ltotal_prog, buf);
 	if (rc != EOK)
 		return rc;
 
-	return ui_label_paint(dialog->lcurf_prog);
+	rc = ui_label_paint(dialog->ltotal_prog);
+	if (rc != EOK)
+		return rc;
+
+	snprintf(buf, sizeof(buf), "Current file: %s of %s (%s done).",
+	    progress->curf_procb, progress->curf_totalb,
+	    progress->curf_percent);
+
+	rc = ui_label_set_text(dialog->lcurf_prog, buf);
+	if (rc != EOK)
+		return rc;
+
+	rc = ui_label_paint(dialog->lcurf_prog);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
 }
 
 /** Progress dialog window close handler.
