@@ -26,14 +26,73 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <fmgt.h>
 #include <pcut/pcut.h>
 
 PCUT_INIT;
 
-PCUT_IMPORT(flist);
-PCUT_IMPORT(fmgt);
-PCUT_IMPORT(newfile);
-PCUT_IMPORT(verify);
-PCUT_IMPORT(walk);
+PCUT_TEST_SUITE(flist);
 
-PCUT_MAIN();
+/** Create and destroy file list. */
+PCUT_TEST(create_destroy)
+{
+	fmgt_flist_t *flist;
+	errno_t rc;
+
+	rc = fmgt_flist_create(&flist);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	fmgt_flist_destroy(flist);
+}
+
+/** Append entries to file list and walk them. */
+PCUT_TEST(append_first_next)
+{
+	fmgt_flist_t *flist;
+	fmgt_flist_entry_t *entry;
+	errno_t rc;
+
+	rc = fmgt_flist_create(&flist);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = fmgt_flist_append(flist, "a");
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = fmgt_flist_append(flist, "b");
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	entry = fmgt_flist_first(flist);
+	PCUT_ASSERT_NOT_NULL(entry);
+	PCUT_ASSERT_STR_EQUALS("a", entry->fname);
+
+	entry = fmgt_flist_next(entry);
+	PCUT_ASSERT_NOT_NULL(entry);
+	PCUT_ASSERT_STR_EQUALS("b", entry->fname);
+
+	entry = fmgt_flist_next(entry);
+	PCUT_ASSERT_NULL(entry);
+
+	fmgt_flist_destroy(flist);
+}
+
+/** Append entries to file list and count them. */
+PCUT_TEST(count)
+{
+	fmgt_flist_t *flist;
+	errno_t rc;
+
+	rc = fmgt_flist_create(&flist);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = fmgt_flist_append(flist, "a");
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = fmgt_flist_append(flist, "b");
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_INT_EQUALS(2, fmgt_flist_count(flist));
+
+	fmgt_flist_destroy(flist);
+}
+
+PCUT_EXPORT(flist);

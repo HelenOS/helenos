@@ -44,6 +44,7 @@
 #include "fmgt/flist.h"
 #include "fmgt/newfile.h"
 #include "fmgt/verify.h"
+#include "fmgt/walk.h"
 #include "types/fmgt.h"
 
 extern errno_t fmgt_create(fmgt_t **);

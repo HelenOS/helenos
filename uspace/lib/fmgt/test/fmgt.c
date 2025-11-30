@@ -28,9 +28,6 @@
 
 #include <fmgt.h>
 #include <pcut/pcut.h>
-#include <stdio.h>
-#include <str.h>
-#include <vfs/vfs.h>
 
 PCUT_INIT;
 

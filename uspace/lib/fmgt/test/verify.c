@@ -26,14 +26,72 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <errno.h>
+#include <fmgt.h>
 #include <pcut/pcut.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <str.h>
+#include <vfs/vfs.h>
 
 PCUT_INIT;
 
-PCUT_IMPORT(flist);
-PCUT_IMPORT(fmgt);
-PCUT_IMPORT(newfile);
-PCUT_IMPORT(verify);
-PCUT_IMPORT(walk);
+PCUT_TEST_SUITE(verify);
 
-PCUT_MAIN();
+/** Verify files. */
+PCUT_TEST(verify)
+{
+	fmgt_t *fmgt = NULL;
+	char buf[L_tmpnam];
+	char *fname;
+	FILE *f;
+	char *p;
+	int rv;
+	fmgt_flist_t *flist;
+	errno_t rc;
+
+	/* Create name for temporary directory */
+	p = tmpnam(buf);
+	PCUT_ASSERT_NOT_NULL(p);
+
+	/* Create temporary directory */
+	rc = vfs_link_path(p, KIND_DIRECTORY, NULL);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rv = asprintf(&fname, "%s/%s", p, "a");
+	PCUT_ASSERT_TRUE(rv >= 0);
+
+	f = fopen(fname, "wb");
+	PCUT_ASSERT_NOT_NULL(f);
+
+	rv = fprintf(f, "X");
+	PCUT_ASSERT_TRUE(rv >= 0);
+
+	rv = fclose(f);
+	PCUT_ASSERT_INT_EQUALS(0, rv);
+
+	rc = fmgt_create(&fmgt);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = fmgt_flist_create(&flist);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = fmgt_flist_append(flist, p);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = fmgt_verify(fmgt, flist);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	fmgt_flist_destroy(flist);
+
+	rv = remove(fname);
+	PCUT_ASSERT_INT_EQUALS(0, rv);
+
+	rv = remove(p);
+	PCUT_ASSERT_INT_EQUALS(0, rv);
+
+	free(fname);
+	fmgt_destroy(fmgt);
+}
+
+PCUT_EXPORT(verify);

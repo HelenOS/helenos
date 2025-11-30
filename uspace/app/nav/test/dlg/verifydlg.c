@@ -26,14 +26,66 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <errno.h>
+#include <fmgt.h>
 #include <pcut/pcut.h>
+#include <ui/ui.h>
+#include "../../dlg/verifydlg.h"
 
 PCUT_INIT;
 
-PCUT_IMPORT(flist);
-PCUT_IMPORT(fmgt);
-PCUT_IMPORT(newfile);
-PCUT_IMPORT(verify);
-PCUT_IMPORT(walk);
+PCUT_TEST_SUITE(verifydlg);
 
-PCUT_MAIN();
+static verify_dlg_cb_t verify_dlg_cb;
+
+/** Create and destroy verify dialog. */
+PCUT_TEST(create_destroy)
+{
+	ui_t *ui;
+	verify_dlg_t *dlg = NULL;
+	fmgt_flist_t *flist;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = fmgt_flist_create(&flist);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = verify_dlg_create(ui, flist, &dlg);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(dlg);
+
+	verify_dlg_destroy(dlg);
+
+	fmgt_flist_destroy(flist);
+	ui_destroy(ui);
+}
+
+/** Set callbacks for verify dialog. */
+PCUT_TEST(set_cb)
+{
+	ui_t *ui;
+	verify_dlg_t *dlg = NULL;
+	fmgt_flist_t *flist;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = fmgt_flist_create(&flist);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = verify_dlg_create(ui, flist, &dlg);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(dlg);
+
+	verify_dlg_set_cb(dlg, &verify_dlg_cb, NULL);
+
+	verify_dlg_destroy(dlg);
+
+	fmgt_flist_destroy(flist);
+	ui_destroy(ui);
+}
+
+PCUT_EXPORT(verifydlg);

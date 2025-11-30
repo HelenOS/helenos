@@ -26,14 +26,32 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <errno.h>
 #include <pcut/pcut.h>
+#include <ui/ui.h>
+#include "../../dlg/newfiledlg.h"
 
 PCUT_INIT;
 
-PCUT_IMPORT(flist);
-PCUT_IMPORT(fmgt);
-PCUT_IMPORT(newfile);
-PCUT_IMPORT(verify);
-PCUT_IMPORT(walk);
+PCUT_TEST_SUITE(newfiledlg);
 
-PCUT_MAIN();
+/** Create and destroy new file dialog. */
+PCUT_TEST(create_destroy)
+{
+	ui_t *ui;
+	new_file_dlg_t *dlg = NULL;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = new_file_dlg_create(ui, &dlg);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(dlg);
+
+	new_file_dlg_destroy(dlg);
+
+	ui_destroy(ui);
+}
+
+PCUT_EXPORT(newfiledlg);

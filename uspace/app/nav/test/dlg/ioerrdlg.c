@@ -26,14 +26,34 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <errno.h>
 #include <pcut/pcut.h>
+#include <ui/ui.h>
+#include "../../dlg/ioerrdlg.h"
 
 PCUT_INIT;
 
-PCUT_IMPORT(flist);
-PCUT_IMPORT(fmgt);
-PCUT_IMPORT(newfile);
-PCUT_IMPORT(verify);
-PCUT_IMPORT(walk);
+PCUT_TEST_SUITE(ioerrdlg);
 
-PCUT_MAIN();
+/** Create and destroy I/O error dialog. */
+PCUT_TEST(create_destroy)
+{
+	ui_t *ui;
+	io_err_dlg_params_t params;
+	io_err_dlg_t *dlg = NULL;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	io_err_dlg_params_init(&params);
+	rc = io_err_dlg_create(ui, &params, &dlg);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(dlg);
+
+	io_err_dlg_destroy(dlg);
+
+	ui_destroy(ui);
+}
+
+PCUT_EXPORT(ioerrdlg);

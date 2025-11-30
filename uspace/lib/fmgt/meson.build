@@ -35,7 +35,10 @@ src = files(
 )
 
 test_src = files(
+	'test/flist.c',
 	'test/fmgt.c',
 	'test/main.c',
-	'test/newfile.c'
+	'test/newfile.c',
+	'test/verify.c',
+	'test/walk.c'
 )

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,10 @@
 
 PCUT_INIT;
 
+PCUT_IMPORT(ioerrdlg);
+PCUT_IMPORT(newfiledlg);
+PCUT_IMPORT(progress);
+PCUT_IMPORT(verifydlg);
 PCUT_IMPORT(menu);
 PCUT_IMPORT(nav);
 PCUT_IMPORT(panel);
