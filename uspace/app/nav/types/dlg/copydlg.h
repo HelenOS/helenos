@@ -30,36 +30,51 @@
  * @{
  */
 /**
- * @file Navigator panel
+ * @file Copy dialog
  */
 
-#ifndef PANEL_H
-#define PANEL_H
+#ifndef TYPES_DLG_VERIFYDLG_H
+#define TYPES_DLG_VERIFYDLG_H
 
 #include <errno.h>
-#include <gfx/coord.h>
-#include <io/kbd_event.h>
-#include <io/pos_event.h>
-#include <ui/control.h>
+#include <fmgt.h>
+#include <ui/entry.h>
+#include <ui/label.h>
+#include <ui/pbutton.h>
 #include <ui/window.h>
 #include <stdbool.h>
-#include "types/panel.h"
 
-extern errno_t panel_create(ui_window_t *, bool, panel_t **);
-extern void panel_destroy(panel_t *);
-extern void panel_set_cb(panel_t *, panel_cb_t *, void *);
-extern errno_t panel_paint(panel_t *);
-extern ui_evclaim_t panel_kbd_event(panel_t *, kbd_event_t *);
-extern ui_evclaim_t panel_pos_event(panel_t *, pos_event_t *);
-extern ui_control_t *panel_ctl(panel_t *);
-extern void panel_set_rect(panel_t *, gfx_rect_t *);
-extern bool panel_is_active(panel_t *);
-extern errno_t panel_activate(panel_t *);
-extern void panel_deactivate(panel_t *);
-extern errno_t panel_read_dir(panel_t *, const char *);
-extern char *panel_get_dir(panel_t *);
-extern errno_t panel_refresh(panel_t *);
-extern void panel_activate_req(panel_t *);
+/** Copy dialog */
+typedef struct copy_dlg {
+	/** Dialog window */
+	ui_window_t *window;
+	/** "Copy 'xxx'" */
+	ui_label_t *lcopy;
+	/** File */
+	ui_entry_t *esize;
+	/** Destination text entry */
+	ui_entry_t *edest;
+	/** OK button */
+	ui_pbutton_t *bok;
+	/** Cancel button */
+	ui_pbutton_t *bcancel;
+	/** Copy dialog callbacks */
+	struct copy_dlg_cb *cb;
+	/** Callback argument */
+	void *arg;
+	/** File list */
+	fmgt_flist_t *flist;
+} copy_dlg_t;
+
+/** Copy dialog callbacks */
+typedef struct copy_dlg_cb {
+	/** OK button was pressed */
+	void (*bok)(copy_dlg_t *, void *);
+	/** Cancel button was pressed */
+	void (*bcancel)(copy_dlg_t *, void *);
+	/** Window closure requested (e.g. via close button) */
+	void (*close)(copy_dlg_t *, void *);
+} copy_dlg_cb_t;
 
 #endif
 

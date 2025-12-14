@@ -28,10 +28,12 @@
 
 deps = [ 'fmgt', 'ui' ]
 src = files(
+	'dlg/copydlg.c',
 	'dlg/ioerrdlg.c',
 	'dlg/newfiledlg.c',
 	'dlg/progress.c',
 	'dlg/verifydlg.c',
+	'copy.c',
 	'main.c',
 	'menu.c',
 	'nav.c',
@@ -41,15 +43,18 @@ src = files(
 )
 
 test_src = files(
+	'dlg/copydlg.c',
 	'dlg/ioerrdlg.c',
 	'dlg/newfiledlg.c',
 	'dlg/progress.c',
 	'dlg/verifydlg.c',
+	'copy.c',
 	'menu.c',
 	'nav.c',
 	'newfile.c',
 	'panel.c',
 	'verify.c',
+	'test/dlg/copydlg.c',
 	'test/dlg/ioerrdlg.c',
 	'test/dlg/newfiledlg.c',
 	'test/dlg/progress.c',

@@ -139,15 +139,19 @@ typedef struct {
 
 /** File system tree walk callbacks */
 typedef struct {
-	errno_t (*dir_enter)(void *, const char *);
-	errno_t (*dir_leave)(void *, const char *);
-	errno_t (*file)(void *, const char *);
+	errno_t (*dir_enter)(void *, const char *, const char *);
+	errno_t (*dir_leave)(void *, const char *, const char *);
+	errno_t (*file)(void *, const char *, const char *);
 } fmgt_walk_cb_t;
 
 /** File system tree walk parameters */
 typedef struct {
 	/** List of files or directories (walk roots) */
 	fmgt_flist_t *flist;
+	/** Destination path */
+	const char *dest;
+	/** Copy files into destination directory. */
+	bool into_dest;
 	/** Callbacks */
 	fmgt_walk_cb_t *cb;
 	/** Callback argument */

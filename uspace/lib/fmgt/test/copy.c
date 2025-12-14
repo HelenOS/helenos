@@ -36,41 +36,140 @@
 
 PCUT_INIT;
 
-PCUT_TEST_SUITE(walk);
+PCUT_TEST_SUITE(copy);
 
-static errno_t test_walk_dir_enter(void *, const char *, const char *);
-static errno_t test_walk_dir_leave(void *, const char *, const char *);
-static errno_t test_walk_file(void *, const char *, const char *);
-
-static fmgt_walk_cb_t test_walk_cb = {
-	.dir_enter = test_walk_dir_enter,
-	.dir_leave = test_walk_dir_leave,
-	.file = test_walk_file
-};
-
-typedef struct {
-	bool dir_enter;
-	bool dir_leave;
-	bool file_proc;
-	char *dirname;
-	char *fname;
-	char *dest;
-	char *de_dest;
-	char *dl_dest;
-	errno_t rc;
-} test_resp_t;
-
-/** Walk file system tree with no destination and successful result. */
-PCUT_TEST(walk_nodest_success)
+/** Copy file to file. */
+PCUT_TEST(copy_file_file)
 {
+	fmgt_t *fmgt = NULL;
 	char buf[L_tmpnam];
-	char *fname;
+	char *sname;
+	char *dname;
 	FILE *f;
 	char *p;
 	int rv;
 	fmgt_flist_t *flist;
-	fmgt_walk_params_t params;
-	test_resp_t resp;
+	errno_t rc;
+
+	/* Create name for temporary directory */
+	p = tmpnam(buf);
+	PCUT_ASSERT_NOT_NULL(p);
+
+	/* Create temporary directory */
+	rc = vfs_link_path(p, KIND_DIRECTORY, NULL);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rv = asprintf(&sname, "%s/%s", p, "a");
+	PCUT_ASSERT_TRUE(rv >= 0);
+
+	rv = asprintf(&dname, "%s/%s", p, "b");
+	PCUT_ASSERT_TRUE(rv >= 0);
+
+	f = fopen(sname, "wb");
+	PCUT_ASSERT_NOT_NULL(f);
+
+	rv = fprintf(f, "X");
+	PCUT_ASSERT_TRUE(rv >= 0);
+
+	rv = fclose(f);
+	PCUT_ASSERT_INT_EQUALS(0, rv);
+
+	rc = fmgt_create(&fmgt);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = fmgt_flist_create(&flist);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = fmgt_flist_append(flist, sname);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = fmgt_copy(fmgt, flist, dname);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	fmgt_flist_destroy(flist);
+
+	rv = remove(sname);
+	PCUT_ASSERT_INT_EQUALS(0, rv);
+
+	rv = remove(dname);
+	PCUT_ASSERT_INT_EQUALS(0, rv);
+
+	rv = remove(p);
+	PCUT_ASSERT_INT_EQUALS(0, rv);
+
+	free(sname);
+	free(dname);
+	fmgt_destroy(fmgt);
+}
+
+/** Copy directory to directory. */
+PCUT_TEST(copy_dir_dir)
+{
+	fmgt_t *fmgt = NULL;
+	char buf[L_tmpnam];
+	char *sname;
+	char *dname;
+	char *p;
+	int rv;
+	fmgt_flist_t *flist;
+	errno_t rc;
+
+	/* Create name for temporary directory */
+	p = tmpnam(buf);
+	PCUT_ASSERT_NOT_NULL(p);
+
+	/* Create temporary directory */
+	rc = vfs_link_path(p, KIND_DIRECTORY, NULL);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rv = asprintf(&sname, "%s/%s", p, "a");
+	PCUT_ASSERT_TRUE(rv >= 0);
+
+	rv = asprintf(&dname, "%s/%s", p, "b");
+	PCUT_ASSERT_TRUE(rv >= 0);
+
+	rc = vfs_link_path(sname, KIND_DIRECTORY, NULL);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = fmgt_create(&fmgt);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = fmgt_flist_create(&flist);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = fmgt_flist_append(flist, sname);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = fmgt_copy(fmgt, flist, dname);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	fmgt_flist_destroy(flist);
+
+	rv = remove(sname);
+	PCUT_ASSERT_INT_EQUALS(0, rv);
+
+	rv = remove(dname);
+	PCUT_ASSERT_INT_EQUALS(0, rv);
+
+	rv = remove(p);
+	PCUT_ASSERT_INT_EQUALS(0, rv);
+
+	free(sname);
+	free(dname);
+	fmgt_destroy(fmgt);
+}
+
+/** Copy files and directories into directory. */
+PCUT_TEST(copy_into_dir)
+{
+	fmgt_t *fmgt = NULL;
+	char buf[L_tmpnam];
+	char *fname;
+	char *dname;
+	FILE *f;
+	char *p;
+	int rv;
+	fmgt_flist_t *flist;
 	errno_t rc;
 
 	/* Create name for temporary directory */
@@ -84,75 +183,7 @@ PCUT_TEST(walk_nodest_success)
 	rv = asprintf(&fname, "%s/%s", p, "a");
 	PCUT_ASSERT_TRUE(rv >= 0);
 
-	f = fopen(fname, "wb");
-	PCUT_ASSERT_NOT_NULL(f);
-
-	rv = fprintf(f, "X");
-	PCUT_ASSERT_TRUE(rv >= 0);
-
-	rv = fclose(f);
-	PCUT_ASSERT_INT_EQUALS(0, rv);
-
-	rc = fmgt_flist_create(&flist);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-
-	rc = fmgt_flist_append(flist, p);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-
-	fmgt_walk_params_init(&params);
-	params.flist = flist;
-	params.cb = &test_walk_cb;
-	params.arg = &resp;
-
-	resp.dir_enter = false;
-	resp.dir_leave = false;
-	resp.file_proc = false;
-	resp.rc = EOK;
-
-	rc = fmgt_walk(&params);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-
-	PCUT_ASSERT_TRUE(resp.dir_enter);
-	PCUT_ASSERT_TRUE(resp.dir_leave);
-	PCUT_ASSERT_TRUE(resp.file_proc);
-	PCUT_ASSERT_STR_EQUALS(p, resp.dirname);
-	PCUT_ASSERT_STR_EQUALS(fname, resp.fname);
-
-	free(resp.dirname);
-	free(resp.fname);
-	fmgt_flist_destroy(flist);
-
-	rv = remove(fname);
-	PCUT_ASSERT_INT_EQUALS(0, rv);
-
-	rv = remove(p);
-	PCUT_ASSERT_INT_EQUALS(0, rv);
-
-	free(fname);
-}
-
-/** Walk file system tree with destination and successful result. */
-PCUT_TEST(walk_dest_success)
-{
-	char buf[L_tmpnam];
-	char *fname;
-	FILE *f;
-	char *p;
-	int rv;
-	fmgt_flist_t *flist;
-	fmgt_walk_params_t params;
-	test_resp_t resp;
-	errno_t rc;
-
-	/* Create name for temporary directory */
-	p = tmpnam(buf);
-	PCUT_ASSERT_NOT_NULL(p);
-
-	/* Create temporary directory */
-	rc = vfs_link_path(p, KIND_DIRECTORY, NULL);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-
-	rv = asprintf(&fname, "%s/%s", p, "a");
+	rv = asprintf(&dname, "%s/%s", p, "b");
 	PCUT_ASSERT_TRUE(rv >= 0);
 
 	f = fopen(fname, "wb");
@@ -164,72 +195,38 @@ PCUT_TEST(walk_dest_success)
 	rv = fclose(f);
 	PCUT_ASSERT_INT_EQUALS(0, rv);
 
+	rc = vfs_link_path(dname, KIND_DIRECTORY, NULL);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = fmgt_create(&fmgt);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
 	rc = fmgt_flist_create(&flist);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = fmgt_flist_append(flist, p);
+	rc = fmgt_flist_append(flist, fname);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	fmgt_walk_params_init(&params);
-	params.flist = flist;
-	params.dest = "foo";
-	params.cb = &test_walk_cb;
-	params.arg = &resp;
-
-	resp.dir_enter = false;
-	resp.dir_leave = false;
-	resp.file_proc = false;
-	resp.rc = EOK;
-
-	rc = fmgt_walk(&params);
+	rc = fmgt_flist_append(flist, dname);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	PCUT_ASSERT_TRUE(resp.dir_enter);
-	PCUT_ASSERT_TRUE(resp.dir_leave);
-	PCUT_ASSERT_TRUE(resp.file_proc);
-	PCUT_ASSERT_STR_EQUALS(p, resp.dirname);
-	PCUT_ASSERT_STR_EQUALS(fname, resp.fname);
-	printf("dest='%s'\n", resp.dest);
-	printf("de_dest='%s'\n", resp.de_dest);
-	printf("dl_dest='%s'\n", resp.dl_dest);
+	rc = fmgt_copy(fmgt, flist, dname);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	free(resp.dirname);
-	free(resp.fname);
 	fmgt_flist_destroy(flist);
 
 	rv = remove(fname);
+	PCUT_ASSERT_INT_EQUALS(0, rv);
+
+	rv = remove(dname);
 	PCUT_ASSERT_INT_EQUALS(0, rv);
 
 	rv = remove(p);
 	PCUT_ASSERT_INT_EQUALS(0, rv);
 
 	free(fname);
+	free(dname);
+	fmgt_destroy(fmgt);
 }
 
-errno_t test_walk_dir_enter(void *arg, const char *fname, const char *dest)
-{
-	test_resp_t *resp = (test_resp_t *)arg;
-	resp->dir_enter = true;
-	resp->dirname = str_dup(fname);
-	resp->de_dest = str_dup(dest);
-	return resp->rc;
-}
-
-errno_t test_walk_dir_leave(void *arg, const char *fname, const char *dest)
-{
-	test_resp_t *resp = (test_resp_t *)arg;
-	resp->dir_leave = true;
-	resp->dl_dest = str_dup(dest);
-	return resp->rc;
-}
-
-errno_t test_walk_file(void *arg, const char *fname, const char *dest)
-{
-	test_resp_t *resp = (test_resp_t *)arg;
-	resp->file_proc = true;
-	resp->fname = str_dup(fname);
-	resp->dest = str_dup(dest);
-	return resp->rc;
-}
-
-PCUT_EXPORT(walk);
+PCUT_EXPORT(copy);

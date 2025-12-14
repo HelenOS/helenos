@@ -29,7 +29,7 @@
 /** @addtogroup fmgt
  * @{
  */
-/** @file Verify files.
+/** @file Copy files and directories.
  */
 
 #include <errno.h>
@@ -41,53 +41,121 @@
 #include "fmgt/walk.h"
 #include "../private/fmgt.h"
 
-static errno_t fmgt_verify_file(void *, const char *, const char *);
+static errno_t fmgt_copy_dir_enter(void *, const char *, const char *);
+static errno_t fmgt_copy_file(void *, const char *, const char *);
 
-static fmgt_walk_cb_t fmgt_verify_cb = {
-	.file = fmgt_verify_file
+static fmgt_walk_cb_t fmgt_copy_cb = {
+	.dir_enter = fmgt_copy_dir_enter,
+	.file = fmgt_copy_file
 };
 
-/** Verify a single file.
- *
- * @param arg Argument (fmgt_t *)
- * @param fname File name
- * @param unused Unused
- * @return EOK on success or an error code
- */
-static errno_t fmgt_verify_file(void *arg, const char *fname,
-    const char *unused)
+static errno_t fmgt_write(fmgt_t *fmgt, int fd, const char *fname,
+    aoff64_t *pos, void *buffer, size_t nbytes)
 {
-	fmgt_t *fmgt = (fmgt_t *)arg;
-	int fd;
-	size_t nr;
-	aoff64_t pos = 0;
-	char *buffer;
+	size_t total_written;
+	char *bp = (char *)buffer;
 	fmgt_io_error_t err;
 	fmgt_error_action_t action;
+	size_t nw;
 	errno_t rc;
 
-	(void)unused;
-
-	buffer = calloc(BUFFER_SIZE, 1);
-	if (buffer == NULL)
-		return ENOMEM;
-
-	rc = vfs_lookup_open(fname, WALK_REGULAR, MODE_READ, &fd);
-	if (rc != EOK) {
-		free(buffer);
-		return rc;
-	}
-
-	fmgt_progress_init_file(fmgt, fname);
-
-	do {
+	total_written = 0;
+	while (total_written < nbytes) {
 		do {
-			rc = vfs_read(fd, &pos, buffer, BUFFER_SIZE, &nr);
+			rc = vfs_write(fd, pos, bp + total_written,
+			    nbytes - total_written, &nw);
 			if (rc == EOK)
 				break;
 
 			/* I/O error */
 			err.fname = fname;
+			err.optype = fmgt_io_write;
+			err.rc = rc;
+			fmgt_timer_stop(fmgt);
+			action = fmgt_io_error_query(fmgt, &err);
+			fmgt_timer_start(fmgt);
+		} while (action == fmgt_er_retry);
+
+		/* Not recovered? */
+		if (rc != EOK)
+			return rc;
+
+		total_written += nw;
+	}
+
+	return EOK;
+}
+
+/** Copy operation - enter directory.
+ *
+ * @param arg Argument (fmgt_t *)
+ * @param fname Source directory name
+ * @param dest Destination directory name
+ * @return EOK on success or an error code
+ */
+static errno_t fmgt_copy_dir_enter(void *arg, const char *src, const char *dest)
+{
+	fmgt_t *fmgt = (fmgt_t *)arg;
+	errno_t rc;
+
+	rc = vfs_link_path(dest, KIND_DIRECTORY, NULL);
+
+	/* It is okay if the directory exists. */
+	if (rc != EOK && rc != EEXIST)
+		return rc; // XXX error recovery?
+
+	(void)fmgt;
+	return EOK;
+}
+
+/** Copy single file.
+ *
+ * @param arg Argument (fmgt_t *)
+ * @param fname Source file name
+ * @param dest Destination file name
+ * @return EOK on success or an error code
+ */
+static errno_t fmgt_copy_file(void *arg, const char *src, const char *dest)
+{
+	fmgt_t *fmgt = (fmgt_t *)arg;
+	int rfd;
+	int wfd;
+	size_t nr;
+	aoff64_t rpos = 0;
+	aoff64_t wpos = 0;
+	char *buffer;
+	fmgt_io_error_t err;
+	fmgt_error_action_t action;
+	errno_t rc;
+
+	buffer = calloc(BUFFER_SIZE, 1);
+	if (buffer == NULL)
+		return ENOMEM;
+
+	rc = vfs_lookup_open(src, WALK_REGULAR, MODE_READ, &rfd);
+	if (rc != EOK) {
+		free(buffer);
+		return rc; // XXX error recovery?
+	}
+
+	rc = vfs_lookup_open(dest, WALK_REGULAR | WALK_MAY_CREATE, MODE_WRITE,
+	    &wfd);
+	if (rc != EOK) {
+		free(buffer);
+		vfs_put(rfd);
+		return rc;
+	}
+
+	fmgt_progress_init_file(fmgt, src);
+
+	do {
+		do {
+			rc = vfs_read(rfd, &rpos, buffer, BUFFER_SIZE, &nr);
+			if (rc == EOK)
+				break;
+
+			/* I/O error */
+			err.fname = src;
 			err.optype = fmgt_io_read;
 			err.rc = rc;
 			fmgt_timer_stop(fmgt);
@@ -96,37 +164,43 @@ static errno_t fmgt_verify_file(void *arg, const char *fname,
 		} while (action == fmgt_er_retry);
 
 		/* Not recovered? */
-		if (rc != EOK) {
-			free(buffer);
-			vfs_put(fd);
-			fmgt_final_progress_update(fmgt);
-			return rc;
-		}
+		if (rc != EOK)
+			goto error;
+
+		rc = fmgt_write(fmgt, wfd, dest, &wpos, buffer, nr);
+		if (rc != EOK)
+			goto error;
 
 		fmgt_progress_incr_bytes(fmgt, nr);
 
 		/* User requested abort? */
 		if (fmgt_abort_query(fmgt)) {
-			free(buffer);
-			vfs_put(fd);
-			fmgt_final_progress_update(fmgt);
-			return EINTR;
+			rc = EINTR;
+			goto error;
 		}
 	} while (nr > 0);
 
 	free(buffer);
-	vfs_put(fd);
+	vfs_put(rfd);
+	vfs_put(wfd);
 	fmgt_progress_incr_files(fmgt);
 	return EOK;
+error:
+	free(buffer);
+	vfs_put(rfd);
+	vfs_put(wfd);
+	fmgt_final_progress_update(fmgt);
+	return rc;
 }
 
-/** Verify files.
+/** copy files.
  *
  * @param fmgt File management object
  * @param flist File list
+ * @param dest Destination path
  * @return EOK on success or an error code
  */
-errno_t fmgt_verify(fmgt_t *fmgt, fmgt_flist_t *flist)
+errno_t fmgt_copy(fmgt_t *fmgt, fmgt_flist_t *flist, const char *dest)
 {
 	fmgt_walk_params_t params;
 	errno_t rc;
@@ -134,8 +208,11 @@ errno_t fmgt_verify(fmgt_t *fmgt, fmgt_flist_t *flist)
 	fmgt_walk_params_init(&params);
 
 	params.flist = flist;
-	params.cb = &fmgt_verify_cb;
+	params.dest = dest;
+	params.cb = &fmgt_copy_cb;
 	params.arg = (void *)fmgt;
+	if (fmgt_is_dir(dest))
+		params.into_dest = true;
 
 	fmgt_progress_init(fmgt);
 

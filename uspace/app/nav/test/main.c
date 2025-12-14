@@ -30,6 +30,7 @@
 
 PCUT_INIT;
 
+PCUT_IMPORT(copydlg);
 PCUT_IMPORT(ioerrdlg);
 PCUT_IMPORT(newfiledlg);
 PCUT_IMPORT(progress);

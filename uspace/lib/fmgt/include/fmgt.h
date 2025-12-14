@@ -41,6 +41,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include "fmgt/copy.h"
 #include "fmgt/flist.h"
 #include "fmgt/newfile.h"
 #include "fmgt/verify.h"
@@ -51,6 +52,8 @@ extern errno_t fmgt_create(fmgt_t **);
 extern void fmgt_set_cb(fmgt_t *, fmgt_cb_t *, void *);
 extern void fmgt_destroy(fmgt_t *);
 extern void fmgt_set_init_update(fmgt_t *, bool);
+extern const char *fmgt_basename(const char *);
+extern bool fmgt_is_dir(const char *);
 
 #endif
 

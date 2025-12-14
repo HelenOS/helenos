@@ -49,6 +49,7 @@ extern void nav_menu_file_new_file(ui_menu_entry_t *, void *);
 extern void nav_menu_file_open(ui_menu_entry_t *, void *);
 extern void nav_menu_file_edit(ui_menu_entry_t *, void *);
 extern void nav_menu_file_verify(ui_menu_entry_t *, void *);
+extern void nav_menu_file_copy(ui_menu_entry_t *, void *);
 extern void nav_menu_file_exit(ui_menu_entry_t *, void *);
 
 #endif

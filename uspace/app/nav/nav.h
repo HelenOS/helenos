@@ -48,6 +48,7 @@ extern errno_t navigator_create(const char *, navigator_t **);
 extern void navigator_destroy(navigator_t *);
 extern errno_t navigator_run(const char *);
 extern panel_t *navigator_get_active_panel(navigator_t *);
+extern panel_t *navigator_get_inactive_panel(navigator_t *);
 extern void navigator_switch_panel(navigator_t *);
 extern void navigator_refresh_panels(navigator_t *);
 extern errno_t navigator_worker_start(navigator_t *, void (*)(void *),

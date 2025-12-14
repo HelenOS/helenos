@@ -364,6 +364,16 @@ errno_t panel_read_dir(panel_t *panel, const char *dirname)
 	return ui_file_list_read_dir(panel->flist, dirname);
 }
 
+/** Get current directory from panel.
+ *
+ * @param panel Panel
+ * @return Path to current directory or @c NULL if out of memory
+ */
+char *panel_get_dir(panel_t *panel)
+{
+	return ui_file_list_get_dir(panel->flist);
+}
+
 /** Refresh panel contents.
  *
  * @param panel Panel

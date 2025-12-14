@@ -39,6 +39,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <str.h>
+#include <str.h>
 #include <vfs/vfs.h>
 #include <dirent.h>
 
@@ -279,6 +280,39 @@ fmgt_error_action_t fmgt_io_error_query(fmgt_t *fmgt,
 		return fmgt->cb->io_error_query(fmgt->cb_arg, err);
 	else
 		return fmgt_er_abort;
+}
+
+/** Return base name (without path component).
+ *
+ * @param path Pathname
+ * @return Base name without directory components
+ */
+const char *fmgt_basename(const char *path)
+{
+	const char *p;
+
+	p = str_rchr(path, '/');
+	if (p != NULL)
+		return p + 1;
+	else
+		return path;
+}
+
+/** Determine if pathname is an existing directory.
+ *
+ * @param path Pathname
+ * @return @c true if @a path exists and is a directory
+ */
+bool fmgt_is_dir(const char *path)
+{
+	vfs_stat_t stat;
+	errno_t rc;
+
+	rc = vfs_stat_path(path, &stat);
+	if (rc != EOK)
+		return false;
+
+	return stat.is_directory;
 }
 
 /** @}

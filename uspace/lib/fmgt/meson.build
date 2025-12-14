@@ -27,6 +27,7 @@
 #
 
 src = files(
+	'src/copy.c',
 	'src/flist.c',
 	'src/fmgt.c',
 	'src/newfile.c',
@@ -35,6 +36,7 @@ src = files(
 )
 
 test_src = files(
+	'test/copy.c',
 	'test/flist.c',
 	'test/fmgt.c',
 	'test/main.c',

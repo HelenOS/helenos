@@ -423,6 +423,15 @@ error:
 	return rc;
 }
 
+/** Return path to the current directory.
+ *
+ * @return Path to current directory or @c NULL if out of memory
+ */
+char *ui_file_list_get_dir(ui_file_list_t *flist)
+{
+	return str_dup(flist->dir);
+}
+
 /** Re-read file list from directory.
  *
  * @param flist File list
