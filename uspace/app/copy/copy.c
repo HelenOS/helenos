@@ -132,6 +132,7 @@ static fmgt_error_action_t copy_io_error_query(void *arg,
 {
 	cons_event_t event;
 	kbd_event_t *ev;
+	const char *opstr = NULL;
 	errno_t rc;
 
 	(void)arg;
@@ -142,9 +143,23 @@ static fmgt_error_action_t copy_io_error_query(void *arg,
 	if (prog_upd)
 		putchar('\n');
 
-	fprintf(stderr, "I/O error %s file '%s' (%s).\n",
-	    err->optype == fmgt_io_write ? "writing" : "reading",
-	    err->fname, str_error(err->rc));
+	switch (err->optype) {
+	case fmgt_io_read:
+		opstr = "reading";
+		break;
+	case fmgt_io_write:
+		opstr = "writing";
+		break;
+	case fmgt_io_create:
+		opstr = "creating";
+		break;
+	case fmgt_io_open:
+		opstr = "opening";
+		break;
+	}
+
+	fprintf(stderr, "I/O error %s file '%s' (%s).\n", opstr, err->fname,
+	    str_error(err->rc));
 	fprintf(stderr, "[A]bort or [R]etry?\n");
 
 	if (con == NULL)

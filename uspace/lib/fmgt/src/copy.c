@@ -96,16 +96,28 @@ static errno_t fmgt_write(fmgt_t *fmgt, int fd, const char *fname,
 static errno_t fmgt_copy_dir_enter(void *arg, const char *src, const char *dest)
 {
 	fmgt_t *fmgt = (fmgt_t *)arg;
+	fmgt_io_error_t err;
+	fmgt_error_action_t action;
 	errno_t rc;
 
-	rc = vfs_link_path(dest, KIND_DIRECTORY, NULL);
+	do {
+		rc = vfs_link_path(dest, KIND_DIRECTORY, NULL);
 
-	/* It is okay if the directory exists. */
-	if (rc != EOK && rc != EEXIST)
-		return rc; // XXX error recovery?
+		/* It is okay if the directory exists. */
+		if (rc == EOK || rc == EEXIST)
+			break;
 
-	(void)fmgt;
-	return EOK;
+		/* I/O error */
+		err.fname = dest;
+		err.optype = fmgt_io_create;
+		err.rc = rc;
+
+		fmgt_timer_stop(fmgt);
+		action = fmgt_io_error_query(fmgt, &err);
+		fmgt_timer_start(fmgt);
+	} while (action == fmgt_er_retry);
+
+	return rc;
 }
 
 /** Copy single file.
@@ -132,14 +144,41 @@ static errno_t fmgt_copy_file(void *arg, const char *src, const char *dest)
 	if (buffer == NULL)
 		return ENOMEM;
 
-	rc = vfs_lookup_open(src, WALK_REGULAR, MODE_READ, &rfd);
+	do {
+		rc = vfs_lookup_open(src, WALK_REGULAR, MODE_READ, &rfd);
+		if (rc == EOK)
+			break;
+
+		/* I/O error */
+		err.fname = src;
+		err.optype = fmgt_io_open;
+		err.rc = rc;
+		fmgt_timer_stop(fmgt);
+		action = fmgt_io_error_query(fmgt, &err);
+		fmgt_timer_start(fmgt);
+	} while (action == fmgt_er_retry);
+
+	/* Not recovered? */
 	if (rc != EOK) {
 		free(buffer);
-		return rc; // XXX error recovery?
+		return rc;
 	}
 
-	rc = vfs_lookup_open(dest, WALK_REGULAR | WALK_MAY_CREATE, MODE_WRITE,
-	    &wfd);
+	do {
+		rc = vfs_lookup_open(dest, WALK_REGULAR | WALK_MAY_CREATE,
+		    MODE_WRITE, &wfd);
+		if (rc == EOK)
+			break;
+
+		/* I/O error */
+		err.fname = dest;
+		err.optype = fmgt_io_create;
+		err.rc = rc;
+		fmgt_timer_stop(fmgt);
+		action = fmgt_io_error_query(fmgt, &err);
+		fmgt_timer_start(fmgt);
+	} while (action == fmgt_er_retry);
+
 	if (rc != EOK) {
 		free(buffer);
 		vfs_put(rfd);

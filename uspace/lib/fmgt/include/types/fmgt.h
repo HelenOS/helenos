@@ -64,7 +64,11 @@ typedef enum {
 	/** Read */
 	fmgt_io_read,
 	/** Write */
-	fmgt_io_write
+	fmgt_io_write,
+	/** Open */
+	fmgt_io_open,
+	/** Create */
+	fmgt_io_create
 } fmgt_io_op_type_t;
 
 /** File management I/O error report */
