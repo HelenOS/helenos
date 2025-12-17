@@ -748,13 +748,27 @@ fmgt_error_action_t navigator_io_error_query(void *arg, fmgt_io_error_t *err)
 	io_err_dlg_params_t params;
 	fmgt_error_action_t err_act;
 	char *text1;
+	const char *fmt = NULL;
 	errno_t rc;
 	int rv;
 
+	switch (err->optype) {
+	case fmgt_io_write:
+		fmt = "Error reading file %s.";
+		break;
+	case fmgt_io_read:
+		fmt = "Error writing file %s.";
+		break;
+	case fmgt_io_open:
+		fmt = "Error opening %s.";
+		break;
+	case fmgt_io_create:
+		fmt = "Error creating %s.";
+		break;
+	}
+
 	io_err_dlg_params_init(&params);
-	rv = asprintf(&text1, err->optype == fmgt_io_write ?
-	    "Error writing file %s." : "Error reading file %s.",
-	    err->fname);
+	rv = asprintf(&text1, fmt, err->fname);
 	if (rv < 0)
 		return fmgt_er_abort;
 
