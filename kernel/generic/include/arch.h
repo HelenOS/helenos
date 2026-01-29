@@ -48,9 +48,19 @@
  * address must be aligned to STACK_SIZE.
  *
  */
+#if __has_builtin(__builtin_stack_address)
+
+#define CURRENT \
+	((current_t *) (((uintptr_t) __builtin_stack_address()) & \
+	    (~((uintptr_t) STACK_SIZE - 1))))
+
+#else
+
 #define CURRENT \
 	((current_t *) (((uintptr_t) __builtin_frame_address(0)) & \
 	    (~((uintptr_t) STACK_SIZE - 1))))
+
+#endif
 
 #define MAGIC  UINT32_C(0xfacefeed)
 
