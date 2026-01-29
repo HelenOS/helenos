@@ -75,7 +75,11 @@ def cfg_get(platform, machine, processor):
 		return emulators[platform][machine][processor]
 
 def termemu_detect():
-	emus = ['gnome-terminal', 'xfce4-terminal', 'xterm']
+	emus = ['gnome-terminal', 'foot', 'xfce4-terminal', 'xterm']
+
+	if 'TERMINAL' in os.environ:
+		emus.insert(0, os.environ['TERMINAL'])
+
 	for termemu in emus:
 		try:
 			subprocess.check_output('which ' + termemu, shell = True, stderr = subprocess.STDOUT)
@@ -88,7 +92,8 @@ def termemu_detect():
 
 def run_in_console(cmd, title):
 	temu = termemu_detect()
-	if temu == 'gnome-terminal':
+
+	if os.path.basename(temu.split(' ')[0]) in ['gnome-terminal', 'foot']:
 		cmdline = temu + ' -- ' + cmd
 	else:
 		ecmd = cmd.replace('"', '\\"')
