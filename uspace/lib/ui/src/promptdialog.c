@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -290,7 +290,7 @@ void ui_prompt_dialog_destroy(ui_prompt_dialog_t *dialog)
 	free(dialog);
 }
 
-/** Set mesage dialog callback.
+/** Set prompt dialog callback.
  *
  * @param dialog Prompt dialog
  * @param cb Prompt dialog callbacks

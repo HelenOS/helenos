@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -54,6 +54,7 @@ extern void navigator_refresh_panels(navigator_t *);
 extern errno_t navigator_worker_start(navigator_t *, void (*)(void *),
     void *);
 extern fmgt_error_action_t navigator_io_error_query(void *, fmgt_io_error_t *);
+extern fmgt_exists_action_t navigator_exists_query(void *, fmgt_exists_t *);
 
 #endif
 

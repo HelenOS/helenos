@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -280,6 +280,20 @@ fmgt_error_action_t fmgt_io_error_query(fmgt_t *fmgt,
 		return fmgt->cb->io_error_query(fmgt->cb_arg, err);
 	else
 		return fmgt_er_abort;
+}
+
+/** Query caller how to recover from existing destination file/directory.
+ *
+ * @param fmgt File management object
+ * @param exists File/directory exists report
+ * @return What recovery action should be taken.
+ */
+fmgt_exists_action_t fmgt_exists_query(fmgt_t *fmgt, fmgt_exists_t *exists)
+{
+	if (fmgt->cb != NULL && fmgt->cb->exists_query != NULL)
+		return fmgt->cb->exists_query(fmgt->cb_arg, exists);
+	else
+		return fmgt_exr_abort;
 }
 
 /** Return base name (without path component).

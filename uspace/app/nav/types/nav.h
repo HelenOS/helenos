@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -74,6 +74,15 @@ typedef struct navigator {
 	fibril_condvar_t io_err_act_cv;
 	/** Synchronizes access to I/O error recovery action */
 	fibril_mutex_t io_err_act_lock;
+
+	/** @c true if user selected file/dir exists recovery action */
+	bool exists_act_sel;
+	/** Selected file/directory exists recovery action */
+	fmgt_exists_action_t exists_act;
+	/** Signalled when user selects file/directory exists recovery action */
+	fibril_condvar_t exists_act_cv;
+	/** Synchronizes access to file/directory exists recovery action */
+	fibril_mutex_t exists_act_lock;
 } navigator_t;
 
 /** Navigator worker job */

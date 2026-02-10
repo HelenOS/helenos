@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,6 +48,7 @@
 #include <ui/ui.h>
 #include <ui/window.h>
 #include "copy.h"
+#include "dlg/existsdlg.h"
 #include "dlg/ioerrdlg.h"
 #include "menu.h"
 #include "newfile.h"
@@ -105,6 +106,18 @@ static io_err_dlg_cb_t navigator_io_err_dlg_cb = {
 	.babort = navigator_io_err_abort,
 	.bretry = navigator_io_err_retry,
 	.close = navigator_io_err_close
+};
+
+static void navigator_exists_overwrite(exists_dlg_t *, void *);
+static void navigator_exists_skip(exists_dlg_t *, void *);
+static void navigator_exists_abort(exists_dlg_t *, void *);
+static void navigator_exists_close(exists_dlg_t *, void *);
+
+static exists_dlg_cb_t navigator_exists_dlg_cb = {
+	.boverwrite = navigator_exists_overwrite,
+	.bskip = navigator_exists_skip,
+	.babort = navigator_exists_abort,
+	.close = navigator_exists_close
 };
 
 /** Window close button was clicked.
@@ -271,6 +284,10 @@ errno_t navigator_create(const char *display_spec,
 	fibril_mutex_initialize(&navigator->io_err_act_lock);
 	fibril_condvar_initialize(&navigator->io_err_act_cv);
 	navigator->io_err_act_sel = false;
+
+	fibril_mutex_initialize(&navigator->exists_act_lock);
+	fibril_condvar_initialize(&navigator->exists_act_cv);
+	navigator->exists_act_sel = false;
 
 	*rnavigator = navigator;
 	return EOK;
@@ -854,6 +871,128 @@ static void navigator_io_err_close(io_err_dlg_t *dlg, void *arg)
 	nav->io_err_act_sel = true;
 	fibril_condvar_signal(&nav->io_err_act_cv);
 	fibril_mutex_unlock(&nav->io_err_act_lock);
+}
+
+/** Called by fmgt to query for file/directory exists recovery action.
+ *
+ * @param arg Argument (navigator_t *)
+ * @param exists File/directory exists report
+ * @return Recovery action to take.
+ */
+fmgt_exists_action_t navigator_exists_query(void *arg, fmgt_exists_t *exists)
+{
+	navigator_t *nav = (navigator_t *)arg;
+	exists_dlg_t *dlg;
+	exists_dlg_params_t params;
+	fmgt_exists_action_t exists_act;
+	char *text1;
+	errno_t rc;
+	int rv;
+
+	exists_dlg_params_init(&params);
+	rv = asprintf(&text1, "File %s exists.", exists->fname);
+	if (rv < 0)
+		return fmgt_exr_abort;
+
+	params.text1 = text1;
+
+	ui_lock(nav->ui);
+	rc = exists_dlg_create(nav->ui, &params, &dlg);
+	if (rc != EOK) {
+		ui_unlock(nav->ui);
+		free(text1);
+		return fmgt_exr_abort;
+	}
+
+	exists_dlg_set_cb(dlg, &navigator_exists_dlg_cb, (void *)nav);
+
+	ui_unlock(nav->ui);
+	free(text1);
+
+	fibril_mutex_lock(&nav->exists_act_lock);
+
+	while (!nav->exists_act_sel) {
+		fibril_condvar_wait(&nav->exists_act_cv,
+		    &nav->exists_act_lock);
+	}
+
+	exists_act = nav->exists_act;
+	nav->exists_act_sel = false;
+	fibril_mutex_unlock(&nav->exists_act_lock);
+
+	return exists_act;
+}
+
+/** File/directory exists dialog overwrite button was pressed.
+ *
+ * @param dlg File/directory exists dialog
+ * @param arg Argument (navigator_t *)
+ */
+static void navigator_exists_overwrite(exists_dlg_t *dlg, void *arg)
+{
+	navigator_t *nav = (navigator_t *)arg;
+
+	exists_dlg_destroy(dlg);
+
+	fibril_mutex_lock(&nav->exists_act_lock);
+	nav->exists_act = fmgt_exr_overwrite;
+	nav->exists_act_sel = true;
+	fibril_condvar_signal(&nav->exists_act_cv);
+	fibril_mutex_unlock(&nav->exists_act_lock);
+}
+
+/** File/directory exists dialog skip button was pressed.
+ *
+ * @param dlg File/directory exists dialog
+ * @param arg Argument (navigator_t *)
+ */
+static void navigator_exists_skip(exists_dlg_t *dlg, void *arg)
+{
+	navigator_t *nav = (navigator_t *)arg;
+
+	exists_dlg_destroy(dlg);
+
+	fibril_mutex_lock(&nav->exists_act_lock);
+	nav->exists_act = fmgt_exr_skip;
+	nav->exists_act_sel = true;
+	fibril_condvar_signal(&nav->exists_act_cv);
+	fibril_mutex_unlock(&nav->exists_act_lock);
+}
+
+/** File/directory exists dialog abort button was pressed.
+ *
+ * @param dlg File/directory exists dialog
+ * @param arg Argument (navigator_t *)
+ */
+static void navigator_exists_abort(exists_dlg_t *dlg, void *arg)
+{
+	navigator_t *nav = (navigator_t *)arg;
+
+	exists_dlg_destroy(dlg);
+
+	fibril_mutex_lock(&nav->exists_act_lock);
+	nav->exists_act = fmgt_exr_abort;
+	nav->exists_act_sel = true;
+	fibril_condvar_signal(&nav->exists_act_cv);
+	fibril_mutex_unlock(&nav->exists_act_lock);
+}
+
+/** File/directory exists dialog closure requested.
+ *
+ * @param dlg File/directory exists dialog
+ * @param arg Argument (navigator_t *)
+ */
+static void navigator_exists_close(exists_dlg_t *dlg, void *arg)
+{
+	navigator_t *nav = (navigator_t *)arg;
+
+	exists_dlg_destroy(dlg);
+
+	fibril_mutex_lock(&nav->exists_act_lock);
+	nav->exists_act = fmgt_exr_abort;
+	nav->exists_act_sel = true;
+	fibril_condvar_signal(&nav->exists_act_cv);
+	fibril_mutex_unlock(&nav->exists_act_lock);
 }
 
 /** @}

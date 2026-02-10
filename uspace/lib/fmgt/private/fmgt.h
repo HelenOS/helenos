@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,6 +46,7 @@ extern void fmgt_timer_start(fmgt_t *);
 extern void fmgt_timer_stop(fmgt_t *);
 extern bool fmgt_abort_query(fmgt_t *);
 extern fmgt_error_action_t fmgt_io_error_query(fmgt_t *, fmgt_io_error_t *);
+extern fmgt_exists_action_t fmgt_exists_query(fmgt_t *, fmgt_exists_t *);
 extern void fmgt_progress_init(fmgt_t *);
 extern void fmgt_progress_init_file(fmgt_t *, const char *);
 extern void fmgt_progress_incr_bytes(fmgt_t *, uint64_t);

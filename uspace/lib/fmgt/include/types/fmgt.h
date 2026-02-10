@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -89,10 +89,27 @@ typedef enum {
 	fmgt_er_abort
 } fmgt_error_action_t;
 
+/** File management file/directory exists report */
+typedef struct {
+	/** File name */
+	const char *fname;
+} fmgt_exists_t;
+
+/** File management file/directory exists recovery action */
+typedef enum {
+	/** Overwrite */
+	fmgt_exr_overwrite,
+	/** Skip */
+	fmgt_exr_skip,
+	/** Abort */
+	fmgt_exr_abort
+} fmgt_exists_action_t;
+
 /** File management callbacks */
 typedef struct {
 	bool (*abort_query)(void *);
 	fmgt_error_action_t (*io_error_query)(void *, fmgt_io_error_t *);
+	fmgt_exists_action_t (*exists_query)(void *, fmgt_exists_t *);
 	void (*progress)(void *, fmgt_progress_t *);
 } fmgt_cb_t;
 

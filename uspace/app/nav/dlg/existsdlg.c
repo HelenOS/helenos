@@ -30,7 +30,7 @@
  * @{
  */
 /**
- * @file I/O Error Dialog
+ * @file File/directory Exists Dialog
  */
 
 #include <errno.h>
@@ -44,71 +44,76 @@
 #include <ui/resource.h>
 #include <ui/ui.h>
 #include <ui/window.h>
-#include "ioerrdlg.h"
+#include "existsdlg.h"
 
-static void io_err_dlg_wnd_close(ui_window_t *, void *);
-static void io_err_dlg_wnd_kbd(ui_window_t *, void *, kbd_event_t *);
+static void exists_dlg_wnd_close(ui_window_t *, void *);
+static void exists_dlg_wnd_kbd(ui_window_t *, void *, kbd_event_t *);
 
-ui_window_cb_t io_err_dlg_wnd_cb = {
-	.close = io_err_dlg_wnd_close,
-	.kbd = io_err_dlg_wnd_kbd
+ui_window_cb_t exists_dlg_wnd_cb = {
+	.close = exists_dlg_wnd_close,
+	.kbd = exists_dlg_wnd_kbd
 };
 
-static void io_err_dlg_babort_clicked(ui_pbutton_t *, void *);
-static void io_err_dlg_bretry_clicked(ui_pbutton_t *, void *);
+static void exists_dlg_boverwrite_clicked(ui_pbutton_t *, void *);
+static void exists_dlg_bskip_clicked(ui_pbutton_t *, void *);
+static void exists_dlg_babort_clicked(ui_pbutton_t *, void *);
 
-ui_pbutton_cb_t io_err_dlg_babort_cb = {
-	.clicked = io_err_dlg_babort_clicked
+ui_pbutton_cb_t exists_dlg_boverwrite_cb = {
+	.clicked = exists_dlg_boverwrite_clicked
 };
 
-ui_pbutton_cb_t io_err_dlg_bretry_cb = {
-	.clicked = io_err_dlg_bretry_clicked
+ui_pbutton_cb_t exists_dlg_bskip_cb = {
+	.clicked = exists_dlg_bskip_clicked
 };
 
-/** Initialize I/O error dialog parameters structure.
+ui_pbutton_cb_t exists_dlg_babort_cb = {
+	.clicked = exists_dlg_babort_clicked
+};
+
+/** Initialize File/directory exists dialog parameters structure.
  *
- * I/O error parameters structure must always be initialized using
+ * File/directory exists parameters structure must always be initialized using
  * this function first.
  *
- * @param params I/O error dialog parameters structure
+ * @param params File/directory exists dialog parameters structure
  */
-void io_err_dlg_params_init(io_err_dlg_params_t *params)
+void exists_dlg_params_init(exists_dlg_params_t *params)
 {
-	memset(params, 0, sizeof(io_err_dlg_params_t));
+	memset(params, 0, sizeof(exists_dlg_params_t));
 	params->text1 = "";
-	params->text2 = "";
 }
 
-/** Create I/O error dialog.
+/** Create File/directory exists dialog.
  *
  * @param ui User interface
  * @param params Dialog parameters
  * @param rdialog Place to store pointer to new dialog
  * @return EOK on success or an error code
  */
-errno_t io_err_dlg_create(ui_t *ui, io_err_dlg_params_t *params,
-    io_err_dlg_t **rdialog)
+errno_t exists_dlg_create(ui_t *ui, exists_dlg_params_t *params,
+    exists_dlg_t **rdialog)
 {
 	errno_t rc;
-	io_err_dlg_t *dialog;
+	exists_dlg_t *dialog;
 	ui_window_t *window = NULL;
 	ui_wnd_params_t wparams;
 	ui_fixed_t *fixed = NULL;
 	ui_label_t *label = NULL;
+	ui_pbutton_t *boverwrite = NULL;
+	ui_pbutton_t *bskip = NULL;
 	ui_pbutton_t *babort = NULL;
-	ui_pbutton_t *bretry = NULL;
 	gfx_rect_t rect;
 	ui_resource_t *ui_res;
 	char *name = NULL;
 
-	dialog = calloc(1, sizeof(io_err_dlg_t));
+	dialog = calloc(1, sizeof(exists_dlg_t));
 	if (dialog == NULL) {
 		rc = ENOMEM;
 		goto error;
 	}
 
 	ui_wnd_params_init(&wparams);
-	wparams.caption = "I/O Error";
+	wparams.caption = "File/directory exists";
 
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
@@ -119,7 +124,7 @@ errno_t io_err_dlg_create(ui_t *ui, io_err_dlg_params_t *params,
 	} else {
 		wparams.rect.p0.x = 0;
 		wparams.rect.p0.y = 0;
-		wparams.rect.p1.x = 300;
+		wparams.rect.p1.x = 440;
 		wparams.rect.p1.y = 155;
 	}
 
@@ -127,7 +132,7 @@ errno_t io_err_dlg_create(ui_t *ui, io_err_dlg_params_t *params,
 	if (rc != EOK)
 		goto error;
 
-	ui_window_set_cb(window, &io_err_dlg_wnd_cb, dialog);
+	ui_window_set_cb(window, &exists_dlg_wnd_cb, dialog);
 
 	ui_res = ui_window_get_res(window);
 
@@ -161,47 +166,81 @@ errno_t io_err_dlg_create(ui_t *ui, io_err_dlg_params_t *params,
 
 	label = NULL;
 
-	rc = ui_label_create(ui_res, params->text2, &label);
+	rc = ui_pbutton_create(ui_res, "Overwrite", &boverwrite);
 	if (rc != EOK)
 		goto error;
+
+	ui_pbutton_set_cb(boverwrite, &exists_dlg_boverwrite_cb, dialog);
 
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
-		rect.p0.x = 3;
-		rect.p0.y = 4;
-		rect.p1.x = 57;
-		rect.p1.y = 5;
-	} else {
 		rect.p0.x = 10;
-		rect.p0.y = 35;
-		rect.p1.x = 190;
-		rect.p1.y = 50;
+		rect.p0.y = 6;
+		rect.p1.x = 24;
+		rect.p1.y = 7;
+	} else {
+		rect.p0.x = 100;
+		rect.p0.y = 120;
+		rect.p1.x = 200;
+		rect.p1.y = 148;
 	}
 
-	ui_label_set_rect(label, &rect);
-	ui_label_set_halign(label, gfx_halign_center);
+	ui_pbutton_set_rect(boverwrite, &rect);
 
-	rc = ui_fixed_add(fixed, ui_label_ctl(label));
+	rc = ui_fixed_add(fixed, ui_pbutton_ctl(boverwrite));
 	if (rc != EOK)
 		goto error;
+
+	dialog->boverwrite = boverwrite;
+	boverwrite = NULL;
+
+	rc = ui_pbutton_create(ui_res, "Skip", &bskip);
+	if (rc != EOK)
+		goto error;
+
+	ui_pbutton_set_cb(bskip, &exists_dlg_bskip_cb, dialog);
+
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(ui)) {
+		rect.p0.x = 26;
+		rect.p0.y = 6;
+		rect.p1.x = 36;
+		rect.p1.y = 7;
+	} else {
+		rect.p0.x = 55;
+		rect.p0.y = 320;
+		rect.p1.x = 145;
+		rect.p1.y = 420;
+	}
+
+	ui_pbutton_set_rect(bskip, &rect);
+
+	ui_pbutton_set_default(bskip, true);
+
+	rc = ui_fixed_add(fixed, ui_pbutton_ctl(bskip));
+	if (rc != EOK)
+		goto error;
+
+	dialog->bskip = bskip;
+	bskip = NULL;
 
 	rc = ui_pbutton_create(ui_res, "Abort", &babort);
 	if (rc != EOK)
 		goto error;
 
-	ui_pbutton_set_cb(babort, &io_err_dlg_babort_cb, dialog);
+	ui_pbutton_set_cb(babort, &exists_dlg_babort_cb, dialog);
 
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
-		rect.p0.x = 20;
+		rect.p0.x = 38;
 		rect.p0.y = 6;
-		rect.p1.x = 30;
+		rect.p1.x = 48;
 		rect.p1.y = 7;
 	} else {
 		rect.p0.x = 55;
-		rect.p0.y = 120;
+		rect.p0.y = 210;
 		rect.p1.x = 145;
-		rect.p1.y = 148;
+		rect.p1.y = 310;
 	}
 
 	ui_pbutton_set_rect(babort, &rect);
@@ -214,34 +253,6 @@ errno_t io_err_dlg_create(ui_t *ui, io_err_dlg_params_t *params,
 
 	dialog->babort = babort;
 	babort = NULL;
-
-	rc = ui_pbutton_create(ui_res, "Retry", &bretry);
-	if (rc != EOK)
-		goto error;
-
-	ui_pbutton_set_cb(bretry, &io_err_dlg_bretry_cb, dialog);
-
-	/* FIXME: Auto layout */
-	if (ui_is_textmode(ui)) {
-		rect.p0.x = 32;
-		rect.p0.y = 6;
-		rect.p1.x = 42;
-		rect.p1.y = 7;
-	} else {
-		rect.p0.x = 155;
-		rect.p0.y = 120;
-		rect.p1.x = 245;
-		rect.p1.y = 148;
-	}
-
-	ui_pbutton_set_rect(bretry, &rect);
-
-	rc = ui_fixed_add(fixed, ui_pbutton_ctl(bretry));
-	if (rc != EOK)
-		goto error;
-
-	dialog->bretry = bretry;
-	bretry = NULL;
 
 	ui_window_add(window, ui_fixed_ctl(fixed));
 	fixed = NULL;
@@ -256,10 +267,12 @@ errno_t io_err_dlg_create(ui_t *ui, io_err_dlg_params_t *params,
 error:
 	if (name != NULL)
 		free(name);
+	if (boverwrite != NULL)
+		ui_pbutton_destroy(boverwrite);
+	if (bskip != NULL)
+		ui_pbutton_destroy(bskip);
 	if (babort != NULL)
 		ui_pbutton_destroy(babort);
-	if (bretry != NULL)
-		ui_pbutton_destroy(bretry);
 	if (label != NULL)
 		ui_label_destroy(label);
 	if (fixed != NULL)
@@ -271,11 +284,11 @@ error:
 	return rc;
 }
 
-/** Destroy I/O error dialog.
+/** Destroy file/directory exists dialog.
  *
- * @param dialog I/O error dialog or @c NULL
+ * @param dialog File/directory exists dialog or @c NULL
  */
-void io_err_dlg_destroy(io_err_dlg_t *dialog)
+void exists_dlg_destroy(exists_dlg_t *dialog)
 {
 	if (dialog == NULL)
 		return;
@@ -284,27 +297,27 @@ void io_err_dlg_destroy(io_err_dlg_t *dialog)
 	free(dialog);
 }
 
-/** Set I/O error dialog callback.
+/** Set file/directory exists dialog callback.
  *
- * @param dialog I/O error dialog
- * @param cb I/O error dialog callbacks
+ * @param dialog File/directory exists dialog
+ * @param cb File/directory exists dialog callbacks
  * @param arg Callback argument
  */
-void io_err_dlg_set_cb(io_err_dlg_t *dialog, io_err_dlg_cb_t *cb,
+void exists_dlg_set_cb(exists_dlg_t *dialog, exists_dlg_cb_t *cb,
     void *arg)
 {
 	dialog->cb = cb;
 	dialog->arg = arg;
 }
 
-/** I/O error dialog window close handler.
+/** File/directory exists dialog window close handler.
  *
  * @param window Window
- * @param arg Argument (io_err_dlg_t *)
+ * @param arg Argument (exists_dlg_t *)
  */
-static void io_err_dlg_wnd_close(ui_window_t *window, void *arg)
+static void exists_dlg_wnd_close(ui_window_t *window, void *arg)
 {
-	io_err_dlg_t *dialog = (io_err_dlg_t *) arg;
+	exists_dlg_t *dialog = (exists_dlg_t *) arg;
 
 	(void)window;
 	if (dialog->cb != NULL && dialog->cb->close != NULL) {
@@ -312,16 +325,16 @@ static void io_err_dlg_wnd_close(ui_window_t *window, void *arg)
 	}
 }
 
-/** I/O error dialog window keyboard event handler.
+/** File/directory exists dialog window keyboard event handler.
  *
  * @param window Window
- * @param arg Argument (io_err_dlg_t *)
+ * @param arg Argument (exists_dlg_t *)
  * @param event Keyboard event
  */
-static void io_err_dlg_wnd_kbd(ui_window_t *window, void *arg,
+static void exists_dlg_wnd_kbd(ui_window_t *window, void *arg,
     kbd_event_t *event)
 {
-	io_err_dlg_t *dialog = (io_err_dlg_t *) arg;
+	exists_dlg_t *dialog = (exists_dlg_t *) arg;
 
 	if (event->type == KEY_PRESS &&
 	    (event->mods & (KM_CTRL | KM_SHIFT | KM_ALT)) == 0) {
@@ -333,8 +346,8 @@ static void io_err_dlg_wnd_kbd(ui_window_t *window, void *arg,
 			}
 		} else if (event->key == KC_ESCAPE) {
 			/* Cancel */
-			if (dialog->cb != NULL && dialog->cb->bretry != NULL) {
-				dialog->cb->bretry(dialog, dialog->arg);
+			if (dialog->cb != NULL && dialog->cb->boverwrite != NULL) {
+				dialog->cb->boverwrite(dialog, dialog->arg);
 				return;
 			}
 		}
@@ -343,32 +356,46 @@ static void io_err_dlg_wnd_kbd(ui_window_t *window, void *arg,
 	ui_window_def_kbd(window, event);
 }
 
-/** I/O error dialog abort button click handler.
+/** File/directory exists dialog overwrite button click handler.
  *
  * @param pbutton Push button
- * @param arg Argument (io_err_dlg_t *)
+ * @param arg Argument (exists_dlg_t *)
  */
-static void io_err_dlg_babort_clicked(ui_pbutton_t *pbutton, void *arg)
+static void exists_dlg_boverwrite_clicked(ui_pbutton_t *pbutton, void *arg)
 {
-	io_err_dlg_t *dialog = (io_err_dlg_t *) arg;
+	exists_dlg_t *dialog = (exists_dlg_t *) arg;
 
-	if (dialog->cb != NULL && dialog->cb->babort != NULL) {
-		dialog->cb->babort(dialog, dialog->arg);
+	(void)pbutton;
+	if (dialog->cb != NULL && dialog->cb->boverwrite != NULL) {
+		dialog->cb->boverwrite(dialog, dialog->arg);
 	}
 }
 
-/** I/O error dialog retry button click handler.
+/** File/directory eists dialog skip button click handler.
  *
  * @param pbutton Push button
- * @param arg Argument (io_err_dlg_t *)
+ * @param arg Argument (exists_dlg_t *)
  */
-static void io_err_dlg_bretry_clicked(ui_pbutton_t *pbutton, void *arg)
+static void exists_dlg_bskip_clicked(ui_pbutton_t *pbutton, void *arg)
 {
-	io_err_dlg_t *dialog = (io_err_dlg_t *) arg;
+	exists_dlg_t *dialog = (exists_dlg_t *) arg;
 
-	(void)pbutton;
-	if (dialog->cb != NULL && dialog->cb->bretry != NULL) {
-		dialog->cb->bretry(dialog, dialog->arg);
+	if (dialog->cb != NULL && dialog->cb->bskip != NULL) {
+		dialog->cb->bskip(dialog, dialog->arg);
+	}
+}
+
+/** File/directory eists dialog abort button click handler.
+ *
+ * @param pbutton Push button
+ * @param arg Argument (exists_dlg_t *)
+ */
+static void exists_dlg_babort_clicked(ui_pbutton_t *pbutton, void *arg)
+{
+	exists_dlg_t *dialog = (exists_dlg_t *) arg;
+
+	if (dialog->cb != NULL && dialog->cb->babort != NULL) {
+		dialog->cb->babort(dialog, dialog->arg);
 	}
 }
 

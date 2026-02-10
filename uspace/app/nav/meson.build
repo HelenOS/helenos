@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2025 Jiri Svoboda
+# Copyright (c) 2026 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -29,6 +29,7 @@
 deps = [ 'fmgt', 'ui' ]
 src = files(
 	'dlg/copydlg.c',
+	'dlg/existsdlg.c',
 	'dlg/ioerrdlg.c',
 	'dlg/newfiledlg.c',
 	'dlg/progress.c',
@@ -44,6 +45,7 @@ src = files(
 
 test_src = files(
 	'dlg/copydlg.c',
+	'dlg/existsdlg.c',
 	'dlg/ioerrdlg.c',
 	'dlg/newfiledlg.c',
 	'dlg/progress.c',
@@ -55,6 +57,7 @@ test_src = files(
 	'panel.c',
 	'verify.c',
 	'test/dlg/copydlg.c',
+	'test/dlg/existsdlg.c',
 	'test/dlg/ioerrdlg.c',
 	'test/dlg/newfiledlg.c',
 	'test/dlg/progress.c',

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -68,6 +68,7 @@ static void copy_progress(void *, fmgt_progress_t *);
 static fmgt_cb_t copy_fmgt_cb = {
 	.abort_query = copy_abort_query,
 	.io_error_query = navigator_io_error_query,
+	.exists_query = navigator_exists_query,
 	.progress = copy_progress,
 };
 

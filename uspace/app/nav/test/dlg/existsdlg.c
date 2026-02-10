@@ -26,18 +26,34 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <errno.h>
 #include <pcut/pcut.h>
+#include <ui/ui.h>
+#include "../../dlg/existsdlg.h"
 
 PCUT_INIT;
 
-PCUT_IMPORT(copydlg);
-PCUT_IMPORT(existsdlg);
-PCUT_IMPORT(ioerrdlg);
-PCUT_IMPORT(newfiledlg);
-PCUT_IMPORT(progress);
-PCUT_IMPORT(verifydlg);
-PCUT_IMPORT(menu);
-PCUT_IMPORT(nav);
-PCUT_IMPORT(panel);
+PCUT_TEST_SUITE(existsdlg);
 
-PCUT_MAIN();
+/** Create and destroy file/directory exists dialog. */
+PCUT_TEST(create_destroy)
+{
+	ui_t *ui;
+	exists_dlg_params_t params;
+	exists_dlg_t *dlg = NULL;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	exists_dlg_params_init(&params);
+	rc = exists_dlg_create(ui, &params, &dlg);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(dlg);
+
+	exists_dlg_destroy(dlg);
+
+	ui_destroy(ui);
+}
+
+PCUT_EXPORT(existsdlg);

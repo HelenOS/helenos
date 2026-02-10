@@ -26,18 +26,66 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <pcut/pcut.h>
+/** @addtogroup nav
+ * @{
+ */
+/**
+ * @file File/directory exists Dialog
+ */
 
-PCUT_INIT;
+#ifndef TYPES_DLG_EXISTSDLG_H
+#define TYPES_DLG_EXISTSDLG_H
 
-PCUT_IMPORT(copydlg);
-PCUT_IMPORT(existsdlg);
-PCUT_IMPORT(ioerrdlg);
-PCUT_IMPORT(newfiledlg);
-PCUT_IMPORT(progress);
-PCUT_IMPORT(verifydlg);
-PCUT_IMPORT(menu);
-PCUT_IMPORT(nav);
-PCUT_IMPORT(panel);
+#include <errno.h>
+#include <io/kbd_event.h>
+#include <io/pos_event.h>
+#include <ui/entry.h>
+#include <ui/pbutton.h>
+#include <ui/window.h>
 
-PCUT_MAIN();
+struct exists_dlg;
+typedef struct exists_dlg exists_dlg_t;
+
+enum {
+	/** Maximum number of buttons in file/directory exists dialog. */
+	exists_dlg_maxbtn = 2
+};
+
+/** File/directory exists dialog parameters */
+typedef struct {
+	/** First line of text */
+	const char *text1;
+} exists_dlg_params_t;
+
+/** File/directory exists dialog callback */
+typedef struct exists_dlg_cb {
+	/** Overwrite button was pressed */
+	void (*boverwrite)(exists_dlg_t *, void *);
+	/** Skip button was pressed */
+	void (*bskip)(exists_dlg_t *, void *);
+	/** Abort button was pressed */
+	void (*babort)(exists_dlg_t *, void *);
+	/** Window closure requested (e.g. via close button) */
+	void (*close)(exists_dlg_t *, void *);
+} exists_dlg_cb_t;
+
+/** File/directory exists dialog */
+typedef struct exists_dlg {
+	/** Dialog window */
+	ui_window_t *window;
+	/** Overwrite button */
+	ui_pbutton_t *boverwrite;
+	/** Skip button */
+	ui_pbutton_t *bskip;
+	/** Abort button */
+	ui_pbutton_t *babort;
+	/** New file dialog callbacks */
+	exists_dlg_cb_t *cb;
+	/** Callback argument */
+	void *arg;
+} exists_dlg_t;
+
+#endif
+
+/** @}
+ */

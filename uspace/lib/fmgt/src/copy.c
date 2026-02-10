@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -49,6 +49,179 @@ static fmgt_walk_cb_t fmgt_copy_cb = {
 	.file = fmgt_copy_file
 };
 
+/** Open file.
+ *
+ * @param fmgt File management object
+ * @param fname File name
+ * @param rfd Place to store file descriptor
+ * @return EOK on success or an error code
+ */
+static errno_t fmgt_open(fmgt_t *fmgt, const char *fname, int *rfd)
+{
+	fmgt_io_error_t err;
+	fmgt_error_action_t action;
+	errno_t rc;
+
+	do {
+		rc = vfs_lookup_open(fname, WALK_REGULAR, MODE_READ, rfd);
+		if (rc == EOK)
+			break;
+
+		/* I/O error */
+		err.fname = fname;
+		err.optype = fmgt_io_open;
+		err.rc = rc;
+		fmgt_timer_stop(fmgt);
+		action = fmgt_io_error_query(fmgt, &err);
+		fmgt_timer_start(fmgt);
+	} while (action == fmgt_er_retry);
+
+	return rc;
+}
+
+/** Create file.
+ *
+ * @param fmgt File management object
+ * @param fname Destination file name
+ * @param rfd Place to store file descriptor
+ * @param rskip If @c true, skip existing file and continue
+ * @return EOK on success or an error code
+ */
+static errno_t fmgt_create_file(fmgt_t *fmgt, const char *fname, int *rfd,
+    bool *rskip)
+{
+	fmgt_io_error_t err;
+	fmgt_error_action_t action;
+	fmgt_exists_t exists;
+	fmgt_exists_action_t exaction;
+	bool may_overwrite = false;
+	unsigned flags;
+	errno_t rc;
+
+	*rskip = false;
+
+	do {
+		flags = WALK_REGULAR | (may_overwrite ? WALK_MAY_CREATE :
+		    WALK_MUST_CREATE);
+		rc = vfs_lookup_open(fname, flags, MODE_WRITE, rfd);
+		if (rc == EOK)
+			break;
+
+		if (rc == EEXIST) {
+			/* File exists */
+			exists.fname = fname;
+			fmgt_timer_stop(fmgt);
+			exaction = fmgt_exists_query(fmgt, &exists);
+			fmgt_timer_start(fmgt);
+
+			if (exaction == fmgt_exr_skip)
+				*rskip = true;
+			if (exaction != fmgt_exr_overwrite)
+				break;
+
+			may_overwrite = true;
+		} else {
+			/* I/O error */
+			err.fname = fname;
+			err.optype = fmgt_io_create;
+			err.rc = rc;
+			fmgt_timer_stop(fmgt);
+			action = fmgt_io_error_query(fmgt, &err);
+			fmgt_timer_start(fmgt);
+
+			if (action != fmgt_er_retry)
+				break;
+		}
+	} while (true);
+
+	return rc;
+}
+
+/** Create directory.
+ *
+ * @param fmgt File management object
+ * @param dname Directory name
+ * @return EOK on success or an error code
+ */
+static errno_t fmgt_create_dir(fmgt_t *fmgt, const char *dname)
+{
+	fmgt_io_error_t err;
+	fmgt_error_action_t action;
+	errno_t rc;
+
+	do {
+		rc = vfs_link_path(dname, KIND_DIRECTORY, NULL);
+
+		/* It is okay if the directory exists. */
+		if (rc == EOK || rc == EEXIST)
+			break;
+
+		/* I/O error */
+		err.fname = dname;
+		err.optype = fmgt_io_create;
+		err.rc = rc;
+
+		fmgt_timer_stop(fmgt);
+		action = fmgt_io_error_query(fmgt, &err);
+		fmgt_timer_start(fmgt);
+	} while (action == fmgt_er_retry);
+
+	if (rc == EEXIST)
+		return EOK;
+
+	return rc;
+}
+
+/** Read data from file.
+ *
+ * @param fmgt File management object
+ * @param fd File descriptor
+ * @param fname File name (for printing diagnostics)
+ * @param pos Pointer to current position (will be updated)
+ * @param buffer Data buffer
+ * @param nbytes Number of bytes to read
+ * @param nr Place to store number of bytes read
+ * @return EOK on success or an error code
+ */
+static errno_t fmgt_read(fmgt_t *fmgt, int fd, const char *fname,
+    aoff64_t *pos, void *buffer, size_t nbytes, size_t *nr)
+{
+	char *bp = (char *)buffer;
+	fmgt_io_error_t err;
+	fmgt_error_action_t action;
+	errno_t rc;
+
+	do {
+		rc = vfs_read(fd, pos, bp, nbytes, nr);
+		if (rc == EOK)
+			break;
+
+		/* I/O error */
+		err.fname = fname;
+		err.optype = fmgt_io_read;
+		err.rc = rc;
+		fmgt_timer_stop(fmgt);
+		action = fmgt_io_error_query(fmgt, &err);
+		fmgt_timer_start(fmgt);
+	} while (action == fmgt_er_retry);
+
+	/* Not recovered? */
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
+}
+
+/** Write data to file.
+ *
+ * @param fmgt File management object
+ * @param fd File descriptor
+ * @param fname File name (for printing diagnostics)
+ * @param pos Pointer to current position (will be updated)
+ * @param buffer Pointer to data
+ * @param nbytes Number of bytes to write
+ * @return EOK on success or an error code
+ */
 static errno_t fmgt_write(fmgt_t *fmgt, int fd, const char *fname,
     aoff64_t *pos, void *buffer, size_t nbytes)
 {
@@ -96,28 +269,9 @@ static errno_t fmgt_write(fmgt_t *fmgt, int fd, const char *fname,
 static errno_t fmgt_copy_dir_enter(void *arg, const char *src, const char *dest)
 {
 	fmgt_t *fmgt = (fmgt_t *)arg;
-	fmgt_io_error_t err;
-	fmgt_error_action_t action;
-	errno_t rc;
 
-	do {
-		rc = vfs_link_path(dest, KIND_DIRECTORY, NULL);
-
-		/* It is okay if the directory exists. */
-		if (rc == EOK || rc == EEXIST)
-			break;
-
-		/* I/O error */
-		err.fname = dest;
-		err.optype = fmgt_io_create;
-		err.rc = rc;
-
-		fmgt_timer_stop(fmgt);
-		action = fmgt_io_error_query(fmgt, &err);
-		fmgt_timer_start(fmgt);
-	} while (action == fmgt_er_retry);
-
-	return rc;
+	(void)dest;
+	return fmgt_create_dir(fmgt, dest);
 }
 
 /** Copy single file.
@@ -136,73 +290,35 @@ static errno_t fmgt_copy_file(void *arg, const char *src, const char *dest)
 	aoff64_t rpos = 0;
 	aoff64_t wpos = 0;
 	char *buffer;
-	fmgt_io_error_t err;
-	fmgt_error_action_t action;
+	bool skip;
 	errno_t rc;
 
 	buffer = calloc(BUFFER_SIZE, 1);
 	if (buffer == NULL)
 		return ENOMEM;
 
-	do {
-		rc = vfs_lookup_open(src, WALK_REGULAR, MODE_READ, &rfd);
-		if (rc == EOK)
-			break;
-
-		/* I/O error */
-		err.fname = src;
-		err.optype = fmgt_io_open;
-		err.rc = rc;
-		fmgt_timer_stop(fmgt);
-		action = fmgt_io_error_query(fmgt, &err);
-		fmgt_timer_start(fmgt);
-	} while (action == fmgt_er_retry);
-
-	/* Not recovered? */
+	rc = fmgt_open(fmgt, src, &rfd);
 	if (rc != EOK) {
 		free(buffer);
 		return rc;
 	}
 
-	do {
-		rc = vfs_lookup_open(dest, WALK_REGULAR | WALK_MAY_CREATE,
-		    MODE_WRITE, &wfd);
-		if (rc == EOK)
-			break;
-
-		/* I/O error */
-		err.fname = dest;
-		err.optype = fmgt_io_create;
-		err.rc = rc;
-		fmgt_timer_stop(fmgt);
-		action = fmgt_io_error_query(fmgt, &err);
-		fmgt_timer_start(fmgt);
-	} while (action == fmgt_er_retry);
-
+	rc = fmgt_create_file(fmgt, dest, &wfd, &skip);
 	if (rc != EOK) {
 		free(buffer);
 		vfs_put(rfd);
+
+		/* User decided to skip and continue. */
+		if (rc == EEXIST && skip)
+			return EOK;
 		return rc;
 	}
 
 	fmgt_progress_init_file(fmgt, src);
 
 	do {
-		do {
-			rc = vfs_read(rfd, &rpos, buffer, BUFFER_SIZE, &nr);
-			if (rc == EOK)
-				break;
-
-			/* I/O error */
-			err.fname = src;
-			err.optype = fmgt_io_read;
-			err.rc = rc;
-			fmgt_timer_stop(fmgt);
-			action = fmgt_io_error_query(fmgt, &err);
-			fmgt_timer_start(fmgt);
-		} while (action == fmgt_er_retry);
-
-		/* Not recovered? */
+		rc = fmgt_read(fmgt, rfd, src, &rpos, buffer, BUFFER_SIZE,
+		    &nr);
 		if (rc != EOK)
 			goto error;
 
@@ -232,7 +348,7 @@ error:
 	return rc;
 }
 
-/** copy files.
+/** Copy files.
  *
  * @param fmgt File management object
  * @param flist File list

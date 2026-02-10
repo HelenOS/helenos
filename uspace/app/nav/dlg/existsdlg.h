@@ -26,18 +26,28 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <pcut/pcut.h>
+/** @addtogroup nav
+ * @{
+ */
+/**
+ * @file File/directory Exists Dialog
+ */
 
-PCUT_INIT;
+#ifndef DLG_EXISTSDLG_H
+#define DLG_EXISTSDLG_H
 
-PCUT_IMPORT(copydlg);
-PCUT_IMPORT(existsdlg);
-PCUT_IMPORT(ioerrdlg);
-PCUT_IMPORT(newfiledlg);
-PCUT_IMPORT(progress);
-PCUT_IMPORT(verifydlg);
-PCUT_IMPORT(menu);
-PCUT_IMPORT(nav);
-PCUT_IMPORT(panel);
+#include <errno.h>
+#include <types/ui/ui.h>
+#include "../types/dlg/existsdlg.h"
 
-PCUT_MAIN();
+extern void exists_dlg_params_init(exists_dlg_params_t *);
+extern errno_t exists_dlg_create(ui_t *, exists_dlg_params_t *,
+    exists_dlg_t **);
+extern void exists_dlg_set_cb(exists_dlg_t *, exists_dlg_cb_t *,
+    void *);
+extern void exists_dlg_destroy(exists_dlg_t *);
+
+#endif
+
+/** @}
+ */
