@@ -38,9 +38,9 @@ PCUT_INIT;
 
 PCUT_TEST_SUITE(walk);
 
-static errno_t test_walk_dir_enter(void *, const char *, const char *);
-static errno_t test_walk_dir_leave(void *, const char *, const char *);
-static errno_t test_walk_file(void *, const char *, const char *);
+static errno_t test_walk_dir_enter(fmgt_walk_t *, const char *, const char *);
+static errno_t test_walk_dir_leave(fmgt_walk_t *, const char *, const char *);
+static errno_t test_walk_file(fmgt_walk_t *, const char *, const char *);
 
 static fmgt_walk_cb_t test_walk_cb = {
 	.dir_enter = test_walk_dir_enter,
@@ -206,26 +206,28 @@ PCUT_TEST(walk_dest_success)
 	free(fname);
 }
 
-errno_t test_walk_dir_enter(void *arg, const char *fname, const char *dest)
+errno_t test_walk_dir_enter(fmgt_walk_t *walk, const char *fname,
+    const char *dest)
 {
-	test_resp_t *resp = (test_resp_t *)arg;
+	test_resp_t *resp = (test_resp_t *)walk->params->arg;
 	resp->dir_enter = true;
 	resp->dirname = str_dup(fname);
 	resp->de_dest = (dest != NULL) ? str_dup(dest) : NULL;
 	return resp->rc;
 }
 
-errno_t test_walk_dir_leave(void *arg, const char *fname, const char *dest)
+errno_t test_walk_dir_leave(fmgt_walk_t *walk, const char *fname,
+    const char *dest)
 {
-	test_resp_t *resp = (test_resp_t *)arg;
+	test_resp_t *resp = (test_resp_t *)walk->params->arg;
 	resp->dir_leave = true;
 	resp->dl_dest = (dest != NULL) ? str_dup(dest) : NULL;
 	return resp->rc;
 }
 
-errno_t test_walk_file(void *arg, const char *fname, const char *dest)
+errno_t test_walk_file(fmgt_walk_t *walk, const char *fname, const char *dest)
 {
-	test_resp_t *resp = (test_resp_t *)arg;
+	test_resp_t *resp = (test_resp_t *)walk->params->arg;
 	resp->file_proc = true;
 	resp->fname = str_dup(fname);
 	resp->dest = (dest != NULL) ? str_dup(dest) : NULL;

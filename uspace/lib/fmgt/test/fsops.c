@@ -85,7 +85,7 @@ PCUT_TEST(create_file)
 	char *p;
 	int fd;
 	int rv;
-	bool skip;
+	fmgt_exists_action_t exaction;
 	errno_t rc;
 
 	/* Create name for temporary file */
@@ -95,9 +95,8 @@ PCUT_TEST(create_file)
 	rc = fmgt_create(&fmgt);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = fmgt_create_file(fmgt, p, &fd, &skip);
+	rc = fmgt_create_file(fmgt, p, &fd, &exaction);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_FALSE(skip);
 
 	fmgt_destroy(fmgt);
 	vfs_put(fd);

@@ -102,7 +102,9 @@ typedef enum {
 	/** Skip */
 	fmgt_exr_skip,
 	/** Abort */
-	fmgt_exr_abort
+	fmgt_exr_abort,
+	/** Fail */
+	fmgt_exr_fail
 } fmgt_exists_action_t;
 
 /** File management callbacks */
@@ -158,15 +160,23 @@ typedef struct {
 	char *fname;
 } fmgt_flist_entry_t;
 
+/** File system tree walk. */
+typedef struct {
+	/** Parameters */
+	struct fmgt_walk_params *params;
+	/** Stop walk. */
+	bool stop;
+} fmgt_walk_t;
+
 /** File system tree walk callbacks */
 typedef struct {
-	errno_t (*dir_enter)(void *, const char *, const char *);
-	errno_t (*dir_leave)(void *, const char *, const char *);
-	errno_t (*file)(void *, const char *, const char *);
+	errno_t (*dir_enter)(fmgt_walk_t *, const char *, const char *);
+	errno_t (*dir_leave)(fmgt_walk_t *, const char *, const char *);
+	errno_t (*file)(fmgt_walk_t *, const char *, const char *);
 } fmgt_walk_cb_t;
 
 /** File system tree walk parameters */
-typedef struct {
+typedef struct fmgt_walk_params {
 	/** List of files or directories (walk roots) */
 	fmgt_flist_t *flist;
 	/** Destination path */

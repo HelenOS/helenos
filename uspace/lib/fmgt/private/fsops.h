@@ -43,7 +43,7 @@
 #include "../include/types/fmgt.h"
 
 errno_t fmgt_open(fmgt_t *, const char *, int *);
-errno_t fmgt_create_file(fmgt_t *, const char *, int *, bool *);
+errno_t fmgt_create_file(fmgt_t *, const char *, int *, fmgt_exists_action_t *);
 errno_t fmgt_create_dir(fmgt_t *, const char *);
 errno_t fmgt_read(fmgt_t *, int, const char *, aoff64_t *, void *, size_t,
     size_t *);

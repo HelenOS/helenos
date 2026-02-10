@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,8 +45,7 @@
 #include "fmgt.h"
 #include "fmgt/walk.h"
 
-static errno_t fmgt_walk_subtree(fmgt_walk_params_t *, const char *,
-    const char *);
+static errno_t fmgt_walk_subtree(fmgt_walk_t *, const char *, const char *);
 
 /** Initialize walk parameters.
  *
@@ -62,61 +61,61 @@ void fmgt_walk_params_init(fmgt_walk_params_t *params)
 
 /** Walk file (invoke file callback).
  *
- * @param params Walk parameters
+ * @param walk Walk
  * @param fname Source path
  * @param dest Destination path
  *
  * @return EOK on success or an error code
  */
-static errno_t fmgt_walk_file(fmgt_walk_params_t *params, const char *fname,
+static errno_t fmgt_walk_file(fmgt_walk_t *walk, const char *fname,
     const char *dest)
 {
-	if (params->cb->file != NULL)
-		return params->cb->file(params->arg, fname, dest);
+	if (walk->params->cb->file != NULL)
+		return walk->params->cb->file(walk, fname, dest);
 	else
 		return EOK;
 }
 
 /** Enter directory (invoke directory entry callback).
  *
- * @param params Walk parameters
+ * @param walk Walk
  * @param dname Source directory
  * @param dest Destination path
  * @return EOK on success or an error code
  */
-static errno_t fmgt_walk_dir_enter(fmgt_walk_params_t *params,
-    const char *dname, const char *dest)
+static errno_t fmgt_walk_dir_enter(fmgt_walk_t *walk, const char *dname,
+    const char *dest)
 {
-	if (params->cb->dir_enter != NULL)
-		return params->cb->dir_enter(params->arg, dname, dest);
+	if (walk->params->cb->dir_enter != NULL)
+		return walk->params->cb->dir_enter(walk, dname, dest);
 	else
 		return EOK;
 }
 
 /** Leave directory (invoke directory exit callback).
  *
- * @param params Walk parameters
+ * @param walk Walk
  * @param dname Directory path
  * @param dest Destination path
  * @return EOK on success or an error code
  */
-static errno_t fmgt_walk_dir_leave(fmgt_walk_params_t *params,
-    const char *dname, const char *dest)
+static errno_t fmgt_walk_dir_leave(fmgt_walk_t *walk, const char *dname,
+    const char *dest)
 {
-	if (params->cb->dir_leave != NULL)
-		return params->cb->dir_leave(params->arg, dname, dest);
+	if (walk->params->cb->dir_leave != NULL)
+		return walk->params->cb->dir_leave(walk, dname, dest);
 	else
 		return EOK;
 }
 
 /** Walk directory.
  *
- * @param params Walk parameters
+ * @param walk Walk
  * @param dname Directory name
  * @param dest Destination path or @c NULL
  * @return EOK on success or an error code
  */
-static errno_t fmgt_walk_dir(fmgt_walk_params_t *params, const char *dname,
+static errno_t fmgt_walk_dir(fmgt_walk_t *walk, const char *dname,
     const char *dest)
 {
 	DIR *dir = NULL;
@@ -126,7 +125,7 @@ static errno_t fmgt_walk_dir(fmgt_walk_params_t *params, const char *dname,
 	char *destpath = NULL;
 	int rv;
 
-	rc = fmgt_walk_dir_enter(params, dname, dest);
+	rc = fmgt_walk_dir_enter(walk, dname, dest);
 	if (rc != EOK)
 		goto error;
 
@@ -137,7 +136,7 @@ static errno_t fmgt_walk_dir(fmgt_walk_params_t *params, const char *dname,
 	}
 
 	de = readdir(dir);
-	while (de != NULL) {
+	while (!walk->stop && de != NULL) {
 		rv = asprintf(&srcpath, "%s/%s", dname, de->d_name);
 		if (rv < 0) {
 			rc = ENOMEM;
@@ -153,7 +152,7 @@ static errno_t fmgt_walk_dir(fmgt_walk_params_t *params, const char *dname,
 			}
 		}
 
-		rc = fmgt_walk_subtree(params, srcpath, destpath);
+		rc = fmgt_walk_subtree(walk, srcpath, destpath);
 		if (rc != EOK) {
 			free(srcpath);
 			if (destpath != NULL)
@@ -167,7 +166,7 @@ static errno_t fmgt_walk_dir(fmgt_walk_params_t *params, const char *dname,
 		de = readdir(dir);
 	}
 
-	rc = fmgt_walk_dir_leave(params, dname, dest);
+	rc = fmgt_walk_dir_leave(walk, dname, dest);
 	if (rc != EOK)
 		return rc;
 
@@ -181,13 +180,13 @@ error:
 
 /** Walk subtree.
  *
- * @param params Walk parameters.
- * @param fname Subtree path.
+ * @param walk Walk
+ * @param fname Subtree path
  * @param dest Destination path
  *
  * @return EOK on success or an error code.
  */
-static errno_t fmgt_walk_subtree(fmgt_walk_params_t *params, const char *fname,
+static errno_t fmgt_walk_subtree(fmgt_walk_t *walk, const char *fname,
     const char *dest)
 {
 	vfs_stat_t stat;
@@ -199,12 +198,12 @@ static errno_t fmgt_walk_subtree(fmgt_walk_params_t *params, const char *fname,
 
 	if (stat.is_directory) {
 		/* Directory */
-		rc = fmgt_walk_dir(params, fname, dest);
+		rc = fmgt_walk_dir(walk, fname, dest);
 		if (rc != EOK)
 			return rc;
 	} else {
 		/* Not a directory */
-		rc = fmgt_walk_file(params, fname, dest);
+		rc = fmgt_walk_file(walk, fname, dest);
 		if (rc != EOK)
 			return rc;
 	}
@@ -224,12 +223,16 @@ static errno_t fmgt_walk_subtree(fmgt_walk_params_t *params, const char *fname,
 errno_t fmgt_walk(fmgt_walk_params_t *params)
 {
 	fmgt_flist_entry_t *entry;
+	fmgt_walk_t walk;
 	char *destname;
 	errno_t rc;
 	int rv;
 
+	walk.params = params;
+	walk.stop = false;
+
 	entry = fmgt_flist_first(params->flist);
-	while (entry != NULL) {
+	while (!walk.stop && entry != NULL) {
 		if (params->into_dest) {
 			rv = asprintf(&destname, "%s/%s",
 			    params->dest, fmgt_basename(entry->fname));
@@ -239,7 +242,7 @@ errno_t fmgt_walk(fmgt_walk_params_t *params)
 			destname = NULL;
 		}
 
-		rc = fmgt_walk_subtree(params, entry->fname,
+		rc = fmgt_walk_subtree(&walk, entry->fname,
 		    destname != NULL ? destname : params->dest);
 		if (rc != EOK)
 			return rc;

@@ -209,7 +209,7 @@ static fmgt_exists_action_t copy_exists_query(void *arg, fmgt_exists_t *exists)
 	(void)arg;
 
 	if (nonint)
-		return fmgt_exr_abort;
+		return fmgt_exr_fail;
 
 	if (prog_upd)
 		putchar('\n');

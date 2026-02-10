@@ -42,8 +42,8 @@
 #include "../private/fmgt.h"
 #include "../private/fsops.h"
 
-static errno_t fmgt_copy_dir_enter(void *, const char *, const char *);
-static errno_t fmgt_copy_file(void *, const char *, const char *);
+static errno_t fmgt_copy_dir_enter(fmgt_walk_t *, const char *, const char *);
+static errno_t fmgt_copy_file(fmgt_walk_t *, const char *, const char *);
 
 static fmgt_walk_cb_t fmgt_copy_cb = {
 	.dir_enter = fmgt_copy_dir_enter,
@@ -52,14 +52,15 @@ static fmgt_walk_cb_t fmgt_copy_cb = {
 
 /** Copy operation - enter directory.
  *
- * @param arg Argument (fmgt_t *)
+ * @param walk Walk
  * @param fname Source directory name
  * @param dest Destination directory name
  * @return EOK on success or an error code
  */
-static errno_t fmgt_copy_dir_enter(void *arg, const char *src, const char *dest)
+static errno_t fmgt_copy_dir_enter(fmgt_walk_t *walk, const char *src,
+    const char *dest)
 {
-	fmgt_t *fmgt = (fmgt_t *)arg;
+	fmgt_t *fmgt = (fmgt_t *)walk->params->arg;
 
 	(void)dest;
 	return fmgt_create_dir(fmgt, dest);
@@ -67,21 +68,22 @@ static errno_t fmgt_copy_dir_enter(void *arg, const char *src, const char *dest)
 
 /** Copy single file.
  *
- * @param arg Argument (fmgt_t *)
+ * @param walk Walk
  * @param fname Source file name
  * @param dest Destination file name
  * @return EOK on success or an error code
  */
-static errno_t fmgt_copy_file(void *arg, const char *src, const char *dest)
+static errno_t fmgt_copy_file(fmgt_walk_t *walk, const char *src,
+    const char *dest)
 {
-	fmgt_t *fmgt = (fmgt_t *)arg;
+	fmgt_t *fmgt = (fmgt_t *)walk->params->arg;
+	fmgt_exists_action_t exaction;
 	int rfd;
 	int wfd;
 	size_t nr;
 	aoff64_t rpos = 0;
 	aoff64_t wpos = 0;
 	char *buffer;
-	bool skip;
 	errno_t rc;
 
 	buffer = calloc(BUFFER_SIZE, 1);
@@ -94,14 +96,17 @@ static errno_t fmgt_copy_file(void *arg, const char *src, const char *dest)
 		return rc;
 	}
 
-	rc = fmgt_create_file(fmgt, dest, &wfd, &skip);
+	rc = fmgt_create_file(fmgt, dest, &wfd, &exaction);
 	if (rc != EOK) {
 		free(buffer);
 		vfs_put(rfd);
 
-		/* User decided to skip and continue. */
-		if (rc == EEXIST && skip)
+		if (rc == EEXIST && exaction != fmgt_exr_fail) {
+			if (exaction == fmgt_exr_abort)
+				walk->stop = true;
 			return EOK;
+		}
+
 		return rc;
 	}
 

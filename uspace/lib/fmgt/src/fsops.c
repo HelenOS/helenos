@@ -80,10 +80,11 @@ errno_t fmgt_open(fmgt_t *fmgt, const char *fname, int *rfd)
  * @param fmgt File management object
  * @param fname Destination file name
  * @param rfd Place to store file descriptor
- * @param rskip If @c true, skip existing file and continue
+ * @param raction If return value is EEXIST, fills in the action to take.
  * @return EOK on success or an error code
  */
-errno_t fmgt_create_file(fmgt_t *fmgt, const char *fname, int *rfd, bool *rskip)
+errno_t fmgt_create_file(fmgt_t *fmgt, const char *fname, int *rfd,
+    fmgt_exists_action_t *raction)
 {
 	fmgt_io_error_t err;
 	fmgt_error_action_t action;
@@ -92,8 +93,6 @@ errno_t fmgt_create_file(fmgt_t *fmgt, const char *fname, int *rfd, bool *rskip)
 	bool may_overwrite = false;
 	unsigned flags;
 	errno_t rc;
-
-	*rskip = false;
 
 	do {
 		flags = WALK_REGULAR | (may_overwrite ? WALK_MAY_CREATE :
@@ -109,8 +108,7 @@ errno_t fmgt_create_file(fmgt_t *fmgt, const char *fname, int *rfd, bool *rskip)
 			exaction = fmgt_exists_query(fmgt, &exists);
 			fmgt_timer_start(fmgt);
 
-			if (exaction == fmgt_exr_skip)
-				*rskip = true;
+			*raction = exaction;
 			if (exaction != fmgt_exr_overwrite)
 				break;
 

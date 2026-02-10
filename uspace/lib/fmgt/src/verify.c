@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,7 +41,7 @@
 #include "fmgt/walk.h"
 #include "../private/fmgt.h"
 
-static errno_t fmgt_verify_file(void *, const char *, const char *);
+static errno_t fmgt_verify_file(fmgt_walk_t *, const char *, const char *);
 
 static fmgt_walk_cb_t fmgt_verify_cb = {
 	.file = fmgt_verify_file
@@ -49,15 +49,15 @@ static fmgt_walk_cb_t fmgt_verify_cb = {
 
 /** Verify a single file.
  *
- * @param arg Argument (fmgt_t *)
+ * @param walk Walk
  * @param fname File name
  * @param unused Unused
  * @return EOK on success or an error code
  */
-static errno_t fmgt_verify_file(void *arg, const char *fname,
+static errno_t fmgt_verify_file(fmgt_walk_t *walk, const char *fname,
     const char *unused)
 {
-	fmgt_t *fmgt = (fmgt_t *)arg;
+	fmgt_t *fmgt = (fmgt_t *)walk->params->arg;
 	int fd;
 	size_t nr;
 	aoff64_t pos = 0;
