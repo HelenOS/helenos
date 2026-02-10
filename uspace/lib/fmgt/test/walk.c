@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -211,7 +211,7 @@ errno_t test_walk_dir_enter(void *arg, const char *fname, const char *dest)
 	test_resp_t *resp = (test_resp_t *)arg;
 	resp->dir_enter = true;
 	resp->dirname = str_dup(fname);
-	resp->de_dest = str_dup(dest);
+	resp->de_dest = (dest != NULL) ? str_dup(dest) : NULL;
 	return resp->rc;
 }
 
@@ -219,7 +219,7 @@ errno_t test_walk_dir_leave(void *arg, const char *fname, const char *dest)
 {
 	test_resp_t *resp = (test_resp_t *)arg;
 	resp->dir_leave = true;
-	resp->dl_dest = str_dup(dest);
+	resp->dl_dest = (dest != NULL) ? str_dup(dest) : NULL;
 	return resp->rc;
 }
 
@@ -228,7 +228,7 @@ errno_t test_walk_file(void *arg, const char *fname, const char *dest)
 	test_resp_t *resp = (test_resp_t *)arg;
 	resp->file_proc = true;
 	resp->fname = str_dup(fname);
-	resp->dest = str_dup(dest);
+	resp->dest = (dest != NULL) ? str_dup(dest) : NULL;
 	return resp->rc;
 }
 

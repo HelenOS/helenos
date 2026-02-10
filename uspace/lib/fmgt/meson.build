@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2025 Jiri Svoboda
+# Copyright (c) 2026 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,7 @@ src = files(
 	'src/copy.c',
 	'src/flist.c',
 	'src/fmgt.c',
+	'src/fsops.c',
 	'src/newfile.c',
 	'src/verify.c',
 	'src/walk.c'
@@ -39,6 +40,7 @@ test_src = files(
 	'test/copy.c',
 	'test/flist.c',
 	'test/fmgt.c',
+	'test/fsops.c',
 	'test/main.c',
 	'test/newfile.c',
 	'test/verify.c',

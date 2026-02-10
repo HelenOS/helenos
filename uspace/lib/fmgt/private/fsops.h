@@ -26,15 +26,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <pcut/pcut.h>
+/** @addtogroup fmgt
+ * @{
+ */
+/**
+ * @file
+ * @brief File management library - file system operations.
+ */
 
-PCUT_INIT;
+#ifndef PRIVATE_FSOPS_H
+#define PRIVATE_FSOPS_H
 
-PCUT_IMPORT(flist);
-PCUT_IMPORT(fmgt);
-PCUT_IMPORT(fsops);
-PCUT_IMPORT(newfile);
-PCUT_IMPORT(verify);
-PCUT_IMPORT(walk);
+#include <stddef.h>
+#include <stdio.h>
+#include <stdbool.h>
+#include "../include/types/fmgt.h"
 
-PCUT_MAIN();
+errno_t fmgt_open(fmgt_t *, const char *, int *);
+errno_t fmgt_create_file(fmgt_t *, const char *, int *, bool *);
+errno_t fmgt_create_dir(fmgt_t *, const char *);
+errno_t fmgt_read(fmgt_t *, int, const char *, aoff64_t *, void *, size_t,
+    size_t *);
+errno_t fmgt_write(fmgt_t *, int, const char *, aoff64_t *, void *, size_t);
+
+#endif
+
+/** @}
+ */
