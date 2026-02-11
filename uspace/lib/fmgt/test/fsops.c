@@ -130,6 +130,38 @@ PCUT_TEST(create_dir)
 	PCUT_ASSERT_INT_EQUALS(0, rv);
 }
 
+/** Remove file. */
+PCUT_TEST(remove)
+{
+	fmgt_t *fmgt = NULL;
+	char buf[L_tmpnam];
+	FILE *f;
+	char *p;
+	int rv;
+	errno_t rc;
+
+	/* Create name for temporary file */
+	p = tmpnam(buf);
+	PCUT_ASSERT_NOT_NULL(p);
+
+	f = fopen(p, "wb");
+	PCUT_ASSERT_NOT_NULL(f);
+
+	rv = fprintf(f, "X");
+	PCUT_ASSERT_TRUE(rv >= 0);
+
+	rv = fclose(f);
+	PCUT_ASSERT_INT_EQUALS(0, rv);
+
+	rc = fmgt_create(&fmgt);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = fmgt_remove(fmgt, p);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	fmgt_destroy(fmgt);
+}
+
 /** Read data from file. */
 PCUT_TEST(read)
 {

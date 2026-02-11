@@ -26,34 +26,66 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup nav
- * @{
- */
-/**
- * @file Navigator menu
- */
-
-#ifndef MENU_H
-#define MENU_H
-
 #include <errno.h>
-#include <ui/menuentry.h>
-#include <ui/window.h>
-#include "types/menu.h"
+#include <fmgt.h>
+#include <pcut/pcut.h>
+#include <ui/ui.h>
+#include "../../dlg/movedlg.h"
 
-extern errno_t nav_menu_create(ui_window_t *, nav_menu_t **);
-extern void nav_menu_set_cb(nav_menu_t *, nav_menu_cb_t *, void *);
-extern void nav_menu_destroy(nav_menu_t *);
-extern ui_control_t *nav_menu_ctl(nav_menu_t *);
-extern void nav_menu_file_new_file(ui_menu_entry_t *, void *);
-extern void nav_menu_file_open(ui_menu_entry_t *, void *);
-extern void nav_menu_file_edit(ui_menu_entry_t *, void *);
-extern void nav_menu_file_verify(ui_menu_entry_t *, void *);
-extern void nav_menu_file_copy(ui_menu_entry_t *, void *);
-extern void nav_menu_file_move(ui_menu_entry_t *, void *);
-extern void nav_menu_file_exit(ui_menu_entry_t *, void *);
+PCUT_INIT;
 
-#endif
+PCUT_TEST_SUITE(movedlg);
 
-/** @}
- */
+static move_dlg_cb_t move_dlg_cb;
+
+/** Create and destroy move dialog. */
+PCUT_TEST(create_destroy)
+{
+	ui_t *ui;
+	move_dlg_t *dlg = NULL;
+	fmgt_flist_t *flist;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = fmgt_flist_create(&flist);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = move_dlg_create(ui, flist, "foo", &dlg);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(dlg);
+
+	move_dlg_destroy(dlg);
+
+	fmgt_flist_destroy(flist);
+	ui_destroy(ui);
+}
+
+/** Set callbacks for move dialog. */
+PCUT_TEST(set_cb)
+{
+	ui_t *ui;
+	move_dlg_t *dlg = NULL;
+	fmgt_flist_t *flist;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = fmgt_flist_create(&flist);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = move_dlg_create(ui, flist, "foo", &dlg);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(dlg);
+
+	move_dlg_set_cb(dlg, &move_dlg_cb, NULL);
+
+	move_dlg_destroy(dlg);
+
+	fmgt_flist_destroy(flist);
+	ui_destroy(ui);
+}
+
+PCUT_EXPORT(movedlg);

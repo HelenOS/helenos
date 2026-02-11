@@ -30,7 +30,7 @@
  * @{
  */
 /**
- * @file Copy dialog
+ * @file Move dialog
  */
 
 #include <errno.h>
@@ -44,40 +44,40 @@
 #include <ui/resource.h>
 #include <ui/ui.h>
 #include <ui/window.h>
-#include "copydlg.h"
+#include "movedlg.h"
 
-static void copy_dlg_wnd_close(ui_window_t *, void *);
-static void copy_dlg_wnd_kbd(ui_window_t *, void *, kbd_event_t *);
+static void move_dlg_wnd_close(ui_window_t *, void *);
+static void move_dlg_wnd_kbd(ui_window_t *, void *, kbd_event_t *);
 
-ui_window_cb_t copy_dlg_wnd_cb = {
-	.close = copy_dlg_wnd_close,
-	.kbd = copy_dlg_wnd_kbd
+ui_window_cb_t move_dlg_wnd_cb = {
+	.close = move_dlg_wnd_close,
+	.kbd = move_dlg_wnd_kbd
 };
 
-static void copy_dlg_bok_clicked(ui_pbutton_t *, void *);
-static void copy_dlg_bcancel_clicked(ui_pbutton_t *, void *);
+static void move_dlg_bok_clicked(ui_pbutton_t *, void *);
+static void move_dlg_bcancel_clicked(ui_pbutton_t *, void *);
 
-ui_pbutton_cb_t copy_dlg_bok_cb = {
-	.clicked = copy_dlg_bok_clicked
+ui_pbutton_cb_t move_dlg_bok_cb = {
+	.clicked = move_dlg_bok_clicked
 };
 
-ui_pbutton_cb_t copy_dlg_bcancel_cb = {
-	.clicked = copy_dlg_bcancel_clicked
+ui_pbutton_cb_t move_dlg_bcancel_cb = {
+	.clicked = move_dlg_bcancel_clicked
 };
 
-/** Create Copy dialog.
+/** Create Move dialog.
  *
  * @param ui User interface
- * @param flist List of files to copy (ownership transferred)
+ * @param flist List of files to move (ownership transferred)
  * @param dest Pre-filled dstination path
  * @param rdialog Place to store pointer to new dialog
  * @return EOK on success or an error code
  */
-errno_t copy_dlg_create(ui_t *ui, fmgt_flist_t *flist, const char *dest,
-    copy_dlg_t **rdialog)
+errno_t move_dlg_create(ui_t *ui, fmgt_flist_t *flist, const char *dest,
+    move_dlg_t **rdialog)
 {
 	errno_t rc;
-	copy_dlg_t *dialog;
+	move_dlg_t *dialog;
 	ui_window_t *window = NULL;
 	ui_wnd_params_t wparams;
 	ui_fixed_t *fixed = NULL;
@@ -88,17 +88,17 @@ errno_t copy_dlg_create(ui_t *ui, fmgt_flist_t *flist, const char *dest,
 	gfx_rect_t rect;
 	ui_resource_t *ui_res;
 	fmgt_flist_entry_t *entry;
-	char *tcopy = NULL;
+	char *tmove = NULL;
 	unsigned count;
 
-	dialog = calloc(1, sizeof(copy_dlg_t));
+	dialog = calloc(1, sizeof(move_dlg_t));
 	if (dialog == NULL) {
 		rc = ENOMEM;
 		goto error;
 	}
 
 	ui_wnd_params_init(&wparams);
-	wparams.caption = "Copy";
+	wparams.caption = "Move";
 
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
@@ -117,7 +117,7 @@ errno_t copy_dlg_create(ui_t *ui, fmgt_flist_t *flist, const char *dest,
 	if (rc != EOK)
 		goto error;
 
-	ui_window_set_cb(window, &copy_dlg_wnd_cb, dialog);
+	ui_window_set_cb(window, &move_dlg_wnd_cb, dialog);
 
 	ui_res = ui_window_get_res(window);
 
@@ -128,19 +128,19 @@ errno_t copy_dlg_create(ui_t *ui, fmgt_flist_t *flist, const char *dest,
 	count = fmgt_flist_count(flist);
 	if (count == 1) {
 		entry = fmgt_flist_first(flist);
-		rc = asprintf(&tcopy, "Copy \"%s\" to:",
+		rc = asprintf(&tmove, "Move \"%s\" to:",
 		    entry->fname);
 	} else {
-		rc = asprintf(&tcopy, "Copy %u files/directories to:",
+		rc = asprintf(&tmove, "Move %u files/directories to:",
 		    count);
 	}
 
-	rc = ui_label_create(ui_res, tcopy, &label);
+	rc = ui_label_create(ui_res, tmove, &label);
 	if (rc != EOK)
 		goto error;
 
-	free(tcopy);
-	tcopy = NULL;
+	free(tmove);
+	tmove = NULL;
 
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
@@ -193,7 +193,7 @@ errno_t copy_dlg_create(ui_t *ui, fmgt_flist_t *flist, const char *dest,
 	if (rc != EOK)
 		goto error;
 
-	ui_pbutton_set_cb(bok, &copy_dlg_bok_cb, dialog);
+	ui_pbutton_set_cb(bok, &move_dlg_bok_cb, dialog);
 
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
@@ -223,7 +223,7 @@ errno_t copy_dlg_create(ui_t *ui, fmgt_flist_t *flist, const char *dest,
 	if (rc != EOK)
 		goto error;
 
-	ui_pbutton_set_cb(bcancel, &copy_dlg_bcancel_cb, dialog);
+	ui_pbutton_set_cb(bcancel, &move_dlg_bcancel_cb, dialog);
 
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
@@ -259,8 +259,8 @@ errno_t copy_dlg_create(ui_t *ui, fmgt_flist_t *flist, const char *dest,
 	*rdialog = dialog;
 	return EOK;
 error:
-	if (tcopy != NULL)
-		free(tcopy);
+	if (tmove != NULL)
+		free(tmove);
 	if (bok != NULL)
 		ui_pbutton_destroy(bok);
 	if (bcancel != NULL)
@@ -276,11 +276,11 @@ error:
 	return rc;
 }
 
-/** Destroy copy dialog.
+/** Destroy move dialog.
  *
- * @param dialog Copy dialog or @c NULL
+ * @param dialog Move dialog or @c NULL
  */
-void copy_dlg_destroy(copy_dlg_t *dialog)
+void move_dlg_destroy(move_dlg_t *dialog)
 {
 	if (dialog == NULL)
 		return;
@@ -289,27 +289,27 @@ void copy_dlg_destroy(copy_dlg_t *dialog)
 	free(dialog);
 }
 
-/** Set copy dialog callback.
+/** Set Move dialog callback.
  *
- * @param dialog Copy dialog
- * @param cb New file dialog callbacks
+ * @param dialog Move dialog
+ * @param cb Move dialog callbacks
  * @param arg Callback argument
  */
-void copy_dlg_set_cb(copy_dlg_t *dialog, copy_dlg_cb_t *cb,
+void move_dlg_set_cb(move_dlg_t *dialog, move_dlg_cb_t *cb,
     void *arg)
 {
 	dialog->cb = cb;
 	dialog->arg = arg;
 }
 
-/** Copy dialog window close handler.
+/** Move dialog window close handler.
  *
  * @param window Window
- * @param arg Argument (copy_dlg_t *)
+ * @param arg Argument (move_dlg_t *)
  */
-static void copy_dlg_wnd_close(ui_window_t *window, void *arg)
+static void move_dlg_wnd_close(ui_window_t *window, void *arg)
 {
-	copy_dlg_t *dialog = (copy_dlg_t *) arg;
+	move_dlg_t *dialog = (move_dlg_t *) arg;
 
 	(void)window;
 	if (dialog->cb != NULL && dialog->cb->close != NULL) {
@@ -317,16 +317,16 @@ static void copy_dlg_wnd_close(ui_window_t *window, void *arg)
 	}
 }
 
-/** Copy dialog window keyboard event handler.
+/** Move dialog window keyboard event handler.
  *
  * @param window Window
- * @param arg Argument (copy_dlg_t *)
+ * @param arg Argument (move_dlg_t *)
  * @param event Keyboard event
  */
-static void copy_dlg_wnd_kbd(ui_window_t *window, void *arg,
+static void move_dlg_wnd_kbd(ui_window_t *window, void *arg,
     kbd_event_t *event)
 {
-	copy_dlg_t *dialog = (copy_dlg_t *) arg;
+	move_dlg_t *dialog = (move_dlg_t *) arg;
 
 	if (event->type == KEY_PRESS &&
 	    (event->mods & (KM_CTRL | KM_SHIFT | KM_ALT)) == 0) {
@@ -348,28 +348,28 @@ static void copy_dlg_wnd_kbd(ui_window_t *window, void *arg,
 	ui_window_def_kbd(window, event);
 }
 
-/** Copy dialog OK button click handler.
+/** Move dialog OK button click handler.
  *
  * @param pbutton Push button
- * @param arg Argument (copy_dlg_t *)
+ * @param arg Argument (move_dlg_t *)
  */
-static void copy_dlg_bok_clicked(ui_pbutton_t *pbutton, void *arg)
+static void move_dlg_bok_clicked(ui_pbutton_t *pbutton, void *arg)
 {
-	copy_dlg_t *dialog = (copy_dlg_t *) arg;
+	move_dlg_t *dialog = (move_dlg_t *) arg;
 
 	if (dialog->cb != NULL && dialog->cb->bok != NULL) {
 		dialog->cb->bok(dialog, dialog->arg);
 	}
 }
 
-/** Copy dialog cancel button click handler.
+/** Move dialog cancel button click handler.
  *
  * @param pbutton Push button
- * @param arg Argument (copy_dlg_t *)
+ * @param arg Argument (move_dlg_t *)
  */
-static void copy_dlg_bcancel_clicked(ui_pbutton_t *pbutton, void *arg)
+static void move_dlg_bcancel_clicked(ui_pbutton_t *pbutton, void *arg)
 {
-	copy_dlg_t *dialog = (copy_dlg_t *) arg;
+	move_dlg_t *dialog = (move_dlg_t *) arg;
 
 	(void)pbutton;
 	if (dialog->cb != NULL && dialog->cb->bcancel != NULL) {

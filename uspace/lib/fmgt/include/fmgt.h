@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,6 +43,7 @@
 #include <stdint.h>
 #include "fmgt/copy.h"
 #include "fmgt/flist.h"
+#include "fmgt/move.h"
 #include "fmgt/newfile.h"
 #include "fmgt/verify.h"
 #include "fmgt/walk.h"

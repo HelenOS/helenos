@@ -36,10 +36,10 @@
 
 PCUT_INIT;
 
-PCUT_TEST_SUITE(copy);
+PCUT_TEST_SUITE(move);
 
-/** Copy file to file. */
-PCUT_TEST(copy_file_file)
+/** Move file to file. */
+PCUT_TEST(move_file_file)
 {
 	fmgt_t *fmgt = NULL;
 	char buf[L_tmpnam];
@@ -83,13 +83,10 @@ PCUT_TEST(copy_file_file)
 	rc = fmgt_flist_append(flist, sname);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = fmgt_copy(fmgt, flist, dname);
+	rc = fmgt_move(fmgt, flist, dname);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	fmgt_flist_destroy(flist);
-
-	rv = remove(sname);
-	PCUT_ASSERT_INT_EQUALS(0, rv);
 
 	rv = remove(dname);
 	PCUT_ASSERT_INT_EQUALS(0, rv);
@@ -102,8 +99,8 @@ PCUT_TEST(copy_file_file)
 	fmgt_destroy(fmgt);
 }
 
-/** Copy directory to directory. */
-PCUT_TEST(copy_dir_dir)
+/** Move directory to directory. */
+PCUT_TEST(move_dir_dir)
 {
 	fmgt_t *fmgt = NULL;
 	char buf[L_tmpnam];
@@ -140,13 +137,10 @@ PCUT_TEST(copy_dir_dir)
 	rc = fmgt_flist_append(flist, sname);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = fmgt_copy(fmgt, flist, dname);
+	rc = fmgt_move(fmgt, flist, dname);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	fmgt_flist_destroy(flist);
-
-	rv = remove(sname);
-	PCUT_ASSERT_INT_EQUALS(0, rv);
 
 	rv = remove(dname);
 	PCUT_ASSERT_INT_EQUALS(0, rv);
@@ -159,8 +153,8 @@ PCUT_TEST(copy_dir_dir)
 	fmgt_destroy(fmgt);
 }
 
-/** Copy files and directories into directory. */
-PCUT_TEST(copy_into_dir)
+/** Move files and directories into directory. */
+PCUT_TEST(move_into_dir)
 {
 	fmgt_t *fmgt = NULL;
 	char buf[L_tmpnam];
@@ -211,13 +205,10 @@ PCUT_TEST(copy_into_dir)
 	rc = fmgt_flist_append(flist, fname);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = fmgt_copy(fmgt, flist, dname);
+	rc = fmgt_move(fmgt, flist, dname);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	fmgt_flist_destroy(flist);
-
-	rv = remove(fname);
-	PCUT_ASSERT_INT_EQUALS(0, rv);
 
 	rv = remove(rname);
 	PCUT_ASSERT_INT_EQUALS(0, rv);
@@ -230,7 +221,8 @@ PCUT_TEST(copy_into_dir)
 
 	free(fname);
 	free(dname);
+	free(rname);
 	fmgt_destroy(fmgt);
 }
 
-PCUT_EXPORT(copy);
+PCUT_EXPORT(move);

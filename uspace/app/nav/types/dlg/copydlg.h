@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,8 +33,8 @@
  * @file Copy dialog
  */
 
-#ifndef TYPES_DLG_VERIFYDLG_H
-#define TYPES_DLG_VERIFYDLG_H
+#ifndef TYPES_DLG_COPYDLG_H
+#define TYPES_DLG_COPYDLG_H
 
 #include <errno.h>
 #include <fmgt.h>

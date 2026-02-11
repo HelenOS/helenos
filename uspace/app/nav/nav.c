@@ -51,6 +51,7 @@
 #include "dlg/existsdlg.h"
 #include "dlg/ioerrdlg.h"
 #include "menu.h"
+#include "move.h"
 #include "newfile.h"
 #include "nav.h"
 #include "panel.h"
@@ -71,6 +72,7 @@ static void navigator_file_open(void *);
 static void navigator_file_edit(void *);
 static void navigator_file_verify(void *);
 static void navigator_file_copy(void *);
+static void navigator_file_move(void *);
 static void navigator_file_exit(void *);
 
 static nav_menu_cb_t navigator_menu_cb = {
@@ -79,6 +81,7 @@ static nav_menu_cb_t navigator_menu_cb = {
 	.file_edit = navigator_file_edit,
 	.file_verify = navigator_file_verify,
 	.file_copy = navigator_file_copy,
+	.file_move = navigator_file_move,
 	.file_exit = navigator_file_exit
 };
 
@@ -158,6 +161,9 @@ static void wnd_kbd(ui_window_t *window, void *arg, kbd_event_t *event)
 			break;
 		case KC_C:
 			navigator_file_copy((void *)navigator);
+			break;
+		case KC_X:
+			navigator_file_move((void *)navigator);
 			break;
 		case KC_Q:
 			ui_quit(navigator->ui);
@@ -631,6 +637,35 @@ static void navigator_file_copy(void *arg)
 	navigator_copy_dlg(navigator, flist);
 }
 
+/** File / Move menu entry selected */
+static void navigator_file_move(void *arg)
+{
+	navigator_t *navigator = (navigator_t *)arg;
+
+	ui_file_list_entry_t *entry;
+	ui_file_list_entry_attr_t attr;
+	fmgt_flist_t *flist;
+	panel_t *panel;
+	errno_t rc;
+
+	panel = navigator_get_active_panel(navigator);
+	entry = ui_file_list_get_cursor(panel->flist);
+	ui_file_list_entry_get_attr(entry, &attr);
+
+	rc = fmgt_flist_create(&flist);
+	if (rc != EOK)
+		return;
+
+	rc = fmgt_flist_append(flist, attr.name);
+	if (rc != EOK) {
+		fmgt_flist_destroy(flist);
+		return;
+	}
+
+	/* flist ownership transferred */
+	navigator_move_dlg(navigator, flist);
+}
+
 /** File / Exit menu entry selected */
 static void navigator_file_exit(void *arg)
 {
@@ -781,6 +816,9 @@ fmgt_error_action_t navigator_io_error_query(void *arg, fmgt_io_error_t *err)
 		break;
 	case fmgt_io_create:
 		fmt = "Error creating %s.";
+		break;
+	case fmgt_io_delete:
+		fmt = "Error deleting %s.";
 		break;
 	}
 

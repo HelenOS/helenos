@@ -165,6 +165,36 @@ errno_t fmgt_create_dir(fmgt_t *fmgt, const char *dname)
 	return rc;
 }
 
+/** Remove file or empty directory.
+ *
+ * @param fmgt File management object
+ * @param fame File or directory name
+ * @return EOK on success or an error code
+ */
+errno_t fmgt_remove(fmgt_t *fmgt, const char *fname)
+{
+	fmgt_io_error_t err;
+	fmgt_error_action_t action;
+	errno_t rc;
+
+	do {
+		rc = vfs_unlink_path(fname);
+		if (rc == EOK)
+			break;
+
+		/* I/O error */
+		err.fname = fname;
+		err.optype = fmgt_io_delete;
+		err.rc = rc;
+
+		fmgt_timer_stop(fmgt);
+		action = fmgt_io_error_query(fmgt, &err);
+		fmgt_timer_start(fmgt);
+	} while (action == fmgt_er_retry);
+
+	return rc;
+}
+
 /** Read data from file.
  *
  * @param fmgt File management object

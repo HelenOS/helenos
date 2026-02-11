@@ -26,25 +26,5 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-src = files(
-	'src/copy.c',
-	'src/flist.c',
-	'src/fmgt.c',
-	'src/fsops.c',
-	'src/move.c',
-	'src/newfile.c',
-	'src/verify.c',
-	'src/walk.c'
-)
-
-test_src = files(
-	'test/copy.c',
-	'test/flist.c',
-	'test/fmgt.c',
-	'test/fsops.c',
-	'test/main.c',
-	'test/move.c',
-	'test/newfile.c',
-	'test/verify.c',
-	'test/walk.c'
-)
+deps = [ 'console', 'fmgt', 'input' ]
+src = files('move.c')

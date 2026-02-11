@@ -30,28 +30,16 @@
  * @{
  */
 /**
- * @file Navigator menu
+ * @file Navigator Move Files
  */
 
-#ifndef MENU_H
-#define MENU_H
+#ifndef MOVE_H
+#define MOVE_H
 
-#include <errno.h>
-#include <ui/menuentry.h>
-#include <ui/window.h>
-#include "types/menu.h"
+#include <fmgt.h>
+#include "types/nav.h"
 
-extern errno_t nav_menu_create(ui_window_t *, nav_menu_t **);
-extern void nav_menu_set_cb(nav_menu_t *, nav_menu_cb_t *, void *);
-extern void nav_menu_destroy(nav_menu_t *);
-extern ui_control_t *nav_menu_ctl(nav_menu_t *);
-extern void nav_menu_file_new_file(ui_menu_entry_t *, void *);
-extern void nav_menu_file_open(ui_menu_entry_t *, void *);
-extern void nav_menu_file_edit(ui_menu_entry_t *, void *);
-extern void nav_menu_file_verify(ui_menu_entry_t *, void *);
-extern void nav_menu_file_copy(ui_menu_entry_t *, void *);
-extern void nav_menu_file_move(ui_menu_entry_t *, void *);
-extern void nav_menu_file_exit(ui_menu_entry_t *, void *);
+extern void navigator_move_dlg(navigator_t *, fmgt_flist_t *);
 
 #endif
 

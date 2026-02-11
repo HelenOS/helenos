@@ -37,6 +37,7 @@ PCUT_IMPORT(newfiledlg);
 PCUT_IMPORT(progress);
 PCUT_IMPORT(verifydlg);
 PCUT_IMPORT(menu);
+PCUT_IMPORT(movedlg);
 PCUT_IMPORT(nav);
 PCUT_IMPORT(panel);
 

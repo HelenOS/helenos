@@ -68,7 +68,9 @@ typedef enum {
 	/** Open */
 	fmgt_io_open,
 	/** Create */
-	fmgt_io_create
+	fmgt_io_create,
+	/** Delete */
+	fmgt_io_delete
 } fmgt_io_op_type_t;
 
 /** File management I/O error report */

@@ -30,28 +30,51 @@
  * @{
  */
 /**
- * @file Navigator menu
+ * @file Move dialog
  */
 
-#ifndef MENU_H
-#define MENU_H
+#ifndef TYPES_DLG_MOVEDLG_H
+#define TYPES_DLG_MOVEDLG_H
 
 #include <errno.h>
-#include <ui/menuentry.h>
+#include <fmgt.h>
+#include <ui/entry.h>
+#include <ui/label.h>
+#include <ui/pbutton.h>
 #include <ui/window.h>
-#include "types/menu.h"
+#include <stdbool.h>
 
-extern errno_t nav_menu_create(ui_window_t *, nav_menu_t **);
-extern void nav_menu_set_cb(nav_menu_t *, nav_menu_cb_t *, void *);
-extern void nav_menu_destroy(nav_menu_t *);
-extern ui_control_t *nav_menu_ctl(nav_menu_t *);
-extern void nav_menu_file_new_file(ui_menu_entry_t *, void *);
-extern void nav_menu_file_open(ui_menu_entry_t *, void *);
-extern void nav_menu_file_edit(ui_menu_entry_t *, void *);
-extern void nav_menu_file_verify(ui_menu_entry_t *, void *);
-extern void nav_menu_file_copy(ui_menu_entry_t *, void *);
-extern void nav_menu_file_move(ui_menu_entry_t *, void *);
-extern void nav_menu_file_exit(ui_menu_entry_t *, void *);
+/** Move dialog */
+typedef struct move_dlg {
+	/** Dialog window */
+	ui_window_t *window;
+	/** "Move 'xxx'" */
+	ui_label_t *lmove;
+	/** File */
+	ui_entry_t *esize;
+	/** Destination text entry */
+	ui_entry_t *edest;
+	/** OK button */
+	ui_pbutton_t *bok;
+	/** Cancel button */
+	ui_pbutton_t *bcancel;
+	/** Move dialog callbacks */
+	struct move_dlg_cb *cb;
+	/** Callback argument */
+	void *arg;
+	/** File list */
+	fmgt_flist_t *flist;
+} move_dlg_t;
+
+/** Move dialog callbacks */
+typedef struct move_dlg_cb {
+	/** OK button was pressed */
+	void (*bok)(move_dlg_t *, void *);
+	/** Cancel button was pressed */
+	void (*bcancel)(move_dlg_t *, void *);
+	/** Window closure requested (e.g. via close button) */
+	void (*close)(move_dlg_t *, void *);
+} move_dlg_cb_t;
 
 #endif
 

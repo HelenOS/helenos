@@ -30,9 +30,11 @@
 
 PCUT_INIT;
 
+PCUT_IMPORT(copy);
 PCUT_IMPORT(flist);
 PCUT_IMPORT(fmgt);
 PCUT_IMPORT(fsops);
+PCUT_IMPORT(move);
 PCUT_IMPORT(newfile);
 PCUT_IMPORT(verify);
 PCUT_IMPORT(walk);

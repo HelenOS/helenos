@@ -26,10 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup copy
+/** @addtogroup move
  * @{
  */
-/** @file Copy files and directories.
+/** @file Move files and directories.
  */
 
 #include <errno.h>
@@ -43,12 +43,12 @@
 #include <str.h>
 #include <str_error.h>
 
-#define NAME  "copy"
+#define NAME  "move"
 
-static bool copy_abort_query(void *);
-static void copy_progress(void *, fmgt_progress_t *);
-static fmgt_error_action_t copy_io_error_query(void *, fmgt_io_error_t *);
-static fmgt_exists_action_t copy_exists_query(void *, fmgt_exists_t *);
+static bool move_abort_query(void *);
+static void move_progress(void *, fmgt_progress_t *);
+static fmgt_error_action_t move_io_error_query(void *, fmgt_io_error_t *);
+static fmgt_exists_action_t move_exists_query(void *, fmgt_exists_t *);
 
 static bool prog_upd = false;
 static bool nonint = false;
@@ -56,16 +56,16 @@ static bool quiet = false;
 
 static console_ctrl_t *con;
 
-static fmgt_cb_t copy_fmgt_cb = {
-	.abort_query = copy_abort_query,
-	.io_error_query = copy_io_error_query,
-	.exists_query = copy_exists_query,
-	.progress = copy_progress,
+static fmgt_cb_t move_fmgt_cb = {
+	.abort_query = move_abort_query,
+	.io_error_query = move_io_error_query,
+	.exists_query = move_exists_query,
+	.progress = move_progress,
 };
 
 static void print_syntax(void)
 {
-	printf("Copy files and directories.\n");
+	printf("Move files and directories.\n");
 	printf("Syntax: %s [<options] <source>... <dest>\n", NAME);
 	printf("\t-h    help\n");
 	printf("\t-n    non-interactive\n");
@@ -77,7 +77,7 @@ static void print_syntax(void)
  * @param arg Argument (not used)
  * @return @c true iff user requested abort
  */
-static bool copy_abort_query(void *arg)
+static bool move_abort_query(void *arg)
 {
 	cons_event_t event;
 	kbd_event_t *ev;
@@ -110,7 +110,7 @@ static bool copy_abort_query(void *arg)
  * @param arg Argument (not used)
  * @param progress Progress report
  */
-static void copy_progress(void *arg, fmgt_progress_t *progress)
+static void move_progress(void *arg, fmgt_progress_t *progress)
 {
 	(void)arg;
 
@@ -129,7 +129,7 @@ static void copy_progress(void *arg, fmgt_progress_t *progress)
  * @param err I/O error report
  * @return Error recovery action.
  */
-static fmgt_error_action_t copy_io_error_query(void *arg,
+static fmgt_error_action_t move_io_error_query(void *arg,
     fmgt_io_error_t *err)
 {
 	cons_event_t event;
@@ -203,7 +203,7 @@ static fmgt_error_action_t copy_io_error_query(void *arg,
  * @param err I/O error report
  * @return Error recovery action.
  */
-static fmgt_exists_action_t copy_exists_query(void *arg, fmgt_exists_t *exists)
+static fmgt_exists_action_t move_exists_query(void *arg, fmgt_exists_t *exists)
 {
 	cons_event_t event;
 	kbd_event_t *ev;
@@ -310,13 +310,13 @@ int main(int argc, char *argv[])
 		goto error;
 	}
 
-	fmgt_set_cb(fmgt, &copy_fmgt_cb, NULL);
+	fmgt_set_cb(fmgt, &move_fmgt_cb, NULL);
 
-	rc = fmgt_copy(fmgt, flist, dest);
+	rc = fmgt_move(fmgt, flist, dest);
 	if (prog_upd)
 		putchar('\n');
 	if (rc != EOK) {
-		printf("Error copying file(s): %s.\n", str_error(rc));
+		printf("Error moving file(s): %s.\n", str_error(rc));
 		goto error;
 	}
 

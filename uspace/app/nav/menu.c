@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -58,6 +58,7 @@ errno_t nav_menu_create(ui_window_t *window, nav_menu_t **rmenu)
 	ui_menu_entry_t *medit;
 	ui_menu_entry_t *mverify;
 	ui_menu_entry_t *mcopy;
+	ui_menu_entry_t *mmove;
 	ui_menu_entry_t *mfsep;
 	ui_menu_entry_t *mexit;
 	gfx_rect_t arect;
@@ -109,6 +110,12 @@ errno_t nav_menu_create(ui_window_t *window, nav_menu_t **rmenu)
 		goto error;
 
 	ui_menu_entry_set_cb(mcopy, nav_menu_file_copy, (void *) menu);
+
+	rc = ui_menu_entry_create(mfile, "~M~ove", "Ctrl-X", &mmove);
+	if (rc != EOK)
+		goto error;
+
+	ui_menu_entry_set_cb(mmove, nav_menu_file_move, (void *) menu);
 
 	rc = ui_menu_entry_sep_create(mfile, &mfsep);
 	if (rc != EOK)
@@ -231,6 +238,19 @@ void nav_menu_file_copy(ui_menu_entry_t *mentry, void *arg)
 
 	if (menu->cb != NULL && menu->cb->file_copy != NULL)
 		menu->cb->file_copy(menu->cb_arg);
+}
+
+/** File / Move menu entry selected.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (navigator_t *)
+ */
+void nav_menu_file_move(ui_menu_entry_t *mentry, void *arg)
+{
+	nav_menu_t *menu = (nav_menu_t *)arg;
+
+	if (menu->cb != NULL && menu->cb->file_move != NULL)
+		menu->cb->file_move(menu->cb_arg);
 }
 
 /** File / Exit menu entry selected.
