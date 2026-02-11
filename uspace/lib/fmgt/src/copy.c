@@ -63,7 +63,7 @@ static errno_t fmgt_copy_dir_enter(fmgt_walk_t *walk, const char *src,
 	fmgt_t *fmgt = (fmgt_t *)walk->params->arg;
 
 	(void)dest;
-	return fmgt_create_dir(fmgt, dest);
+	return fmgt_create_dir(fmgt, dest, false);
 }
 
 /** Copy single file.

@@ -30,29 +30,44 @@
  * @{
  */
 /**
- * @file Navigator menu
+ * @file New Directory dialog
  */
 
-#ifndef MENU_H
-#define MENU_H
+#ifndef TYPES_DLG_NEWDIRDLG_H
+#define TYPES_DLG_NEWDIRDLG_H
 
 #include <errno.h>
-#include <ui/menuentry.h>
+#include <ui/checkbox.h>
+#include <ui/entry.h>
+#include <ui/pbutton.h>
 #include <ui/window.h>
-#include "types/menu.h"
+#include <stdbool.h>
 
-extern errno_t nav_menu_create(ui_window_t *, nav_menu_t **);
-extern void nav_menu_set_cb(nav_menu_t *, nav_menu_cb_t *, void *);
-extern void nav_menu_destroy(nav_menu_t *);
-extern ui_control_t *nav_menu_ctl(nav_menu_t *);
-extern void nav_menu_file_new_dir(ui_menu_entry_t *, void *);
-extern void nav_menu_file_new_file(ui_menu_entry_t *, void *);
-extern void nav_menu_file_open(ui_menu_entry_t *, void *);
-extern void nav_menu_file_edit(ui_menu_entry_t *, void *);
-extern void nav_menu_file_verify(ui_menu_entry_t *, void *);
-extern void nav_menu_file_copy(ui_menu_entry_t *, void *);
-extern void nav_menu_file_move(ui_menu_entry_t *, void *);
-extern void nav_menu_file_exit(ui_menu_entry_t *, void *);
+/** New Directory dialog */
+typedef struct new_dir_dlg {
+	/** Dialog window */
+	ui_window_t *window;
+	/** Directory name text entry */
+	ui_entry_t *ename;
+	/** OK button */
+	ui_pbutton_t *bok;
+	/** Cancel button */
+	ui_pbutton_t *bcancel;
+	/** New directory dialog callbacks */
+	struct new_dir_dlg_cb *cb;
+	/** Callback argument */
+	void *arg;
+} new_dir_dlg_t;
+
+/** New Directory dialog callbacks */
+typedef struct new_dir_dlg_cb {
+	/** OK button was pressed */
+	void (*bok)(new_dir_dlg_t *, void *, const char *);
+	/** Cancel button was pressed */
+	void (*bcancel)(new_dir_dlg_t *, void *);
+	/** Window closure requested (e.g. via close button) */
+	void (*close)(new_dir_dlg_t *, void *);
+} new_dir_dlg_cb_t;
 
 #endif
 

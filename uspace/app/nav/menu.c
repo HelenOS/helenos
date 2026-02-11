@@ -54,6 +54,7 @@ errno_t nav_menu_create(ui_window_t *window, nav_menu_t **rmenu)
 	nav_menu_t *menu;
 	ui_menu_t *mfile;
 	ui_menu_entry_t *mnew;
+	ui_menu_entry_t *mnewdir;
 	ui_menu_entry_t *mopen;
 	ui_menu_entry_t *medit;
 	ui_menu_entry_t *mverify;
@@ -86,6 +87,12 @@ errno_t nav_menu_create(ui_window_t *window, nav_menu_t **rmenu)
 		goto error;
 
 	ui_menu_entry_set_cb(mnew, nav_menu_file_new_file, (void *) menu);
+
+	rc = ui_menu_entry_create(mfile, "New Di~r~ectory", "Ctrl-N", &mnewdir);
+	if (rc != EOK)
+		goto error;
+
+	ui_menu_entry_set_cb(mnewdir, nav_menu_file_new_dir, (void *) menu);
 
 	rc = ui_menu_entry_create(mfile, "~O~pen", "Enter", &mopen);
 	if (rc != EOK)
@@ -186,6 +193,19 @@ void nav_menu_file_new_file(ui_menu_entry_t *mentry, void *arg)
 
 	if (menu->cb != NULL && menu->cb->file_new_file != NULL)
 		menu->cb->file_new_file(menu->cb_arg);
+}
+
+/** File / New Directory menu entry selected.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (navigator_t *)
+ */
+void nav_menu_file_new_dir(ui_menu_entry_t *mentry, void *arg)
+{
+	nav_menu_t *menu = (nav_menu_t *)arg;
+
+	if (menu->cb != NULL && menu->cb->file_new_dir != NULL)
+		menu->cb->file_new_dir(menu->cb_arg);
 }
 
 /** File / Open menu entry selected.

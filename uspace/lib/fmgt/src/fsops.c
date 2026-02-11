@@ -134,9 +134,10 @@ errno_t fmgt_create_file(fmgt_t *fmgt, const char *fname, int *rfd,
  *
  * @param fmgt File management object
  * @param dname Directory name
+ * @param exclusive If @c true, directory must not exist.
  * @return EOK on success or an error code
  */
-errno_t fmgt_create_dir(fmgt_t *fmgt, const char *dname)
+errno_t fmgt_create_dir(fmgt_t *fmgt, const char *dname, bool exclusive)
 {
 	fmgt_io_error_t err;
 	fmgt_error_action_t action;
@@ -145,7 +146,6 @@ errno_t fmgt_create_dir(fmgt_t *fmgt, const char *dname)
 	do {
 		rc = vfs_link_path(dname, KIND_DIRECTORY, NULL);
 
-		/* It is okay if the directory exists. */
 		if (rc == EOK || rc == EEXIST)
 			break;
 
@@ -159,7 +159,7 @@ errno_t fmgt_create_dir(fmgt_t *fmgt, const char *dname)
 		fmgt_timer_start(fmgt);
 	} while (action == fmgt_er_retry);
 
-	if (rc == EEXIST)
+	if (rc == EEXIST && !exclusive)
 		return EOK;
 
 	return rc;

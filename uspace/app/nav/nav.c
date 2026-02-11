@@ -52,6 +52,7 @@
 #include "dlg/ioerrdlg.h"
 #include "menu.h"
 #include "move.h"
+#include "newdir.h"
 #include "newfile.h"
 #include "nav.h"
 #include "panel.h"
@@ -68,6 +69,7 @@ static ui_window_cb_t window_cb = {
 };
 
 static void navigator_file_new_file(void *);
+static void navigator_file_new_dir(void *);
 static void navigator_file_open(void *);
 static void navigator_file_edit(void *);
 static void navigator_file_verify(void *);
@@ -77,6 +79,7 @@ static void navigator_file_exit(void *);
 
 static nav_menu_cb_t navigator_menu_cb = {
 	.file_new_file = navigator_file_new_file,
+	.file_new_dir = navigator_file_new_dir,
 	.file_open = navigator_file_open,
 	.file_edit = navigator_file_edit,
 	.file_verify = navigator_file_verify,
@@ -152,6 +155,9 @@ static void wnd_kbd(ui_window_t *window, void *arg, kbd_event_t *event)
 		switch (event->key) {
 		case KC_M:
 			navigator_new_file_dlg(navigator);
+			break;
+		case KC_N:
+			navigator_new_dir_dlg(navigator);
 			break;
 		case KC_E:
 			navigator_file_edit((void *)navigator);
@@ -445,6 +451,14 @@ static void navigator_file_new_file(void *arg)
 	navigator_t *navigator = (navigator_t *)arg;
 
 	navigator_new_file_dlg(navigator);
+}
+
+/** File / New Directory menu entry selected */
+static void navigator_file_new_dir(void *arg)
+{
+	navigator_t *navigator = (navigator_t *)arg;
+
+	navigator_new_dir_dlg(navigator);
 }
 
 /** File / Open menu entry selected */

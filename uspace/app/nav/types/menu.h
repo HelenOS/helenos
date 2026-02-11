@@ -44,6 +44,8 @@
 typedef struct nav_menu_cb {
 	/** File / New File */
 	void (*file_new_file)(void *);
+	/** File / New Directory */
+	void (*file_new_dir)(void *);
 	/** File / Open */
 	void (*file_open)(void *);
 	/** File / Edit */

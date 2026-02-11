@@ -26,54 +26,5 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'fmgt', 'ui' ]
-src = files(
-	'dlg/copydlg.c',
-	'dlg/existsdlg.c',
-	'dlg/ioerrdlg.c',
-	'dlg/movedlg.c',
-	'dlg/newdirdlg.c',
-	'dlg/newfiledlg.c',
-	'dlg/progress.c',
-	'dlg/verifydlg.c',
-	'copy.c',
-	'main.c',
-	'menu.c',
-	'move.c',
-	'nav.c',
-	'newdir.c',
-	'newfile.c',
-	'panel.c',
-	'verify.c',
-)
-
-test_src = files(
-	'dlg/copydlg.c',
-	'dlg/existsdlg.c',
-	'dlg/ioerrdlg.c',
-	'dlg/movedlg.c',
-	'dlg/newdirdlg.c',
-	'dlg/newfiledlg.c',
-	'dlg/progress.c',
-	'dlg/verifydlg.c',
-	'copy.c',
-	'menu.c',
-	'move.c',
-	'nav.c',
-	'newdir.c',
-	'newfile.c',
-	'panel.c',
-	'verify.c',
-	'test/dlg/copydlg.c',
-	'test/dlg/existsdlg.c',
-	'test/dlg/ioerrdlg.c',
-	'test/dlg/movedlg.c',
-	'test/dlg/newdirdlg.c',
-	'test/dlg/newfiledlg.c',
-	'test/dlg/progress.c',
-	'test/dlg/verifydlg.c',
-	'test/main.c',
-	'test/menu.c',
-	'test/nav.c',
-	'test/panel.c',
-)
+deps = [ 'console', 'fmgt', 'input' ]
+src = files('newdir.c')

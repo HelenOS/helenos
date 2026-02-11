@@ -26,33 +26,23 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup nav
+/** @addtogroup fmgt
  * @{
  */
 /**
- * @file Navigator menu
+ * @file
+ * @brief Create new directory.
  */
 
-#ifndef MENU_H
-#define MENU_H
+#ifndef FMGT_NEWDIR_H
+#define FMGT_NEWDIR_H
 
 #include <errno.h>
-#include <ui/menuentry.h>
-#include <ui/window.h>
-#include "types/menu.h"
+#include <stdint.h>
+#include "types/fmgt.h"
 
-extern errno_t nav_menu_create(ui_window_t *, nav_menu_t **);
-extern void nav_menu_set_cb(nav_menu_t *, nav_menu_cb_t *, void *);
-extern void nav_menu_destroy(nav_menu_t *);
-extern ui_control_t *nav_menu_ctl(nav_menu_t *);
-extern void nav_menu_file_new_dir(ui_menu_entry_t *, void *);
-extern void nav_menu_file_new_file(ui_menu_entry_t *, void *);
-extern void nav_menu_file_open(ui_menu_entry_t *, void *);
-extern void nav_menu_file_edit(ui_menu_entry_t *, void *);
-extern void nav_menu_file_verify(ui_menu_entry_t *, void *);
-extern void nav_menu_file_copy(ui_menu_entry_t *, void *);
-extern void nav_menu_file_move(ui_menu_entry_t *, void *);
-extern void nav_menu_file_exit(ui_menu_entry_t *, void *);
+extern errno_t fmgt_new_dir_suggest(char **);
+extern errno_t fmgt_new_dir(fmgt_t *, const char *);
 
 #endif
 

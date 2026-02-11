@@ -32,6 +32,7 @@ src = files(
 	'src/fmgt.c',
 	'src/fsops.c',
 	'src/move.c',
+	'src/newdir.c',
 	'src/newfile.c',
 	'src/verify.c',
 	'src/walk.c'
@@ -44,6 +45,7 @@ test_src = files(
 	'test/fsops.c',
 	'test/main.c',
 	'test/move.c',
+	'test/newdir.c',
 	'test/newfile.c',
 	'test/verify.c',
 	'test/walk.c'

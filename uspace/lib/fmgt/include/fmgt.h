@@ -44,6 +44,7 @@
 #include "fmgt/copy.h"
 #include "fmgt/flist.h"
 #include "fmgt/move.h"
+#include "fmgt/newdir.h"
 #include "fmgt/newfile.h"
 #include "fmgt/verify.h"
 #include "fmgt/walk.h"

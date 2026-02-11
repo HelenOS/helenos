@@ -26,35 +26,32 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup nav
- * @{
- */
-/**
- * @file Navigator menu
- */
-
-#ifndef MENU_H
-#define MENU_H
-
 #include <errno.h>
-#include <ui/menuentry.h>
-#include <ui/window.h>
-#include "types/menu.h"
+#include <pcut/pcut.h>
+#include <ui/ui.h>
+#include "../../dlg/newdirdlg.h"
 
-extern errno_t nav_menu_create(ui_window_t *, nav_menu_t **);
-extern void nav_menu_set_cb(nav_menu_t *, nav_menu_cb_t *, void *);
-extern void nav_menu_destroy(nav_menu_t *);
-extern ui_control_t *nav_menu_ctl(nav_menu_t *);
-extern void nav_menu_file_new_dir(ui_menu_entry_t *, void *);
-extern void nav_menu_file_new_file(ui_menu_entry_t *, void *);
-extern void nav_menu_file_open(ui_menu_entry_t *, void *);
-extern void nav_menu_file_edit(ui_menu_entry_t *, void *);
-extern void nav_menu_file_verify(ui_menu_entry_t *, void *);
-extern void nav_menu_file_copy(ui_menu_entry_t *, void *);
-extern void nav_menu_file_move(ui_menu_entry_t *, void *);
-extern void nav_menu_file_exit(ui_menu_entry_t *, void *);
+PCUT_INIT;
 
-#endif
+PCUT_TEST_SUITE(newdirdlg);
 
-/** @}
- */
+/** Create and destroy new file dialog. */
+PCUT_TEST(create_destroy)
+{
+	ui_t *ui;
+	new_dir_dlg_t *dlg = NULL;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = new_dir_dlg_create(ui, &dlg);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(dlg);
+
+	new_dir_dlg_destroy(dlg);
+
+	ui_destroy(ui);
+}
+
+PCUT_EXPORT(newdirdlg);

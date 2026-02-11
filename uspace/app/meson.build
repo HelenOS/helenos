@@ -71,6 +71,7 @@ apps = [
 	'move',
 	'nav',
 	'netecho',
+	'newdir',
 	'newfile',
 	'nic',
 	'nterm',

@@ -121,7 +121,7 @@ PCUT_TEST(create_dir)
 	rc = fmgt_create(&fmgt);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = fmgt_create_dir(fmgt, p);
+	rc = fmgt_create_dir(fmgt, p, true);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	fmgt_destroy(fmgt);

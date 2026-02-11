@@ -26,35 +26,72 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup nav
+/** @addtogroup fmgt
  * @{
  */
-/**
- * @file Navigator menu
+/** @file Create new directory.
  */
 
-#ifndef MENU_H
-#define MENU_H
-
 #include <errno.h>
-#include <ui/menuentry.h>
-#include <ui/window.h>
-#include "types/menu.h"
+#include <stdio.h>
+#include <str.h>
+#include <vfs/vfs.h>
 
-extern errno_t nav_menu_create(ui_window_t *, nav_menu_t **);
-extern void nav_menu_set_cb(nav_menu_t *, nav_menu_cb_t *, void *);
-extern void nav_menu_destroy(nav_menu_t *);
-extern ui_control_t *nav_menu_ctl(nav_menu_t *);
-extern void nav_menu_file_new_dir(ui_menu_entry_t *, void *);
-extern void nav_menu_file_new_file(ui_menu_entry_t *, void *);
-extern void nav_menu_file_open(ui_menu_entry_t *, void *);
-extern void nav_menu_file_edit(ui_menu_entry_t *, void *);
-extern void nav_menu_file_verify(ui_menu_entry_t *, void *);
-extern void nav_menu_file_copy(ui_menu_entry_t *, void *);
-extern void nav_menu_file_move(ui_menu_entry_t *, void *);
-extern void nav_menu_file_exit(ui_menu_entry_t *, void *);
+#include "fmgt.h"
+#include "../private/fmgt.h"
+#include "../private/fsops.h"
 
-#endif
+#define NEWNAME_LEN 64
+
+/** Suggest name for new directory.
+ *
+ * @param fmgt File management object
+ * @param rstr Place to store pointer to newly allocated string
+ * @return EOK on success or an error code
+ */
+errno_t fmgt_new_dir_suggest(char **rstr)
+{
+	errno_t rc;
+	unsigned u;
+	vfs_stat_t stat;
+	char name[NEWNAME_LEN];
+
+	u = 0;
+	while (true) {
+		snprintf(name, sizeof(name), "dir%02u", u);
+		rc = vfs_stat_path(name, &stat);
+		if (rc != EOK)
+			break;
+
+		++u;
+	}
+
+	*rstr = str_dup(name);
+	if (*rstr == NULL)
+		return ENOMEM;
+
+	return EOK;
+}
+
+/** Create new directory.
+ *
+ * @param fmgt File management object
+ * @param dname Directory name
+ * @return EOK on success or an error code
+ */
+errno_t fmgt_new_dir(fmgt_t *fmgt, const char *dname)
+{
+	errno_t rc;
+
+	/* Clear statistics. */
+	fmgt_progress_init(fmgt);
+	fmgt_initial_progress_update(fmgt);
+
+	rc = fmgt_create_dir(fmgt, dname, true);
+
+	fmgt_final_progress_update(fmgt);
+	return rc;
+}
 
 /** @}
  */

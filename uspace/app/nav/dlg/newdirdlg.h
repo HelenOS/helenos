@@ -30,29 +30,20 @@
  * @{
  */
 /**
- * @file Navigator menu
+ * @file New Directory dialog
  */
 
-#ifndef MENU_H
-#define MENU_H
+#ifndef DLG_NEWDIRDLG_H
+#define DLG_NEWDIRDLG_H
 
 #include <errno.h>
-#include <ui/menuentry.h>
-#include <ui/window.h>
-#include "types/menu.h"
+#include <types/ui/ui.h>
+#include "../types/dlg/newdirdlg.h"
 
-extern errno_t nav_menu_create(ui_window_t *, nav_menu_t **);
-extern void nav_menu_set_cb(nav_menu_t *, nav_menu_cb_t *, void *);
-extern void nav_menu_destroy(nav_menu_t *);
-extern ui_control_t *nav_menu_ctl(nav_menu_t *);
-extern void nav_menu_file_new_dir(ui_menu_entry_t *, void *);
-extern void nav_menu_file_new_file(ui_menu_entry_t *, void *);
-extern void nav_menu_file_open(ui_menu_entry_t *, void *);
-extern void nav_menu_file_edit(ui_menu_entry_t *, void *);
-extern void nav_menu_file_verify(ui_menu_entry_t *, void *);
-extern void nav_menu_file_copy(ui_menu_entry_t *, void *);
-extern void nav_menu_file_move(ui_menu_entry_t *, void *);
-extern void nav_menu_file_exit(ui_menu_entry_t *, void *);
+extern errno_t new_dir_dlg_create(ui_t *, new_dir_dlg_t **);
+extern void new_dir_dlg_set_cb(new_dir_dlg_t *, new_dir_dlg_cb_t *,
+    void *);
+extern void new_dir_dlg_destroy(new_dir_dlg_t *);
 
 #endif
 
