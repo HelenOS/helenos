@@ -31,6 +31,7 @@
 PCUT_INIT;
 
 PCUT_IMPORT(copydlg);
+PCUT_IMPORT(deletedlg);
 PCUT_IMPORT(existsdlg);
 PCUT_IMPORT(ioerrdlg);
 PCUT_IMPORT(newfiledlg);

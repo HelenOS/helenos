@@ -42,6 +42,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include "fmgt/copy.h"
+#include "fmgt/delete.h"
 #include "fmgt/flist.h"
 #include "fmgt/move.h"
 #include "fmgt/newdir.h"

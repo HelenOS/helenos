@@ -47,7 +47,9 @@
 #include <ui/resource.h>
 #include <ui/ui.h>
 #include <ui/window.h>
+
 #include "copy.h"
+#include "delete.h"
 #include "dlg/existsdlg.h"
 #include "dlg/ioerrdlg.h"
 #include "menu.h"
@@ -75,6 +77,7 @@ static void navigator_file_edit(void *);
 static void navigator_file_verify(void *);
 static void navigator_file_copy(void *);
 static void navigator_file_move(void *);
+static void navigator_file_delete(void *);
 static void navigator_file_exit(void *);
 
 static nav_menu_cb_t navigator_menu_cb = {
@@ -85,6 +88,7 @@ static nav_menu_cb_t navigator_menu_cb = {
 	.file_verify = navigator_file_verify,
 	.file_copy = navigator_file_copy,
 	.file_move = navigator_file_move,
+	.file_delete = navigator_file_delete,
 	.file_exit = navigator_file_exit
 };
 
@@ -170,6 +174,9 @@ static void wnd_kbd(ui_window_t *window, void *arg, kbd_event_t *event)
 			break;
 		case KC_X:
 			navigator_file_move((void *)navigator);
+			break;
+		case KC_D:
+			navigator_file_delete((void *)navigator);
 			break;
 		case KC_Q:
 			ui_quit(navigator->ui);
@@ -678,6 +685,35 @@ static void navigator_file_move(void *arg)
 
 	/* flist ownership transferred */
 	navigator_move_dlg(navigator, flist);
+}
+
+/** File / Delete menu entry selected */
+static void navigator_file_delete(void *arg)
+{
+	navigator_t *navigator = (navigator_t *)arg;
+
+	ui_file_list_entry_t *entry;
+	ui_file_list_entry_attr_t attr;
+	fmgt_flist_t *flist;
+	panel_t *panel;
+	errno_t rc;
+
+	panel = navigator_get_active_panel(navigator);
+	entry = ui_file_list_get_cursor(panel->flist);
+	ui_file_list_entry_get_attr(entry, &attr);
+
+	rc = fmgt_flist_create(&flist);
+	if (rc != EOK)
+		return;
+
+	rc = fmgt_flist_append(flist, attr.name);
+	if (rc != EOK) {
+		fmgt_flist_destroy(flist);
+		return;
+	}
+
+	/* flist ownership transferred */
+	navigator_delete_dlg(navigator, flist);
 }
 
 /** File / Exit menu entry selected */

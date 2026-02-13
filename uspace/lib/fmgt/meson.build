@@ -28,6 +28,7 @@
 
 src = files(
 	'src/copy.c',
+	'src/delete.c',
 	'src/flist.c',
 	'src/fmgt.c',
 	'src/fsops.c',

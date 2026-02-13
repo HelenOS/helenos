@@ -26,57 +26,66 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup nav
- * @{
- */
-/**
- * @file Navigator menu types
- */
-
-#ifndef TYPES_MENU_H
-#define TYPES_MENU_H
-
-#include <ui/menubar.h>
+#include <errno.h>
+#include <fmgt.h>
+#include <pcut/pcut.h>
 #include <ui/ui.h>
-#include <ui/window.h>
+#include "../../dlg/deletedlg.h"
 
-/** Navigator menu callbacks */
-typedef struct nav_menu_cb {
-	/** File / New File */
-	void (*file_new_file)(void *);
-	/** File / New Directory */
-	void (*file_new_dir)(void *);
-	/** File / Open */
-	void (*file_open)(void *);
-	/** File / Edit */
-	void (*file_edit)(void *);
-	/** File / Verify */
-	void (*file_verify)(void *);
-	/** File / Copy */
-	void (*file_copy)(void *);
-	/** File / Move */
-	void (*file_move)(void *);
-	/** File / Delete */
-	void (*file_delete)(void *);
-	/** File / Exit */
-	void (*file_exit)(void *);
-} nav_menu_cb_t;
+PCUT_INIT;
 
-/** Navigator menu */
-typedef struct nav_menu {
-	/** UI */
+PCUT_TEST_SUITE(deletedlg);
+
+static delete_dlg_cb_t delete_dlg_cb;
+
+/** Create and destroy delete dialog. */
+PCUT_TEST(create_destroy)
+{
 	ui_t *ui;
-	/** Containing window */
-	ui_window_t *window;
-	/** Menu bar */
-	ui_menu_bar_t *menubar;
-	/** Callbacks */
-	nav_menu_cb_t *cb;
-	/** Callback argument */
-	void *cb_arg;
-} nav_menu_t;
+	delete_dlg_t *dlg = NULL;
+	fmgt_flist_t *flist;
+	errno_t rc;
 
-#endif
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-/** @}
- */
+	rc = fmgt_flist_create(&flist);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = delete_dlg_create(ui, flist, &dlg);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(dlg);
+
+	delete_dlg_destroy(dlg);
+
+	fmgt_flist_destroy(flist);
+	ui_destroy(ui);
+}
+
+/** Set callbacks for delete dialog. */
+PCUT_TEST(set_cb)
+{
+	ui_t *ui;
+	delete_dlg_t *dlg = NULL;
+	fmgt_flist_t *flist;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = fmgt_flist_create(&flist);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = delete_dlg_create(ui, flist, &dlg);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(dlg);
+
+	delete_dlg_set_cb(dlg, &delete_dlg_cb, NULL);
+
+	delete_dlg_destroy(dlg);
+
+	fmgt_flist_destroy(flist);
+	ui_destroy(ui);
+}
+
+PCUT_EXPORT(deletedlg);

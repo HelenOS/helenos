@@ -30,51 +30,21 @@
  * @{
  */
 /**
- * @file Navigator menu types
+ * @file Navigator Delete types
  */
 
-#ifndef TYPES_MENU_H
-#define TYPES_MENU_H
+#ifndef TYPES_DELETE_H
+#define TYPES_DELETE_H
 
-#include <ui/menubar.h>
-#include <ui/ui.h>
-#include <ui/window.h>
+#include <fmgt.h>
 
-/** Navigator menu callbacks */
-typedef struct nav_menu_cb {
-	/** File / New File */
-	void (*file_new_file)(void *);
-	/** File / New Directory */
-	void (*file_new_dir)(void *);
-	/** File / Open */
-	void (*file_open)(void *);
-	/** File / Edit */
-	void (*file_edit)(void *);
-	/** File / Verify */
-	void (*file_verify)(void *);
-	/** File / Copy */
-	void (*file_copy)(void *);
-	/** File / Move */
-	void (*file_move)(void *);
-	/** File / Delete */
-	void (*file_delete)(void *);
-	/** File / Exit */
-	void (*file_exit)(void *);
-} nav_menu_cb_t;
-
-/** Navigator menu */
-typedef struct nav_menu {
-	/** UI */
-	ui_t *ui;
-	/** Containing window */
-	ui_window_t *window;
-	/** Menu bar */
-	ui_menu_bar_t *menubar;
-	/** Callbacks */
-	nav_menu_cb_t *cb;
-	/** Callback argument */
-	void *cb_arg;
-} nav_menu_t;
+/** Navigator Delete job */
+typedef struct {
+	/** Navigator */
+	struct navigator *navigator;
+	/** File list */
+	fmgt_flist_t *flist;
+} navigator_delete_job_t;
 
 #endif
 

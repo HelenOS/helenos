@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -248,9 +248,9 @@ error:
 	return rc;
 }
 
-/** Destroy new file dialog.
+/** Destroy verify dialog.
  *
- * @param dialog New file dialog or @c NULL
+ * @param dialog Verify dialog or @c NULL
  */
 void verify_dlg_destroy(verify_dlg_t *dialog)
 {
@@ -261,10 +261,10 @@ void verify_dlg_destroy(verify_dlg_t *dialog)
 	free(dialog);
 }
 
-/** Set new file dialog callback.
+/** Set verify dialog callback.
  *
- * @param dialog new file dialog
- * @param cb New file dialog callbacks
+ * @param dialog Verify dialog
+ * @param cb Verify dialog callbacks
  * @param arg Callback argument
  */
 void verify_dlg_set_cb(verify_dlg_t *dialog, verify_dlg_cb_t *cb,
@@ -274,7 +274,7 @@ void verify_dlg_set_cb(verify_dlg_t *dialog, verify_dlg_cb_t *cb,
 	dialog->arg = arg;
 }
 
-/** New file dialog window close handler.
+/** Verify dialog window close handler.
  *
  * @param window Window
  * @param arg Argument (verify_dlg_t *)
@@ -289,7 +289,7 @@ static void verify_dlg_wnd_close(ui_window_t *window, void *arg)
 	}
 }
 
-/** New file dialog window keyboard event handler.
+/** Verify dialog window keyboard event handler.
  *
  * @param window Window
  * @param arg Argument (verify_dlg_t *)
@@ -320,7 +320,7 @@ static void verify_dlg_wnd_kbd(ui_window_t *window, void *arg,
 	ui_window_def_kbd(window, event);
 }
 
-/** New file dialog OK button click handler.
+/** Verify dialog OK button click handler.
  *
  * @param pbutton Push button
  * @param arg Argument (verify_dlg_t *)
@@ -334,7 +334,7 @@ static void verify_dlg_bok_clicked(ui_pbutton_t *pbutton, void *arg)
 	}
 }
 
-/** New file dialog cancel button click handler.
+/** Verify dialog cancel button click handler.
  *
  * @param pbutton Push button
  * @param arg Argument (verify_dlg_t *)

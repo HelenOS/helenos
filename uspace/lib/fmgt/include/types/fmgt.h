@@ -47,6 +47,8 @@
 
 /** File management progress update */
 typedef struct {
+	/** Progress on individual files is valid. */
+	bool file_progress;
 	/** Current file processed bytes */
 	char curf_procb[CAPA_BLOCKS_BUFSIZE];
 	/** Total bytes to process for current file */
@@ -138,6 +140,8 @@ typedef struct {
 	unsigned total_procf;
 	/** Post an immediate initial progress update */
 	bool do_init_update;
+	/** Report file progress. */
+	bool file_progress;
 } fmgt_t;
 
 /** New file flags */

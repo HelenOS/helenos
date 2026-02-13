@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -127,7 +127,7 @@ errno_t progress_dlg_create(ui_t *ui, progress_dlg_params_t *params,
 	if (rc != EOK)
 		goto error;
 
-	rc = ui_label_create(ui_res, "XXX of XXX (XXX%)", &label);
+	rc = ui_label_create(ui_res, "", &label);
 	if (rc != EOK)
 		goto error;
 
@@ -154,7 +154,7 @@ errno_t progress_dlg_create(ui_t *ui, progress_dlg_params_t *params,
 	dialog->ltotal_prog = label;
 	label = NULL;
 
-	rc = ui_label_create(ui_res, "XXX of XXX (XXX%)", &label);
+	rc = ui_label_create(ui_res, "", &label);
 	if (rc != EOK)
 		goto error;
 
@@ -276,8 +276,13 @@ errno_t progress_dlg_set_progress(progress_dlg_t *dialog,
 	char buf[128];
 	errno_t rc;
 
-	snprintf(buf, sizeof(buf), "Total: %s files, %s.",
-	    progress->total_procf, progress->total_procb);
+	if (progress->file_progress) {
+		snprintf(buf, sizeof(buf), "Total: %s files, %s.",
+		    progress->total_procf, progress->total_procb);
+	} else {
+		snprintf(buf, sizeof(buf), "Total: %s files.",
+		    progress->total_procf);
+	}
 
 	rc = ui_label_set_text(dialog->ltotal_prog, buf);
 	if (rc != EOK)
@@ -287,17 +292,19 @@ errno_t progress_dlg_set_progress(progress_dlg_t *dialog,
 	if (rc != EOK)
 		return rc;
 
-	snprintf(buf, sizeof(buf), "Current file: %s of %s (%s done).",
-	    progress->curf_procb, progress->curf_totalb,
-	    progress->curf_percent);
+	if (progress->file_progress) {
+		snprintf(buf, sizeof(buf), "Current file: %s of %s (%s done).",
+		    progress->curf_procb, progress->curf_totalb,
+		    progress->curf_percent);
 
-	rc = ui_label_set_text(dialog->lcurf_prog, buf);
-	if (rc != EOK)
-		return rc;
+		rc = ui_label_set_text(dialog->lcurf_prog, buf);
+		if (rc != EOK)
+			return rc;
 
-	rc = ui_label_paint(dialog->lcurf_prog);
-	if (rc != EOK)
-		return rc;
+		rc = ui_label_paint(dialog->lcurf_prog);
+		if (rc != EOK)
+			return rc;
+	}
 
 	return EOK;
 }

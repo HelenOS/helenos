@@ -116,6 +116,8 @@ void fmgt_progress_init(fmgt_t *fmgt)
 	fmgt->curf_procb = 0;
 	fmgt->curf_totalb = 0;
 	fmgt->curf_progr = false;
+
+	fmgt->file_progress = false;
 }
 
 /** Initialize progress counters at beginning of processing a file.
@@ -130,6 +132,13 @@ void fmgt_progress_init_file(fmgt_t *fmgt, const char *fname)
 
 	fmgt->curf_procb = 0;
 	fmgt->curf_totalb = 0;
+
+	/*
+	 * This function is only called from operations that need to
+	 * display byte progress within a file. Set a flag so that
+	 * we will report file progress.
+	 */
+	fmgt->file_progress = true;
 
 	rc = vfs_stat_path(fname, &stat);
 	if (rc == EOK)
@@ -170,16 +179,27 @@ static void fmgt_get_progress(fmgt_t *fmgt, fmgt_progress_t *progress)
 	else
 		percent = 100;
 
-	capa_blocks_format_buf(fmgt->curf_procb, 1, progress->curf_procb,
-	    sizeof(progress->curf_procb));
-	capa_blocks_format_buf(fmgt->curf_totalb, 1, progress->curf_totalb,
-	    sizeof(progress->curf_totalb));
-	snprintf(progress->curf_percent, sizeof(progress->curf_percent), "%u%%",
-	    percent);
-	snprintf(progress->total_procf, sizeof(progress->total_procf), "%u",
-	    fmgt->total_procf);
-	capa_blocks_format_buf(fmgt->total_procb, 1, progress->total_procb,
-	    sizeof(progress->total_procb));
+	progress->file_progress = fmgt->file_progress;
+
+	if (fmgt->file_progress) {
+		capa_blocks_format_buf(fmgt->curf_procb, 1,
+		    progress->curf_procb, sizeof(progress->curf_procb));
+		capa_blocks_format_buf(fmgt->curf_totalb, 1,
+		    progress->curf_totalb, sizeof(progress->curf_totalb));
+		snprintf(progress->curf_percent, sizeof(progress->curf_percent),
+		    "%u%%", percent);
+		capa_blocks_format_buf(fmgt->total_procb, 1,
+		    progress->total_procb, sizeof(progress->total_procb));
+	} else {
+		memset(progress->curf_procb, 0, sizeof(progress->curf_procb));
+		memset(progress->curf_totalb, 0, sizeof(progress->curf_totalb));
+		memset(progress->curf_percent, 0,
+		    sizeof(progress->curf_percent));
+		memset(progress->total_procb, 0, sizeof(progress->total_procb));
+	}
+
+	snprintf(progress->total_procf, sizeof(progress->total_procf),
+	    "%u", fmgt->total_procf);
 }
 
 /** Give the caller progress update.

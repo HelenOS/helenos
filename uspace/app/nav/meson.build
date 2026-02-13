@@ -29,6 +29,7 @@
 deps = [ 'fmgt', 'ui' ]
 src = files(
 	'dlg/copydlg.c',
+	'dlg/deletedlg.c',
 	'dlg/existsdlg.c',
 	'dlg/ioerrdlg.c',
 	'dlg/movedlg.c',
@@ -37,6 +38,7 @@ src = files(
 	'dlg/progress.c',
 	'dlg/verifydlg.c',
 	'copy.c',
+	'delete.c',
 	'main.c',
 	'menu.c',
 	'move.c',
@@ -49,6 +51,7 @@ src = files(
 
 test_src = files(
 	'dlg/copydlg.c',
+	'dlg/deletedlg.c',
 	'dlg/existsdlg.c',
 	'dlg/ioerrdlg.c',
 	'dlg/movedlg.c',
@@ -57,6 +60,7 @@ test_src = files(
 	'dlg/progress.c',
 	'dlg/verifydlg.c',
 	'copy.c',
+	'delete.c',
 	'menu.c',
 	'move.c',
 	'nav.c',
@@ -65,6 +69,7 @@ test_src = files(
 	'panel.c',
 	'verify.c',
 	'test/dlg/copydlg.c',
+	'test/dlg/deletedlg.c',
 	'test/dlg/existsdlg.c',
 	'test/dlg/ioerrdlg.c',
 	'test/dlg/movedlg.c',

@@ -30,51 +30,46 @@
  * @{
  */
 /**
- * @file Navigator menu types
+ * @file Delete dialog
  */
 
-#ifndef TYPES_MENU_H
-#define TYPES_MENU_H
+#ifndef TYPES_DLG_DELETEDLG_H
+#define TYPES_DLG_DELETEDLG_H
 
-#include <ui/menubar.h>
-#include <ui/ui.h>
+#include <errno.h>
+#include <fmgt.h>
+#include <ui/label.h>
+#include <ui/pbutton.h>
 #include <ui/window.h>
+#include <stdbool.h>
 
-/** Navigator menu callbacks */
-typedef struct nav_menu_cb {
-	/** File / New File */
-	void (*file_new_file)(void *);
-	/** File / New Directory */
-	void (*file_new_dir)(void *);
-	/** File / Open */
-	void (*file_open)(void *);
-	/** File / Edit */
-	void (*file_edit)(void *);
-	/** File / Verify */
-	void (*file_verify)(void *);
-	/** File / Copy */
-	void (*file_copy)(void *);
-	/** File / Move */
-	void (*file_move)(void *);
-	/** File / Delete */
-	void (*file_delete)(void *);
-	/** File / Exit */
-	void (*file_exit)(void *);
-} nav_menu_cb_t;
-
-/** Navigator menu */
-typedef struct nav_menu {
-	/** UI */
-	ui_t *ui;
-	/** Containing window */
+/** Delete dialog */
+typedef struct delete_dlg {
+	/** Dialog window */
 	ui_window_t *window;
-	/** Menu bar */
-	ui_menu_bar_t *menubar;
-	/** Callbacks */
-	nav_menu_cb_t *cb;
+	/** "Delete 'xxx'" */
+	ui_label_t *ldelete;
+	/** OK button */
+	ui_pbutton_t *bok;
+	/** Cancel button */
+	ui_pbutton_t *bcancel;
+	/** Delete dialog callbacks */
+	struct delete_dlg_cb *cb;
 	/** Callback argument */
-	void *cb_arg;
-} nav_menu_t;
+	void *arg;
+	/** File list */
+	fmgt_flist_t *flist;
+} delete_dlg_t;
+
+/** Delete dialog callbacks */
+typedef struct delete_dlg_cb {
+	/** OK button was pressed */
+	void (*bok)(delete_dlg_t *, void *);
+	/** Cancel button was pressed */
+	void (*bcancel)(delete_dlg_t *, void *);
+	/** Window closure requested (e.g. via close button) */
+	void (*close)(delete_dlg_t *, void *);
+} delete_dlg_cb_t;
 
 #endif
 
