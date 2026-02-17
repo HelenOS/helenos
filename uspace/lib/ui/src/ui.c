@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -325,11 +325,39 @@ void ui_destroy(ui_t *ui)
 	free(ui);
 }
 
+/** Resize UI after screen size change.
+ *
+ * @param ui UI
+ * @param rect New screen rectangle.
+ */
+static void ui_resize(ui_t *ui, gfx_rect_t *rect)
+{
+	ui_window_t *wnd;
+
+	ui->rect = *rect;
+
+	/* Resize all fullscreen windows */
+	wnd = ui_window_first(ui);
+	while (wnd != NULL) {
+		if (wnd->placement == ui_wnd_place_full_screen) {
+			(void)ui_window_resize(wnd, rect);
+			ui_window_send_resize(wnd);
+		}
+
+		wnd = ui_window_next(wnd);
+	}
+
+	(void)ui_paint(ui);
+}
+
 static void ui_cons_event_process(ui_t *ui, cons_event_t *event)
 {
 	ui_window_t *awnd;
 	ui_evclaim_t claim;
 	pos_event_t pos;
+	sysarg_t cols, rows;
+	gfx_rect_t rect;
+	errno_t rc;
 
 	awnd = ui_window_get_active(ui);
 	if (awnd == NULL)
@@ -357,8 +385,28 @@ static void ui_cons_event_process(ui_t *ui, cons_event_t *event)
 
 		break;
 	case CEV_RESIZE:
+		rc = console_gc_resize(ui->cgc);
+		if (rc != EOK) {
+			/* XXX No good way to recover. */
+			console_done(ui->console);
+			exit(1);
+		}
+
+		rc = console_get_size(ui->console, &cols, &rows);
+		if (rc != EOK) {
+			/* XXX No good way to recover. */
+			console_done(ui->console);
+			exit(1);
+		}
+
 		ui_lock(ui);
-		ui_window_send_resize(awnd);
+
+		rect.p0.x = 0;
+		rect.p0.y = 0;
+		rect.p1.x = cols;
+		rect.p1.y = rows;
+
+		ui_resize(ui, &rect);
 		ui_unlock(ui);
 		break;
 	}

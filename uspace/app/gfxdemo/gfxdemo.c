@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -60,10 +60,12 @@ static display_wnd_cb_t wnd_cb = {
 	.kbd_event = wnd_kbd_event
 };
 
+static void uiwnd_resize_event(ui_window_t *, void *);
 static void uiwnd_close_event(ui_window_t *, void *);
 static void uiwnd_kbd_event(ui_window_t *, void *, kbd_event_t *);
 
 static ui_window_cb_t ui_window_cb = {
+	.resize = uiwnd_resize_event,
 	.close = uiwnd_close_event,
 	.kbd = uiwnd_kbd_event
 };
@@ -1168,8 +1170,10 @@ static errno_t demo_ui(const char *display_spec)
 	params.caption = "GFX Demo";
 
 	/* Do not decorate the window in fullscreen mode */
-	if (ui_is_fullscreen(ui))
+	if (ui_is_fullscreen(ui)) {
 		params.style &= ~ui_wds_decorated;
+		params.placement = ui_wnd_place_full_screen;
+	}
 
 	/*
 	 * Compute window rectangle such that application area corresponds
@@ -1327,6 +1331,17 @@ static void wnd_kbd_event(void *arg, kbd_event_t *event)
 {
 	(void)arg;
 	demo_kbd_event(event);
+}
+
+static void uiwnd_resize_event(ui_window_t *window, void *arg)
+{
+	gfx_rect_t rect;
+	gfx_coord2_t dims;
+
+	ui_window_get_app_rect(window, &rect);
+	gfx_rect_dims(&rect, &dims);
+	scr_width = dims.x;
+	scr_height = dims.y;
 }
 
 static void uiwnd_close_event(ui_window_t *window, void *arg)

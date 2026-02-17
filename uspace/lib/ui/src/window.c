@@ -766,7 +766,8 @@ errno_t ui_window_size_change(ui_window_t *window, gfx_rect_t *rect,
 #ifndef CONFIG_WIN_DOUBLE_BUF
 		/* Window is resized, now we can map the window bitmap again */
 		gfx_bitmap_params_init(&win_params);
-		win_params.flags |= bmpf_direct_output;
+		if (window->ui->display != NULL)
+			win_params.flags |= bmpf_direct_output;
 		win_params.rect = nrect;
 
 		rc = gfx_bitmap_create(window->realgc, &win_params, NULL,
