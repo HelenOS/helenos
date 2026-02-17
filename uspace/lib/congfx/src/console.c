@@ -313,6 +313,42 @@ errno_t console_gc_resume(console_gc_t *cgc)
 	return EOK;
 }
 
+/** Update console GC size after console resize.
+ *
+ * @param con Console object
+ *
+ * @return EOK on success or an error code
+ */
+errno_t console_gc_resize(console_gc_t *cgc)
+{
+	sysarg_t rows;
+	sysarg_t cols;
+	charfield_t *buf = NULL;
+	errno_t rc;
+
+	console_unmap(cgc->con, cgc->buf);
+	cgc->buf = NULL;
+
+	rc = console_get_size(cgc->con, &cols, &rows);
+	if (rc != EOK)
+		goto error;
+
+	rc = console_map(cgc->con, cols, rows, &buf);
+	if (rc != EOK)
+		goto error;
+
+	cgc->rect.p0.x = 0;
+	cgc->rect.p0.y = 0;
+	cgc->rect.p1.x = cols;
+	cgc->rect.p1.y = rows;
+	cgc->clip_rect = cgc->rect;
+	cgc->buf = buf;
+	return EOK;
+error:
+	return rc;
+}
+
+
 /** Get generic graphic context from console GC.
  *
  * @param cgc Console GC

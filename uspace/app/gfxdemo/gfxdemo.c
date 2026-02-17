@@ -78,6 +78,8 @@ static gfx_font_t *font;
 static gfx_coord_t vpad;
 static console_ctrl_t *con = NULL;
 static bool textmode;
+static console_gc_t *cgc = NULL;
+static unsigned scr_width, scr_height;
 static ui_t *ui;
 
 /** Determine if we are running in text mode.
@@ -98,6 +100,7 @@ static void demo_msleep(unsigned msec)
 	errno_t rc;
 	usec_t usec;
 	cons_event_t cevent;
+	sysarg_t cols, rows;
 
 	if (ui != NULL)
 		ui_unlock(ui);
@@ -112,6 +115,16 @@ static void demo_msleep(unsigned msec)
 						fibril_mutex_unlock(&quit_lock);
 						demo_kbd_event(&cevent.ev.key);
 						fibril_mutex_lock(&quit_lock);
+					} else if (cevent.type == CEV_RESIZE) {
+						rc = console_get_size(con,
+						    &cols, &rows);
+						if (rc == EOK) {
+							scr_width = cols;
+							scr_height = rows;
+						}
+						rc = console_gc_resize(cgc);
+						if (rc != EOK)
+							exit(1);
 					}
 				}
 			}
@@ -1023,41 +1036,39 @@ error:
 /** Run demo loop on a graphic context.
  *
  * @param gc Graphic context
- * @param w Width
- * @param h Height
  */
-static errno_t demo_loop(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
+static errno_t demo_loop(gfx_context_t *gc)
 {
 	errno_t rc;
 
-	(void) demo_font_init(gc, w, h);
+	(void) demo_font_init(gc, scr_width, scr_height);
 
 	while (!quit) {
-		rc = demo_rects(gc, w, h);
+		rc = demo_rects(gc, scr_width, scr_height);
 		if (rc != EOK)
 			goto error;
 
-		rc = demo_bitmap(gc, w, h);
+		rc = demo_bitmap(gc, scr_width, scr_height);
 		if (rc != EOK)
 			goto error;
 
-		rc = demo_bitmap2(gc, w, h);
+		rc = demo_bitmap2(gc, scr_width, scr_height);
 		if (rc != EOK)
 			goto error;
 
-		rc = demo_bitmap_kc(gc, w, h);
+		rc = demo_bitmap_kc(gc, scr_width, scr_height);
 		if (rc != EOK)
 			goto error;
 
-		rc = demo_text(gc, w, h);
+		rc = demo_text(gc, scr_width, scr_height);
 		if (rc != EOK)
 			goto error;
 
-		rc = demo_text_abbr(gc, w, h);
+		rc = demo_text_abbr(gc, scr_width, scr_height);
 		if (rc != EOK)
 			goto error;
 
-		rc = demo_clip(gc, w, h);
+		rc = demo_clip(gc, scr_width, scr_height);
 		if (rc != EOK)
 			goto error;
 	}
@@ -1072,7 +1083,6 @@ error:
 /** Run demo on console. */
 static errno_t demo_console(void)
 {
-	console_gc_t *cgc = NULL;
 	gfx_context_t *gc;
 	sysarg_t cols, rows;
 	errno_t rc;
@@ -1094,7 +1104,10 @@ static errno_t demo_console(void)
 	/* Currently console is always text. */
 	textmode = true;
 
-	rc = demo_loop(gc, cols, rows);
+	scr_width = cols;
+	scr_height = rows;
+
+	rc = demo_loop(gc);
 	if (rc != EOK)
 		return rc;
 
@@ -1111,7 +1124,9 @@ static errno_t demo_ui_fibril(void *arg)
 	errno_t rc;
 
 	ui_lock(args->ui);
-	rc = demo_loop(args->gc, args->dims.x, args->dims.y);
+	scr_width = args->dims.x;
+	scr_height = args->dims.y;
+	rc = demo_loop(args->gc);
 	ui_unlock(args->ui);
 	ui_quit(args->ui);
 	return rc;
@@ -1258,7 +1273,9 @@ static errno_t demo_display(const char *display_svc)
 	/* FIXME Assuming display service is not text mode. */
 	textmode = false;
 
-	rc = demo_loop(gc, 400, 300);
+	scr_width = 400;
+	scr_height = 300;
+	rc = demo_loop(gc);
 	if (rc != EOK)
 		return rc;
 
