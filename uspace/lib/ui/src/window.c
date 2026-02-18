@@ -238,6 +238,13 @@ static void ui_window_place(ui_window_t *window, gfx_rect_t *drect,
 	}
 }
 
+static void ui_window_set_dpos(ui_window_t *window, gfx_coord2_t *dpos)
+{
+	window->dpos = *dpos;
+	if (window->xgc != NULL)
+		xlate_gc_set_off(window->xgc, &window->dpos);
+}
+
 /** Create window's system menu.
  *
  * @param window Window
@@ -337,6 +344,7 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 	gfx_coord2_t off;
 	mem_gc_t *memgc = NULL;
 	xlate_gc_t *xgc = NULL;
+	gfx_coord2_t dpos;
 	errno_t rc;
 
 	window = calloc(1, sizeof(ui_window_t));
@@ -481,10 +489,8 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 #endif
 	if (ui->display == NULL) {
 		ui_window_place(window, &ui->rect, &params->rect, &params->prect,
-		    params->placement, &window->dpos);
-
-		if (window->xgc != NULL)
-			xlate_gc_set_off(window->xgc, &window->dpos);
+		    params->placement, &dpos);
+		ui_window_set_dpos(window, &dpos);
 	}
 
 	rc = ui_resource_create(window->gc, ui_is_textmode(ui), &res);
@@ -548,12 +554,13 @@ error:
  */
 void ui_window_update_placement(ui_window_t *window)
 {
-	if (window->placement != ui_wnd_place_popup)
+	gfx_coord2_t dpos;
+
+	if (window->placement != ui_wnd_place_popup) {
 		ui_window_place(window, &window->ui->rect, &window->rect,
 		    NULL, window->placement, &window->dpos);
-
-	if (window->xgc != NULL)
-		xlate_gc_set_off(window->xgc, &window->dpos);
+		ui_window_set_dpos(window, &dpos);
+	}
 
 	if (window->placement == ui_wnd_place_full_screen) {
 		(void)ui_window_resize(window, &window->ui->rect);
@@ -595,7 +602,7 @@ void ui_window_destroy(ui_window_t *window)
 
 	/* Need to repaint if windows are emulated */
 	if (ui_is_fullscreen(ui)) {
-		ui_paint(ui);
+		(void)ui_paint(ui);
 		/* Send focus event to newly active window */
 		nwindow = ui_window_get_active(ui);
 		if (nwindow != NULL)
@@ -708,6 +715,7 @@ errno_t ui_window_size_change(ui_window_t *window, gfx_rect_t *rect,
 	gfx_bitmap_params_t win_params;
 	gfx_bitmap_alloc_t app_alloc;
 	gfx_bitmap_alloc_t win_alloc;
+	gfx_coord2_t dpos;
 	errno_t rc;
 
 	/*
@@ -783,6 +791,21 @@ errno_t ui_window_size_change(ui_window_t *window, gfx_rect_t *rect,
 				goto error;
 			break;
 		}
+	} else {
+		/* fullscreen mode or unit tests */
+		switch (scop) {
+		case ui_wsc_resize:
+			break;
+		case ui_wsc_maximize:
+			window->normal_dpos = window->dpos;
+			dpos.x = 0;
+			dpos.y = 0;
+			ui_window_set_dpos(window, &dpos);
+			break;
+		case ui_wsc_unmaximize:
+			ui_window_set_dpos(window, &window->normal_dpos);
+			break;
+		}
 	}
 
 	/* Client side rendering? */
@@ -821,6 +844,10 @@ errno_t ui_window_size_change(ui_window_t *window, gfx_rect_t *rect,
 		gfx_bitmap_destroy(window->app_bmp);
 		window->app_bmp = app_bmp;
 	}
+
+	/* Need to repaint UI if windows are emulated */
+	if (ui_is_fullscreen(window->ui))
+		(void)ui_paint(window->ui);
 
 	return EOK;
 error:

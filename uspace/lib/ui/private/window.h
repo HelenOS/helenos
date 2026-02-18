@@ -81,6 +81,8 @@ struct ui_window {
 	gfx_rect_t normal_rect;
 	/** Display position (if fullscreen mode) */
 	gfx_coord2_t dpos;
+	/** Normal display position when not maximized (if fullscreen mode) */
+	gfx_coord2_t normal_dpos;
 	/** Application area bitmap */
 	gfx_bitmap_t *app_bmp;
 	/** Application area memory GC */
