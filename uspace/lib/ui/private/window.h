@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -135,6 +135,7 @@ extern void ui_window_send_unfocus(ui_window_t *, unsigned);
 extern void ui_window_send_resize(ui_window_t *);
 extern errno_t ui_window_size_change(ui_window_t *, gfx_rect_t *,
     ui_wnd_sc_op_t);
+extern void ui_window_update_placement(ui_window_t *);
 extern ui_window_t *ui_window_get_active(ui_t *);
 extern ui_window_t *ui_window_first(ui_t *);
 extern ui_window_t *ui_window_next(ui_window_t *);

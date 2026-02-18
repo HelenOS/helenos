@@ -336,17 +336,17 @@ static void ui_resize(ui_t *ui, gfx_rect_t *rect)
 
 	ui->rect = *rect;
 
-	/* Resize all fullscreen windows */
+	/* Reposition/resize windows */
 	wnd = ui_window_first(ui);
 	while (wnd != NULL) {
-		if (wnd->placement == ui_wnd_place_full_screen) {
-			(void)ui_window_resize(wnd, rect);
-			ui_window_send_resize(wnd);
-		}
-
+		ui_window_update_placement(wnd);
 		wnd = ui_window_next(wnd);
 	}
 
+	/*
+	 * XXX Resizing cleared console GC so we need to repaint the
+	 * background.
+	 */
 	(void)ui_paint(ui);
 }
 

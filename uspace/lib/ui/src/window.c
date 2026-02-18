@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -170,65 +170,69 @@ void ui_wnd_params_init(ui_wnd_params_t *params)
  *
  * @param window Window
  * @param drect Display rectangle
+ * @param wrect Window rectangle
+ * @param prect Parent rectangle for popup placement or @c NULL
+ * @param placement Window placement
  * @param params Window parameters
  * @param pos Place to store position of top-left corner
  */
 static void ui_window_place(ui_window_t *window, gfx_rect_t *drect,
-    ui_wnd_params_t *params, gfx_coord2_t *pos)
+    gfx_rect_t *wrect, gfx_rect_t *prect, ui_wnd_placement_t placement,
+    gfx_coord2_t *pos)
 {
 	gfx_coord2_t dims;
 	gfx_coord2_t below_pos;
 	gfx_rect_t below_rect;
 
-	assert(params->placement != ui_wnd_place_default ||
+	assert(placement != ui_wnd_place_default ||
 	    ui_is_fullscreen(window->ui));
 
 	pos->x = 0;
 	pos->y = 0;
 
-	switch (params->placement) {
+	switch (placement) {
 	case ui_wnd_place_default:
 	case ui_wnd_place_center:
-		assert(params->placement != ui_wnd_place_default ||
+		assert(placement != ui_wnd_place_default ||
 		    ui_is_fullscreen(window->ui));
 		/* Center window */
-		gfx_rect_dims(&params->rect, &dims);
+		gfx_rect_dims(wrect, &dims);
 		pos->x = (drect->p0.x + drect->p1.x) / 2 - dims.x / 2;
 		pos->y = (drect->p0.y + drect->p1.y) / 2 - dims.y / 2;
 		break;
 	case ui_wnd_place_top_left:
 	case ui_wnd_place_full_screen:
-		pos->x = drect->p0.x - params->rect.p0.x;
-		pos->y = drect->p0.y - params->rect.p0.y;
+		pos->x = drect->p0.x - wrect->p0.x;
+		pos->y = drect->p0.y - wrect->p0.y;
 		break;
 	case ui_wnd_place_top_right:
-		pos->x = drect->p1.x - params->rect.p1.x;
-		pos->y = drect->p0.y - params->rect.p0.y;
+		pos->x = drect->p1.x - wrect->p1.x;
+		pos->y = drect->p0.y - wrect->p0.y;
 		break;
 	case ui_wnd_place_bottom_left:
-		pos->x = drect->p0.x - params->rect.p0.x;
-		pos->y = drect->p1.y - params->rect.p1.y;
+		pos->x = drect->p0.x - wrect->p0.x;
+		pos->y = drect->p1.y - wrect->p1.y;
 		break;
 	case ui_wnd_place_bottom_right:
-		pos->x = drect->p1.x - params->rect.p1.x;
-		pos->y = drect->p1.y - params->rect.p1.y;
+		pos->x = drect->p1.x - wrect->p1.x;
+		pos->y = drect->p1.y - wrect->p1.y;
 		break;
 	case ui_wnd_place_popup:
 		/* Compute rectangle when placed below */
-		below_pos.x = params->prect.p0.x;
-		below_pos.y = params->prect.p1.y;
-		gfx_rect_translate(&below_pos, &params->rect, &below_rect);
+		below_pos.x = prect->p0.x;
+		below_pos.y = prect->p1.y;
+		gfx_rect_translate(&below_pos, wrect, &below_rect);
 
 		/* Does below_rect fit within the display? */
 		if (gfx_rect_is_inside(&below_rect, drect)) {
 			/* Place popup window below parent rectangle */
-			pos->x = params->prect.p0.x - params->rect.p0.x;
-			pos->y = params->prect.p1.y - params->rect.p0.y;
+			pos->x = prect->p0.x - wrect->p0.x;
+			pos->y = prect->p1.y - wrect->p0.y;
 		} else {
 			/* Place popup window above parent rectangle */
-			pos->x = params->prect.p0.x;
-			pos->y = params->prect.p0.y -
-			    (params->rect.p1.y - params->rect.p0.y);
+			pos->x = prect->p0.x;
+			pos->y = prect->p0.y -
+			    (wrect->p1.y - wrect->p0.y);
 		}
 		break;
 	}
@@ -383,8 +387,8 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 
 		if (params->placement != ui_wnd_place_default) {
 			/* Set initial display window position */
-			ui_window_place(window, &info.rect, params,
-			    &dparams.pos);
+			ui_window_place(window, &info.rect, &params->rect,
+			    &params->prect, params->placement, &dparams.pos);
 
 			dparams.flags |= wndf_setpos;
 		}
@@ -476,7 +480,8 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 	(void) bparams;
 #endif
 	if (ui->display == NULL) {
-		ui_window_place(window, &ui->rect, params, &window->dpos);
+		ui_window_place(window, &ui->rect, &params->rect, &params->prect,
+		    params->placement, &window->dpos);
 
 		if (window->xgc != NULL)
 			xlate_gc_set_off(window->xgc, &window->dpos);
@@ -535,6 +540,25 @@ error:
 		dummygc_destroy(dgc);
 	free(window);
 	return rc;
+}
+
+/** Update window placement after screen resize (only in fullscreen UI).
+ *
+ * @param window UI window
+ */
+void ui_window_update_placement(ui_window_t *window)
+{
+	if (window->placement != ui_wnd_place_popup)
+		ui_window_place(window, &window->ui->rect, &window->rect,
+		    NULL, window->placement, &window->dpos);
+
+	if (window->xgc != NULL)
+		xlate_gc_set_off(window->xgc, &window->dpos);
+
+	if (window->placement == ui_wnd_place_full_screen) {
+		(void)ui_window_resize(window, &window->ui->rect);
+		ui_window_send_resize(window);
+	}
 }
 
 /** Destroy window.
