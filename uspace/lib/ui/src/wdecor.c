@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -65,24 +65,24 @@ static ui_pbutton_cb_t ui_wdecor_btn_min_cb = {
 	.clicked = ui_wdecor_btn_min_clicked
 };
 
-static ui_pbutton_decor_ops_t ui_wdecor_btn_min_decor_ops = {
-	.paint = ui_wdecor_btn_min_paint
+static ui_pbutton_ops_t ui_wdecor_btn_min_ops = {
+	.decor_paint = ui_wdecor_btn_min_paint
 };
 
 static ui_pbutton_cb_t ui_wdecor_btn_max_cb = {
 	.clicked = ui_wdecor_btn_max_clicked
 };
 
-static ui_pbutton_decor_ops_t ui_wdecor_btn_max_decor_ops = {
-	.paint = ui_wdecor_btn_max_paint
+static ui_pbutton_ops_t ui_wdecor_btn_max_ops = {
+	.decor_paint = ui_wdecor_btn_max_paint
 };
 
 static ui_pbutton_cb_t ui_wdecor_btn_close_cb = {
 	.clicked = ui_wdecor_btn_close_clicked
 };
 
-static ui_pbutton_decor_ops_t ui_wdecor_btn_close_decor_ops = {
-	.paint = ui_wdecor_btn_close_paint
+static ui_pbutton_ops_t ui_wdecor_btn_close_ops = {
+	.decor_paint = ui_wdecor_btn_close_paint
 };
 
 enum {
@@ -174,8 +174,8 @@ errno_t ui_wdecor_create(ui_resource_t *resource, const char *caption,
 		ui_pbutton_set_cb(wdecor->btn_min, &ui_wdecor_btn_min_cb,
 		    (void *)wdecor);
 
-		ui_pbutton_set_decor_ops(wdecor->btn_min,
-		    &ui_wdecor_btn_min_decor_ops, (void *)wdecor);
+		ui_pbutton_set_ops(wdecor->btn_min, &ui_wdecor_btn_min_ops,
+		    (void *)wdecor);
 	}
 
 	if ((style & ui_wds_maximize_btn) != 0) {
@@ -188,8 +188,8 @@ errno_t ui_wdecor_create(ui_resource_t *resource, const char *caption,
 		ui_pbutton_set_cb(wdecor->btn_max, &ui_wdecor_btn_max_cb,
 		    (void *)wdecor);
 
-		ui_pbutton_set_decor_ops(wdecor->btn_max,
-		    &ui_wdecor_btn_max_decor_ops, (void *)wdecor);
+		ui_pbutton_set_ops(wdecor->btn_max, &ui_wdecor_btn_max_ops,
+		    (void *)wdecor);
 	}
 
 	if ((style & ui_wds_close_btn) != 0) {
@@ -202,8 +202,8 @@ errno_t ui_wdecor_create(ui_resource_t *resource, const char *caption,
 		ui_pbutton_set_cb(wdecor->btn_close, &ui_wdecor_btn_close_cb,
 		    (void *)wdecor);
 
-		ui_pbutton_set_decor_ops(wdecor->btn_close,
-		    &ui_wdecor_btn_close_decor_ops, (void *)wdecor);
+		ui_pbutton_set_ops(wdecor->btn_close, &ui_wdecor_btn_close_ops,
+		    (void *)wdecor);
 	}
 
 	wdecor->res = resource;

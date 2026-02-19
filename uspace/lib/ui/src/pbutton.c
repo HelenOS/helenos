@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -141,17 +141,19 @@ void ui_pbutton_set_cb(ui_pbutton_t *pbutton, ui_pbutton_cb_t *cb, void *arg)
 	pbutton->arg = arg;
 }
 
-/** Set push button decoration ops.
+/** Set push button ops.
+ *
+ * These allow overriding the function for painting the button or
+ * painting the button decoration.
  *
  * @param pbutton Push button
- * @param ops Push button decoration callbacks
+ * @param ops Push button ops
  * @param arg Decoration ops argument
  */
-void ui_pbutton_set_decor_ops(ui_pbutton_t *pbutton,
-    ui_pbutton_decor_ops_t *ops, void *arg)
+void ui_pbutton_set_ops(ui_pbutton_t *pbutton, ui_pbutton_ops_t *ops, void *arg)
 {
-	pbutton->decor_ops = ops;
-	pbutton->decor_arg = arg;
+	pbutton->ops = ops;
+	pbutton->ops_arg = arg;
 }
 
 /** Set push button flag.s
@@ -378,9 +380,9 @@ static errno_t ui_pbutton_paint_gfx(ui_pbutton_t *pbutton)
 		pos.y += ui_pb_press_dy;
 	}
 
-	if (pbutton->decor_ops != NULL && pbutton->decor_ops->paint != NULL) {
+	if (pbutton->ops != NULL && pbutton->ops->decor_paint != NULL) {
 		/* Custom decoration */
-		rc = pbutton->decor_ops->paint(pbutton, pbutton->decor_arg,
+		rc = pbutton->ops->decor_paint(pbutton, pbutton->ops_arg,
 		    &pos);
 		if (rc != EOK)
 			goto error;
@@ -502,10 +504,14 @@ error:
  */
 errno_t ui_pbutton_paint(ui_pbutton_t *pbutton)
 {
-	if (pbutton->res->textmode)
+	if (pbutton->ops != NULL && pbutton->ops->paint != NULL) {
+		/* Custom paint routine */
+		return pbutton->ops->paint(pbutton, pbutton->ops_arg);
+	} else if (pbutton->res->textmode) {
 		return ui_pbutton_paint_text(pbutton);
-	else
+	} else {
 		return ui_pbutton_paint_gfx(pbutton);
+	}
 }
 
 /** Press down button.

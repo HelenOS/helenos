@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -55,10 +55,11 @@ typedef struct ui_pbutton_cb {
 	void (*up)(ui_pbutton_t *, void *);
 } ui_pbutton_cb_t;
 
-/** Push button decoration ops */
-typedef struct ui_pbutton_decor_ops {
-	errno_t (*paint)(ui_pbutton_t *, void *, gfx_coord2_t *);
-} ui_pbutton_decor_ops_t;
+/** Push button ops */
+typedef struct ui_pbutton_ops {
+	errno_t (*decor_paint)(ui_pbutton_t *, void *, gfx_coord2_t *);
+	errno_t (*paint)(ui_pbutton_t *, void *);
+} ui_pbutton_ops_t;
 
 #endif
 

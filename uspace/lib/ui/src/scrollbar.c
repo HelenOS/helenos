@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -111,8 +111,8 @@ static ui_pbutton_cb_t ui_scrollbar_up_btn_cb = {
 	.up = ui_scrollbar_up_btn_up
 };
 
-static ui_pbutton_decor_ops_t ui_scrollbar_up_btn_decor_ops = {
-	.paint = ui_scrollbar_up_btn_decor_paint
+static ui_pbutton_ops_t ui_scrollbar_up_btn_ops = {
+	.decor_paint = ui_scrollbar_up_btn_decor_paint
 };
 
 static ui_pbutton_cb_t ui_scrollbar_down_btn_cb = {
@@ -120,8 +120,8 @@ static ui_pbutton_cb_t ui_scrollbar_down_btn_cb = {
 	.up = ui_scrollbar_down_btn_up
 };
 
-static ui_pbutton_decor_ops_t ui_scrollbar_down_btn_decor_ops = {
-	.paint = ui_scrollbar_down_btn_decor_paint
+static ui_pbutton_ops_t ui_scrollbar_down_btn_ops = {
+	.decor_paint = ui_scrollbar_down_btn_decor_paint
 };
 
 /** Scrollbar control ops */
@@ -201,8 +201,8 @@ errno_t ui_scrollbar_create(ui_t *ui, ui_window_t *window,
 	ui_pbutton_set_cb(scrollbar->up_btn, &ui_scrollbar_up_btn_cb,
 	    scrollbar);
 
-	ui_pbutton_set_decor_ops(scrollbar->up_btn,
-	    &ui_scrollbar_up_btn_decor_ops, (void *) scrollbar);
+	ui_pbutton_set_ops(scrollbar->up_btn, &ui_scrollbar_up_btn_ops,
+	    (void *)scrollbar);
 
 	ui_pbutton_set_flags(scrollbar->up_btn, ui_pbf_no_text_depress);
 
@@ -211,10 +211,10 @@ errno_t ui_scrollbar_create(ui_t *ui, ui_window_t *window,
 		goto error;
 
 	ui_pbutton_set_cb(scrollbar->down_btn, &ui_scrollbar_down_btn_cb,
-	    (void *) scrollbar);
+	    (void *)scrollbar);
 
-	ui_pbutton_set_decor_ops(scrollbar->down_btn,
-	    &ui_scrollbar_down_btn_decor_ops, (void *) scrollbar);
+	ui_pbutton_set_ops(scrollbar->down_btn, &ui_scrollbar_down_btn_ops,
+	    (void *)scrollbar);
 
 	ui_pbutton_set_flags(scrollbar->down_btn, ui_pbf_no_text_depress);
 
