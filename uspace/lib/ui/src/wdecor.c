@@ -44,29 +44,38 @@
 #include <str.h>
 #include <ui/paint.h>
 #include <ui/pbutton.h>
+#include <ui/resource.h>
 #include <ui/ui.h>
 #include <ui/wdecor.h>
+#include "../private/pbutton.h"
 #include "../private/resource.h"
 #include "../private/wdecor.h"
 
 static void ui_wdecor_btn_min_clicked(ui_pbutton_t *, void *);
-static errno_t ui_wdecor_btn_min_paint(ui_pbutton_t *, void *,
+static errno_t ui_wdecor_btn_min_decor_paint(ui_pbutton_t *, void *,
     gfx_coord2_t *);
+static errno_t ui_wdecor_btn_min_paint_text(ui_pbutton_t *, void *);
 
 static void ui_wdecor_btn_max_clicked(ui_pbutton_t *, void *);
-static errno_t ui_wdecor_btn_max_paint(ui_pbutton_t *, void *,
+static errno_t ui_wdecor_btn_max_decor_paint(ui_pbutton_t *, void *,
     gfx_coord2_t *);
+static errno_t ui_wdecor_btn_max_paint_text(ui_pbutton_t *, void *);
 
 static void ui_wdecor_btn_close_clicked(ui_pbutton_t *, void *);
-static errno_t ui_wdecor_btn_close_paint(ui_pbutton_t *, void *,
+static errno_t ui_wdecor_btn_close_decor_paint(ui_pbutton_t *, void *,
     gfx_coord2_t *);
+static errno_t ui_wdecor_btn_close_paint_text(ui_pbutton_t *, void *);
 
 static ui_pbutton_cb_t ui_wdecor_btn_min_cb = {
 	.clicked = ui_wdecor_btn_min_clicked
 };
 
 static ui_pbutton_ops_t ui_wdecor_btn_min_ops = {
-	.decor_paint = ui_wdecor_btn_min_paint
+	.decor_paint = ui_wdecor_btn_min_decor_paint
+};
+
+static ui_pbutton_ops_t ui_wdecor_btn_min_ops_text = {
+	.paint = ui_wdecor_btn_min_paint_text
 };
 
 static ui_pbutton_cb_t ui_wdecor_btn_max_cb = {
@@ -74,7 +83,11 @@ static ui_pbutton_cb_t ui_wdecor_btn_max_cb = {
 };
 
 static ui_pbutton_ops_t ui_wdecor_btn_max_ops = {
-	.decor_paint = ui_wdecor_btn_max_paint
+	.decor_paint = ui_wdecor_btn_max_decor_paint
+};
+
+static ui_pbutton_ops_t ui_wdecor_btn_max_ops_text = {
+	.paint = ui_wdecor_btn_max_paint_text
 };
 
 static ui_pbutton_cb_t ui_wdecor_btn_close_cb = {
@@ -82,7 +95,11 @@ static ui_pbutton_cb_t ui_wdecor_btn_close_cb = {
 };
 
 static ui_pbutton_ops_t ui_wdecor_btn_close_ops = {
-	.decor_paint = ui_wdecor_btn_close_paint
+	.decor_paint = ui_wdecor_btn_close_decor_paint
+};
+
+static ui_pbutton_ops_t ui_wdecor_btn_close_ops_text = {
+	.paint = ui_wdecor_btn_close_paint_text
 };
 
 enum {
@@ -152,7 +169,10 @@ errno_t ui_wdecor_create(ui_resource_t *resource, const char *caption,
     ui_wdecor_style_t style, ui_wdecor_t **rwdecor)
 {
 	ui_wdecor_t *wdecor;
+	bool textmode;
 	errno_t rc;
+
+	textmode = ui_resource_is_textmode(resource);
 
 	wdecor = calloc(1, sizeof(ui_wdecor_t));
 	if (wdecor == NULL)
@@ -174,8 +194,9 @@ errno_t ui_wdecor_create(ui_resource_t *resource, const char *caption,
 		ui_pbutton_set_cb(wdecor->btn_min, &ui_wdecor_btn_min_cb,
 		    (void *)wdecor);
 
-		ui_pbutton_set_ops(wdecor->btn_min, &ui_wdecor_btn_min_ops,
-		    (void *)wdecor);
+		ui_pbutton_set_ops(wdecor->btn_min, textmode ?
+		    &ui_wdecor_btn_min_ops_text :
+		    &ui_wdecor_btn_min_ops, (void *)wdecor);
 	}
 
 	if ((style & ui_wds_maximize_btn) != 0) {
@@ -188,8 +209,9 @@ errno_t ui_wdecor_create(ui_resource_t *resource, const char *caption,
 		ui_pbutton_set_cb(wdecor->btn_max, &ui_wdecor_btn_max_cb,
 		    (void *)wdecor);
 
-		ui_pbutton_set_ops(wdecor->btn_max, &ui_wdecor_btn_max_ops,
-		    (void *)wdecor);
+		ui_pbutton_set_ops(wdecor->btn_max, textmode ?
+		    &ui_wdecor_btn_max_ops_text :
+		    &ui_wdecor_btn_max_ops, (void *)wdecor);
 	}
 
 	if ((style & ui_wds_close_btn) != 0) {
@@ -202,8 +224,9 @@ errno_t ui_wdecor_create(ui_resource_t *resource, const char *caption,
 		ui_pbutton_set_cb(wdecor->btn_close, &ui_wdecor_btn_close_cb,
 		    (void *)wdecor);
 
-		ui_pbutton_set_ops(wdecor->btn_close, &ui_wdecor_btn_close_ops,
-		    (void *)wdecor);
+		ui_pbutton_set_ops(wdecor->btn_close, textmode ?
+		    &ui_wdecor_btn_close_ops_text :
+		    &ui_wdecor_btn_close_ops, (void *)wdecor);
 	}
 
 	wdecor->res = resource;
@@ -368,6 +391,8 @@ errno_t ui_wdecor_sysmenu_hdl_paint_text(ui_wdecor_t *wdecor, gfx_rect_t *rect)
 
 	rc = gfx_set_color(wdecor->res->gc, wdecor->sysmenu_hdl_active ?
 	    wdecor->res->btn_shadow_color : wdecor->res->btn_face_color);
+	if (rc != EOK)
+		return rc;
 
 	gfx_text_fmt_init(&fmt);
 	fmt.font = wdecor->res->font;
@@ -1206,7 +1231,7 @@ static void ui_wdecor_btn_max_clicked(ui_pbutton_t *pbutton, void *arg)
  * @param arg Argument (ui_wdecor_t *)
  * @param pos Center position
  */
-static errno_t ui_wdecor_btn_min_paint(ui_pbutton_t *pbutton,
+static errno_t ui_wdecor_btn_min_decor_paint(ui_pbutton_t *pbutton,
     void *arg, gfx_coord2_t *pos)
 {
 	ui_wdecor_t *wdecor = (ui_wdecor_t *)arg;
@@ -1218,27 +1243,74 @@ static errno_t ui_wdecor_btn_min_paint(ui_pbutton_t *pbutton,
 	return rc;
 }
 
+/** Paint minimize button in text mode.
+ *
+ * @param pbutton Push button
+ * @param arg Argument (ui_wdecor_t *)
+ */
+static errno_t ui_wdecor_btn_min_paint_text(ui_pbutton_t *pbutton, void *arg)
+{
+	ui_wdecor_t *wdecor = (ui_wdecor_t *)arg;
+	errno_t rc;
+	gfx_text_fmt_t fmt;
+
+	gfx_text_fmt_init(&fmt);
+	fmt.font = wdecor->res->font;
+	fmt.color = (pbutton->held && pbutton->inside) ?
+	    wdecor->res->wnd_sel_text_color :
+	    wdecor->res->tbar_act_text_color;
+	fmt.halign = gfx_halign_left;
+	fmt.valign = gfx_valign_top;
+
+	rc = gfx_puttext(&pbutton->rect.p0, &fmt, "[\u2193]");
+	if (rc != EOK)
+		return rc;
+
+	return gfx_update(wdecor->res->gc);
+}
+
 /** Paint (un)maximize button decoration.
  *
  * @param pbutton Push button
  * @param arg Argument (ui_wdecor_t *)
  * @param pos Center position
  */
-static errno_t ui_wdecor_btn_max_paint(ui_pbutton_t *pbutton,
+static errno_t ui_wdecor_btn_max_decor_paint(ui_pbutton_t *pbutton,
     void *arg, gfx_coord2_t *pos)
 {
 	ui_wdecor_t *wdecor = (ui_wdecor_t *)arg;
 	errno_t rc;
 
-	if (wdecor->maximized) {
-		rc = ui_paint_unmaxicon(wdecor->res, pos, wdecor_unmax_w,
-		    wdecor_unmax_h, wdecor_unmax_dw, wdecor_unmax_dh);
-	} else {
-		rc = ui_paint_maxicon(wdecor->res, pos, wdecor_max_w,
-		    wdecor_max_h);
-	}
+	rc = ui_paint_maxicon(wdecor->res, pos, wdecor_min_w,
+	    wdecor_min_h);
 
 	return rc;
+}
+
+/** Paint maximize button in text mode.
+ *
+ * @param pbutton Push button
+ * @param arg Argument (ui_wdecor_t *)
+ */
+static errno_t ui_wdecor_btn_max_paint_text(ui_pbutton_t *pbutton, void *arg)
+{
+	ui_wdecor_t *wdecor = (ui_wdecor_t *)arg;
+	errno_t rc;
+	gfx_text_fmt_t fmt;
+
+	gfx_text_fmt_init(&fmt);
+	fmt.font = wdecor->res->font;
+	fmt.color = (pbutton->held && pbutton->inside) ?
+	    wdecor->res->wnd_sel_text_color :
+	    wdecor->res->tbar_act_text_color;
+	fmt.halign = gfx_halign_left;
+	fmt.valign = gfx_valign_top;
+
+	rc = gfx_puttext(&pbutton->rect.p0, &fmt, "[\u2191]");
+	if (rc != EOK)
+		return rc;
+
+	return gfx_update(wdecor->res->gc);
 }
 
 /** Window decoration close button was clicked.
@@ -1260,7 +1332,7 @@ static void ui_wdecor_btn_close_clicked(ui_pbutton_t *pbutton, void *arg)
  * @param arg Argument (ui_wdecor_t *)
  * @param pos Center position
  */
-static errno_t ui_wdecor_btn_close_paint(ui_pbutton_t *pbutton,
+static errno_t ui_wdecor_btn_close_decor_paint(ui_pbutton_t *pbutton,
     void *arg, gfx_coord2_t *pos)
 {
 	ui_wdecor_t *wdecor = (ui_wdecor_t *)arg;
@@ -1275,6 +1347,32 @@ static errno_t ui_wdecor_btn_close_paint(ui_pbutton_t *pbutton,
 	p.y = pos->y - 1;
 	return ui_paint_cross(wdecor->res->gc, &p, wdecor_close_cross_n,
 	    wdecor_close_cross_w, wdecor_close_cross_h);
+}
+
+/** Paint close button in text mode.
+ *
+ * @param pbutton Push button
+ * @param arg Argument (ui_wdecor_t *)
+ */
+static errno_t ui_wdecor_btn_close_paint_text(ui_pbutton_t *pbutton, void *arg)
+{
+	ui_wdecor_t *wdecor = (ui_wdecor_t *)arg;
+	errno_t rc;
+	gfx_text_fmt_t fmt;
+
+	gfx_text_fmt_init(&fmt);
+	fmt.font = wdecor->res->font;
+	fmt.color = (pbutton->held && pbutton->inside) ?
+	    wdecor->res->wnd_sel_text_color :
+	    wdecor->res->tbar_act_text_color;
+	fmt.halign = gfx_halign_left;
+	fmt.valign = gfx_valign_top;
+
+	rc = gfx_puttext(&pbutton->rect.p0, &fmt, "[\u25a0]");
+	if (rc != EOK)
+		return rc;
+
+	return gfx_update(wdecor->res->gc);
 }
 
 /** @}
