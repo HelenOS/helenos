@@ -49,6 +49,20 @@
 
 extern kobject_ops_t irq_kobject_ops;
 
+typedef struct {
+	kobject_t kobject;
+	irq_t irq;
+} irq_kobject_t;
+
+static inline irq_t *irq_from_kobject(kobject_t *kobject)
+{
+	if (kobject) {
+		return &((irq_kobject_t *) kobject)->irq;
+	} else {
+		return NULL;
+	}
+}
+
 extern irq_ownership_t ipc_irq_top_half_claim(irq_t *);
 extern void ipc_irq_top_half_handler(irq_t *);
 
