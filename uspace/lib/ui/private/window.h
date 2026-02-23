@@ -50,6 +50,12 @@
 #include <types/ui/cursor.h>
 #include <types/ui/window.h>
 
+/** UI window flags. */
+typedef enum {
+	/** Window is maximized */
+	uiwf_maximized = 0x1
+} ui_window_flags_t;
+
 /** Actual structure of window.
  *
  * This is private to libui.
@@ -111,6 +117,8 @@ struct ui_window {
 	ui_stock_cursor_t cursor;
 	/** Window placement */
 	ui_wnd_placement_t placement;
+	/** Window flags */
+	ui_wnd_flags_t flags;
 };
 
 /** Size change operation */

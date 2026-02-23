@@ -554,15 +554,9 @@ error:
  */
 void ui_window_update_placement(ui_window_t *window)
 {
-	gfx_coord2_t dpos;
-
-	if (window->placement != ui_wnd_place_popup) {
-		ui_window_place(window, &window->ui->rect, &window->rect,
-		    NULL, window->placement, &window->dpos);
-		ui_window_set_dpos(window, &dpos);
-	}
-
-	if (window->placement == ui_wnd_place_full_screen) {
+	if (window->placement == ui_wnd_place_full_screen ||
+	    (window->flags & uiwf_maximized) != 0) {
+		/* Update size of fullscreen or maximized window. */
 		(void)ui_window_resize(window, &window->ui->rect);
 		ui_window_send_resize(window);
 	}
@@ -848,6 +842,17 @@ errno_t ui_window_size_change(ui_window_t *window, gfx_rect_t *rect,
 	/* Need to repaint UI if windows are emulated */
 	if (ui_is_fullscreen(window->ui))
 		(void)ui_paint(window->ui);
+
+	switch (scop) {
+	case ui_wsc_resize:
+		break;
+	case ui_wsc_maximize:
+		window->flags |= uiwf_maximized;
+		break;
+	case ui_wsc_unmaximize:
+		window->flags &= ~uiwf_maximized;
+		break;
+	}
 
 	return EOK;
 error:
