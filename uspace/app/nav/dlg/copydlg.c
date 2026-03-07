@@ -186,6 +186,12 @@ errno_t copy_dlg_create(ui_t *ui, fmgt_flist_t *flist, const char *dest,
 	if (rc != EOK)
 		goto error;
 
+	ui_entry_activate(edest);
+
+	/* Select all */
+	ui_entry_seek_start(edest, false);
+	ui_entry_seek_end(edest, true);
+
 	dialog->edest = edest;
 	edest = NULL;
 

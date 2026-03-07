@@ -83,6 +83,7 @@ apps = [
 	'ping',
 	'pkg',
 	'redir',
+	'rename',
 	'sbi',
 	'shutdown',
 	'shutdown-dlg',

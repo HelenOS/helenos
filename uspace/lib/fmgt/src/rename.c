@@ -26,59 +26,38 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup nav
+/** @addtogroup fmgt
  * @{
  */
-/**
- * @file Navigator menu types
+/** @file Rename file or directory.
  */
 
-#ifndef TYPES_MENU_H
-#define TYPES_MENU_H
+#include <errno.h>
 
-#include <ui/menubar.h>
-#include <ui/ui.h>
-#include <ui/window.h>
+#include "fmgt.h"
+#include "../private/fmgt.h"
+#include "../private/fsops.h"
 
-/** Navigator menu callbacks */
-typedef struct nav_menu_cb {
-	/** File / New File */
-	void (*file_new_file)(void *);
-	/** File / New Directory */
-	void (*file_new_dir)(void *);
-	/** File / Open */
-	void (*file_open)(void *);
-	/** File / Edit */
-	void (*file_edit)(void *);
-	/** File / Verify */
-	void (*file_verify)(void *);
-	/** File / Copy */
-	void (*file_copy)(void *);
-	/** File / Rename */
-	void (*file_rename)(void *);
-	/** File / Move */
-	void (*file_move)(void *);
-	/** File / Delete */
-	void (*file_delete)(void *);
-	/** File / Exit */
-	void (*file_exit)(void *);
-} nav_menu_cb_t;
+/** Rename file or directory.
+ *
+ * @param fmgt File management object
+ * @param old_path Original path
+ * @param new_name New name (does not need to be a full path)
+ * @return EOK on success or an error code
+ */
+errno_t fmgt_rename(fmgt_t *fmgt, const char *old_path, const char *new_name)
+{
+	errno_t rc;
 
-/** Navigator menu */
-typedef struct nav_menu {
-	/** UI */
-	ui_t *ui;
-	/** Containing window */
-	ui_window_t *window;
-	/** Menu bar */
-	ui_menu_bar_t *menubar;
-	/** Callbacks */
-	nav_menu_cb_t *cb;
-	/** Callback argument */
-	void *cb_arg;
-} nav_menu_t;
+	/* Clear statistics. */
+	fmgt_progress_init(fmgt);
+	fmgt_initial_progress_update(fmgt);
 
-#endif
+	rc = fmgt_rename_entry(fmgt, old_path, new_name);
+
+	fmgt_final_progress_update(fmgt);
+	return rc;
+}
 
 /** @}
  */

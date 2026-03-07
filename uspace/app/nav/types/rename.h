@@ -30,53 +30,24 @@
  * @{
  */
 /**
- * @file Navigator menu types
+ * @file Navigator Rename types
  */
 
-#ifndef TYPES_MENU_H
-#define TYPES_MENU_H
+#ifndef TYPES_RENAME_H
+#define TYPES_RENAME_H
 
-#include <ui/menubar.h>
-#include <ui/ui.h>
-#include <ui/window.h>
+#include <stdbool.h>
+#include <stdint.h>
 
-/** Navigator menu callbacks */
-typedef struct nav_menu_cb {
-	/** File / New File */
-	void (*file_new_file)(void *);
-	/** File / New Directory */
-	void (*file_new_dir)(void *);
-	/** File / Open */
-	void (*file_open)(void *);
-	/** File / Edit */
-	void (*file_edit)(void *);
-	/** File / Verify */
-	void (*file_verify)(void *);
-	/** File / Copy */
-	void (*file_copy)(void *);
-	/** File / Rename */
-	void (*file_rename)(void *);
-	/** File / Move */
-	void (*file_move)(void *);
-	/** File / Delete */
-	void (*file_delete)(void *);
-	/** File / Exit */
-	void (*file_exit)(void *);
-} nav_menu_cb_t;
-
-/** Navigator menu */
-typedef struct nav_menu {
-	/** UI */
-	ui_t *ui;
-	/** Containing window */
-	ui_window_t *window;
-	/** Menu bar */
-	ui_menu_bar_t *menubar;
-	/** Callbacks */
-	nav_menu_cb_t *cb;
-	/** Callback argument */
-	void *cb_arg;
-} nav_menu_t;
+/** Navigator Rename job */
+typedef struct {
+	/** Navigator */
+	struct navigator *navigator;
+	/** Old path */
+	const char *old_path;
+	/** New name */
+	const char *new_name;
+} navigator_rename_job_t;
 
 #endif
 

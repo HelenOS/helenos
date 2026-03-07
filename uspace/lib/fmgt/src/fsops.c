@@ -282,5 +282,38 @@ errno_t fmgt_write(fmgt_t *fmgt, int fd, const char *fname, aoff64_t *pos,
 	return EOK;
 }
 
+/** Rename file or directory.
+ *
+ * @param fmgt File management object
+ * @param old_path Original filesystem path
+ * @param new_name New name (does not need to be a full path)
+ * @return EOK on success or an error code
+ */
+errno_t fmgt_rename_entry(fmgt_t *fmgt, const char *old_path,
+    const char *new_name)
+{
+	fmgt_io_error_t err;
+	fmgt_error_action_t action;
+	errno_t rc;
+
+	do {
+		rc = vfs_rename_path(old_path, new_name);
+
+		if (rc == EOK)
+			break;
+
+		/* I/O error */
+		err.fname = old_path;
+		err.optype = fmgt_io_rename;
+		err.rc = rc;
+
+		fmgt_timer_stop(fmgt);
+		action = fmgt_io_error_query(fmgt, &err);
+		fmgt_timer_start(fmgt);
+	} while (action == fmgt_er_retry);
+
+	return rc;
+}
+
 /** @}
  */

@@ -59,6 +59,7 @@ errno_t nav_menu_create(ui_window_t *window, nav_menu_t **rmenu)
 	ui_menu_entry_t *medit;
 	ui_menu_entry_t *mverify;
 	ui_menu_entry_t *mcopy;
+	ui_menu_entry_t *mrename;
 	ui_menu_entry_t *mmove;
 	ui_menu_entry_t *mdelete;
 	ui_menu_entry_t *mfsep;
@@ -89,7 +90,7 @@ errno_t nav_menu_create(ui_window_t *window, nav_menu_t **rmenu)
 
 	ui_menu_entry_set_cb(mnew, nav_menu_file_new_file, (void *) menu);
 
-	rc = ui_menu_entry_create(mfile, "New Di~r~ectory", "Ctrl-N", &mnewdir);
+	rc = ui_menu_entry_create(mfile, "New D~i~rectory", "Ctrl-N", &mnewdir);
 	if (rc != EOK)
 		goto error;
 
@@ -118,6 +119,12 @@ errno_t nav_menu_create(ui_window_t *window, nav_menu_t **rmenu)
 		goto error;
 
 	ui_menu_entry_set_cb(mcopy, nav_menu_file_copy, (void *) menu);
+
+	rc = ui_menu_entry_create(mfile, "~R~ename", "Ctrl-R", &mrename);
+	if (rc != EOK)
+		goto error;
+
+	ui_menu_entry_set_cb(mrename, nav_menu_file_rename, (void *) menu);
 
 	rc = ui_menu_entry_create(mfile, "~M~ove", "Ctrl-X", &mmove);
 	if (rc != EOK)
@@ -265,6 +272,19 @@ void nav_menu_file_copy(ui_menu_entry_t *mentry, void *arg)
 
 	if (menu->cb != NULL && menu->cb->file_copy != NULL)
 		menu->cb->file_copy(menu->cb_arg);
+}
+
+/** File / Rename menu entry selected.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (navigator_t *)
+ */
+void nav_menu_file_rename(ui_menu_entry_t *mentry, void *arg)
+{
+	nav_menu_t *menu = (nav_menu_t *)arg;
+
+	if (menu->cb != NULL && menu->cb->file_rename != NULL)
+		menu->cb->file_rename(menu->cb_arg);
 }
 
 /** File / Move menu entry selected.

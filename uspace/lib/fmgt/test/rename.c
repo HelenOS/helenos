@@ -26,59 +26,46 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup nav
- * @{
- */
-/**
- * @file Navigator menu types
- */
+#include <fmgt.h>
+#include <pcut/pcut.h>
+#include <stdio.h>
+#include <str.h>
+#include <vfs/vfs.h>
 
-#ifndef TYPES_MENU_H
-#define TYPES_MENU_H
+PCUT_INIT;
 
-#include <ui/menubar.h>
-#include <ui/ui.h>
-#include <ui/window.h>
+PCUT_TEST_SUITE(newdir);
 
-/** Navigator menu callbacks */
-typedef struct nav_menu_cb {
-	/** File / New File */
-	void (*file_new_file)(void *);
-	/** File / New Directory */
-	void (*file_new_dir)(void *);
-	/** File / Open */
-	void (*file_open)(void *);
-	/** File / Edit */
-	void (*file_edit)(void *);
-	/** File / Verify */
-	void (*file_verify)(void *);
-	/** File / Copy */
-	void (*file_copy)(void *);
-	/** File / Rename */
-	void (*file_rename)(void *);
-	/** File / Move */
-	void (*file_move)(void *);
-	/** File / Delete */
-	void (*file_delete)(void *);
-	/** File / Exit */
-	void (*file_exit)(void *);
-} nav_menu_cb_t;
+#define TEMP_DIR "/tmp"
 
-/** Navigator menu */
-typedef struct nav_menu {
-	/** UI */
-	ui_t *ui;
-	/** Containing window */
-	ui_window_t *window;
-	/** Menu bar */
-	ui_menu_bar_t *menubar;
-	/** Callbacks */
-	nav_menu_cb_t *cb;
-	/** Callback argument */
-	void *cb_arg;
-} nav_menu_t;
+/** New directory can be created. */
+PCUT_TEST(rename)
+{
+	fmgt_t *fmgt = NULL;
+	char *dname1 = NULL;
+	errno_t rc;
+	int rv;
 
-#endif
+	rc = vfs_cwd_set(TEMP_DIR);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-/** @}
- */
+	/* Suggest unique directory name. */
+	rc = fmgt_new_dir_suggest(&dname1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = fmgt_create(&fmgt);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* See if we can actually create the directory. */
+	rc = fmgt_new_dir(fmgt, dname1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Remove the directory. */
+	rv = remove(dname1);
+	PCUT_ASSERT_INT_EQUALS(0, rv);
+
+	free(dname1);
+	fmgt_destroy(fmgt);
+}
+
+PCUT_EXPORT(rename);

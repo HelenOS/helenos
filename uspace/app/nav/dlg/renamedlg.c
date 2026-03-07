@@ -30,7 +30,7 @@
  * @{
  */
 /**
- * @file Move dialog
+ * @file Rename dialog
  */
 
 #include <errno.h>
@@ -38,68 +38,72 @@
 #include <mem.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <str.h>
 #include <ui/fixed.h>
 #include <ui/label.h>
 #include <ui/pbutton.h>
 #include <ui/resource.h>
 #include <ui/ui.h>
 #include <ui/window.h>
-#include "movedlg.h"
+#include "renamedlg.h"
 
-static void move_dlg_wnd_close(ui_window_t *, void *);
-static void move_dlg_wnd_kbd(ui_window_t *, void *, kbd_event_t *);
+static void rename_dlg_wnd_close(ui_window_t *, void *);
+static void rename_dlg_wnd_kbd(ui_window_t *, void *, kbd_event_t *);
 
-ui_window_cb_t move_dlg_wnd_cb = {
-	.close = move_dlg_wnd_close,
-	.kbd = move_dlg_wnd_kbd
+ui_window_cb_t rename_dlg_wnd_cb = {
+	.close = rename_dlg_wnd_close,
+	.kbd = rename_dlg_wnd_kbd
 };
 
-static void move_dlg_bok_clicked(ui_pbutton_t *, void *);
-static void move_dlg_bcancel_clicked(ui_pbutton_t *, void *);
+static void rename_dlg_bok_clicked(ui_pbutton_t *, void *);
+static void rename_dlg_bcancel_clicked(ui_pbutton_t *, void *);
 
-ui_pbutton_cb_t move_dlg_bok_cb = {
-	.clicked = move_dlg_bok_clicked
+ui_pbutton_cb_t rename_dlg_bok_cb = {
+	.clicked = rename_dlg_bok_clicked
 };
 
-ui_pbutton_cb_t move_dlg_bcancel_cb = {
-	.clicked = move_dlg_bcancel_clicked
+ui_pbutton_cb_t rename_dlg_bcancel_cb = {
+	.clicked = rename_dlg_bcancel_clicked
 };
 
-/** Create Move dialog.
+/** Create Rename dialog.
  *
  * @param ui User interface
- * @param flist List of files to move (ownership transferred)
- * @param dest Pre-filled dstination path
+ * @param old_path Old path
+ * @param new_name New name
  * @param rdialog Place to store pointer to new dialog
  * @return EOK on success or an error code
  */
-errno_t move_dlg_create(ui_t *ui, fmgt_flist_t *flist, const char *dest,
-    move_dlg_t **rdialog)
+errno_t rename_dlg_create(ui_t *ui, const char *old_path,
+    rename_dlg_t **rdialog)
 {
 	errno_t rc;
-	move_dlg_t *dialog;
+	rename_dlg_t *dialog;
 	ui_window_t *window = NULL;
 	ui_wnd_params_t wparams;
 	ui_fixed_t *fixed = NULL;
 	ui_label_t *label = NULL;
-	ui_entry_t *edest = NULL;
+	ui_entry_t *enew_name = NULL;
 	ui_pbutton_t *bok = NULL;
 	ui_pbutton_t *bcancel = NULL;
 	gfx_rect_t rect;
 	ui_resource_t *ui_res;
-	fmgt_flist_entry_t *entry;
-	int rv;
-	char *tmove = NULL;
-	unsigned count;
+	char *trename = NULL;
 
-	dialog = calloc(1, sizeof(move_dlg_t));
+	dialog = calloc(1, sizeof(rename_dlg_t));
 	if (dialog == NULL) {
 		rc = ENOMEM;
 		goto error;
 	}
 
+	dialog->old_path = str_dup(old_path);
+	if (dialog->old_path == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
+
 	ui_wnd_params_init(&wparams);
-	wparams.caption = "Move";
+	wparams.caption = "Rename";
 
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
@@ -118,7 +122,7 @@ errno_t move_dlg_create(ui_t *ui, fmgt_flist_t *flist, const char *dest,
 	if (rc != EOK)
 		goto error;
 
-	ui_window_set_cb(window, &move_dlg_wnd_cb, dialog);
+	ui_window_set_cb(window, &rename_dlg_wnd_cb, dialog);
 
 	ui_res = ui_window_get_res(window);
 
@@ -126,24 +130,14 @@ errno_t move_dlg_create(ui_t *ui, fmgt_flist_t *flist, const char *dest,
 	if (rc != EOK)
 		goto error;
 
-	count = fmgt_flist_count(flist);
-	if (count == 1) {
-		entry = fmgt_flist_first(flist);
-		rv = asprintf(&tmove, "Move \"%s\" to:", entry->fname);
-		if (rv < 0)
-			goto error;
-	} else {
-		rv = asprintf(&tmove, "Move %u files/directories to:", count);
-		if (rv < 0)
-			goto error;
-	}
+	rc = asprintf(&trename, "Rename \"%s\" to:", old_path);
 
-	rc = ui_label_create(ui_res, tmove, &label);
+	rc = ui_label_create(ui_res, trename, &label);
 	if (rc != EOK)
 		goto error;
 
-	free(tmove);
-	tmove = NULL;
+	free(trename);
+	trename = NULL;
 
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
@@ -166,7 +160,7 @@ errno_t move_dlg_create(ui_t *ui, fmgt_flist_t *flist, const char *dest,
 
 	label = NULL;
 
-	rc = ui_entry_create(window, dest, &edest);
+	rc = ui_entry_create(window, old_path, &enew_name);
 	if (rc != EOK)
 		goto error;
 
@@ -183,26 +177,26 @@ errno_t move_dlg_create(ui_t *ui, fmgt_flist_t *flist, const char *dest,
 		rect.p1.y = 80;
 	}
 
-	ui_entry_set_rect(edest, &rect);
+	ui_entry_set_rect(enew_name, &rect);
 
-	rc = ui_fixed_add(fixed, ui_entry_ctl(edest));
+	rc = ui_fixed_add(fixed, ui_entry_ctl(enew_name));
 	if (rc != EOK)
 		goto error;
 
-	ui_entry_activate(edest);
+	ui_entry_activate(enew_name);
 
 	/* Select all */
-	ui_entry_seek_start(edest, false);
-	ui_entry_seek_end(edest, true);
+	ui_entry_seek_start(enew_name, false);
+	ui_entry_seek_end(enew_name, true);
 
-	dialog->edest = edest;
-	edest = NULL;
+	dialog->enew_name = enew_name;
+	enew_name = NULL;
 
 	rc = ui_pbutton_create(ui_res, "OK", &bok);
 	if (rc != EOK)
 		goto error;
 
-	ui_pbutton_set_cb(bok, &move_dlg_bok_cb, dialog);
+	ui_pbutton_set_cb(bok, &rename_dlg_bok_cb, dialog);
 
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
@@ -232,7 +226,7 @@ errno_t move_dlg_create(ui_t *ui, fmgt_flist_t *flist, const char *dest,
 	if (rc != EOK)
 		goto error;
 
-	ui_pbutton_set_cb(bcancel, &move_dlg_bcancel_cb, dialog);
+	ui_pbutton_set_cb(bcancel, &rename_dlg_bcancel_cb, dialog);
 
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
@@ -264,12 +258,11 @@ errno_t move_dlg_create(ui_t *ui, fmgt_flist_t *flist, const char *dest,
 		goto error;
 
 	dialog->window = window;
-	dialog->flist = flist;
 	*rdialog = dialog;
 	return EOK;
 error:
-	if (tmove != NULL)
-		free(tmove);
+	if (trename != NULL)
+		free(trename);
 	if (bok != NULL)
 		ui_pbutton_destroy(bok);
 	if (bcancel != NULL)
@@ -280,45 +273,48 @@ error:
 		ui_fixed_destroy(fixed);
 	if (window != NULL)
 		ui_window_destroy(window);
+	if (dialog->old_path != NULL)
+		free(dialog->old_path);
 	if (dialog != NULL)
 		free(dialog);
 	return rc;
 }
 
-/** Destroy move dialog.
+/** Destroy rename dialog.
  *
- * @param dialog Move dialog or @c NULL
+ * @param dialog Rename dialog or @c NULL
  */
-void move_dlg_destroy(move_dlg_t *dialog)
+void rename_dlg_destroy(rename_dlg_t *dialog)
 {
 	if (dialog == NULL)
 		return;
 
+	free(dialog->old_path);
 	ui_window_destroy(dialog->window);
 	free(dialog);
 }
 
-/** Set Move dialog callback.
+/** Set Rename dialog callback.
  *
- * @param dialog Move dialog
- * @param cb Move dialog callbacks
+ * @param dialog Rename dialog
+ * @param cb Rename dialog callbacks
  * @param arg Callback argument
  */
-void move_dlg_set_cb(move_dlg_t *dialog, move_dlg_cb_t *cb,
+void rename_dlg_set_cb(rename_dlg_t *dialog, rename_dlg_cb_t *cb,
     void *arg)
 {
 	dialog->cb = cb;
 	dialog->arg = arg;
 }
 
-/** Move dialog window close handler.
+/** Rename dialog window close handler.
  *
  * @param window Window
- * @param arg Argument (move_dlg_t *)
+ * @param arg Argument (rename_dlg_t *)
  */
-static void move_dlg_wnd_close(ui_window_t *window, void *arg)
+static void rename_dlg_wnd_close(ui_window_t *window, void *arg)
 {
-	move_dlg_t *dialog = (move_dlg_t *) arg;
+	rename_dlg_t *dialog = (rename_dlg_t *) arg;
 
 	(void)window;
 	if (dialog->cb != NULL && dialog->cb->close != NULL) {
@@ -326,23 +322,25 @@ static void move_dlg_wnd_close(ui_window_t *window, void *arg)
 	}
 }
 
-/** Move dialog window keyboard event handler.
+/** Rename dialog window keyboard event handler.
  *
  * @param window Window
- * @param arg Argument (move_dlg_t *)
+ * @param arg Argument (rename_dlg_t *)
  * @param event Keyboard event
  */
-static void move_dlg_wnd_kbd(ui_window_t *window, void *arg,
+static void rename_dlg_wnd_kbd(ui_window_t *window, void *arg,
     kbd_event_t *event)
 {
-	move_dlg_t *dialog = (move_dlg_t *) arg;
+	rename_dlg_t *dialog = (rename_dlg_t *) arg;
+	const char *new_name;
 
 	if (event->type == KEY_PRESS &&
 	    (event->mods & (KM_CTRL | KM_SHIFT | KM_ALT)) == 0) {
 		if (event->key == KC_ENTER) {
 			/* Confirm */
 			if (dialog->cb != NULL && dialog->cb->bok != NULL) {
-				dialog->cb->bok(dialog, dialog->arg);
+				new_name = ui_entry_get_text(dialog->enew_name);
+				dialog->cb->bok(dialog, dialog->arg, new_name);
 				return;
 			}
 		} else if (event->key == KC_ESCAPE) {
@@ -357,28 +355,30 @@ static void move_dlg_wnd_kbd(ui_window_t *window, void *arg,
 	ui_window_def_kbd(window, event);
 }
 
-/** Move dialog OK button click handler.
+/** Rename dialog OK button click handler.
  *
  * @param pbutton Push button
- * @param arg Argument (move_dlg_t *)
+ * @param arg Argument (rename_dlg_t *)
  */
-static void move_dlg_bok_clicked(ui_pbutton_t *pbutton, void *arg)
+static void rename_dlg_bok_clicked(ui_pbutton_t *pbutton, void *arg)
 {
-	move_dlg_t *dialog = (move_dlg_t *) arg;
+	rename_dlg_t *dialog = (rename_dlg_t *) arg;
+	const char *new_name;
 
 	if (dialog->cb != NULL && dialog->cb->bok != NULL) {
-		dialog->cb->bok(dialog, dialog->arg);
+		new_name = ui_entry_get_text(dialog->enew_name);
+		dialog->cb->bok(dialog, dialog->arg, new_name);
 	}
 }
 
-/** Move dialog cancel button click handler.
+/** Rename dialog cancel button click handler.
  *
  * @param pbutton Push button
- * @param arg Argument (move_dlg_t *)
+ * @param arg Argument (rename_dlg_t *)
  */
-static void move_dlg_bcancel_clicked(ui_pbutton_t *pbutton, void *arg)
+static void rename_dlg_bcancel_clicked(ui_pbutton_t *pbutton, void *arg)
 {
-	move_dlg_t *dialog = (move_dlg_t *) arg;
+	rename_dlg_t *dialog = (rename_dlg_t *) arg;
 
 	(void)pbutton;
 	if (dialog->cb != NULL && dialog->cb->bcancel != NULL) {

@@ -58,6 +58,7 @@
 #include "newfile.h"
 #include "nav.h"
 #include "panel.h"
+#include "rename.h"
 #include "verify.h"
 
 #define EDITOR_CMD "/app/edit"
@@ -76,6 +77,7 @@ static void navigator_file_open(void *);
 static void navigator_file_edit(void *);
 static void navigator_file_verify(void *);
 static void navigator_file_copy(void *);
+static void navigator_file_rename(void *);
 static void navigator_file_move(void *);
 static void navigator_file_delete(void *);
 static void navigator_file_exit(void *);
@@ -87,6 +89,7 @@ static nav_menu_cb_t navigator_menu_cb = {
 	.file_edit = navigator_file_edit,
 	.file_verify = navigator_file_verify,
 	.file_copy = navigator_file_copy,
+	.file_rename = navigator_file_rename,
 	.file_move = navigator_file_move,
 	.file_delete = navigator_file_delete,
 	.file_exit = navigator_file_exit
@@ -177,6 +180,9 @@ static void wnd_kbd(ui_window_t *window, void *arg, kbd_event_t *event)
 			break;
 		case KC_D:
 			navigator_file_delete((void *)navigator);
+			break;
+		case KC_R:
+			navigator_file_rename((void *)navigator);
 			break;
 		case KC_Q:
 			ui_quit(navigator->ui);
@@ -716,6 +722,23 @@ static void navigator_file_delete(void *arg)
 	navigator_delete_dlg(navigator, flist);
 }
 
+/** File / Rename menu entry selected */
+static void navigator_file_rename(void *arg)
+{
+	navigator_t *navigator = (navigator_t *)arg;
+
+	ui_file_list_entry_t *entry;
+	ui_file_list_entry_attr_t attr;
+	panel_t *panel;
+
+	panel = navigator_get_active_panel(navigator);
+	entry = ui_file_list_get_cursor(panel->flist);
+	ui_file_list_entry_get_attr(entry, &attr);
+
+	/* flist ownership transferred */
+	navigator_rename_dlg(navigator, attr.name);
+}
+
 /** File / Exit menu entry selected */
 static void navigator_file_exit(void *arg)
 {
@@ -869,6 +892,9 @@ fmgt_error_action_t navigator_io_error_query(void *arg, fmgt_io_error_t *err)
 		break;
 	case fmgt_io_delete:
 		fmt = "Error deleting %s.";
+		break;
+	case fmgt_io_rename:
+		fmt = "Error renaming %s.";
 		break;
 	}
 

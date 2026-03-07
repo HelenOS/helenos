@@ -161,6 +161,9 @@ static fmgt_error_action_t copy_io_error_query(void *arg,
 	case fmgt_io_open:
 		fmt = "Error opening %s. (%s)\n";
 		break;
+	case fmgt_io_rename:
+		fmt = "Error renaming %s. (%s)\n";
+		break;
 	}
 
 	fprintf(stderr, fmt, err->fname, str_error(err->rc));

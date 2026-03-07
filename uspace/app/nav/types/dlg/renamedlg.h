@@ -30,53 +30,49 @@
  * @{
  */
 /**
- * @file Navigator menu types
+ * @file Rename dialog
  */
 
-#ifndef TYPES_MENU_H
-#define TYPES_MENU_H
+#ifndef TYPES_DLG_RENAMEDLG_H
+#define TYPES_DLG_RENAMEDLG_H
 
-#include <ui/menubar.h>
-#include <ui/ui.h>
+#include <errno.h>
+#include <fmgt.h>
+#include <ui/entry.h>
+#include <ui/label.h>
+#include <ui/pbutton.h>
 #include <ui/window.h>
+#include <stdbool.h>
 
-/** Navigator menu callbacks */
-typedef struct nav_menu_cb {
-	/** File / New File */
-	void (*file_new_file)(void *);
-	/** File / New Directory */
-	void (*file_new_dir)(void *);
-	/** File / Open */
-	void (*file_open)(void *);
-	/** File / Edit */
-	void (*file_edit)(void *);
-	/** File / Verify */
-	void (*file_verify)(void *);
-	/** File / Copy */
-	void (*file_copy)(void *);
-	/** File / Rename */
-	void (*file_rename)(void *);
-	/** File / Move */
-	void (*file_move)(void *);
-	/** File / Delete */
-	void (*file_delete)(void *);
-	/** File / Exit */
-	void (*file_exit)(void *);
-} nav_menu_cb_t;
-
-/** Navigator menu */
-typedef struct nav_menu {
-	/** UI */
-	ui_t *ui;
-	/** Containing window */
+/** Rename dialog */
+typedef struct rename_dlg {
+	/** Dialog window */
 	ui_window_t *window;
-	/** Menu bar */
-	ui_menu_bar_t *menubar;
-	/** Callbacks */
-	nav_menu_cb_t *cb;
+	/** "Rename 'xxx'" */
+	ui_label_t *lrename;
+	/** New name text entry */
+	ui_entry_t *enew_name;
+	/** OK button */
+	ui_pbutton_t *bok;
+	/** Cancel button */
+	ui_pbutton_t *bcancel;
+	/** Rename dialog callbacks */
+	struct rename_dlg_cb *cb;
 	/** Callback argument */
-	void *cb_arg;
-} nav_menu_t;
+	void *arg;
+	/** Old file path */
+	char *old_path;
+} rename_dlg_t;
+
+/** Rename dialog callbacks */
+typedef struct rename_dlg_cb {
+	/** OK button was pressed */
+	void (*bok)(rename_dlg_t *, void *, const char *);
+	/** Cancel button was pressed */
+	void (*bcancel)(rename_dlg_t *, void *);
+	/** Window closure requested (e.g. via close button) */
+	void (*close)(rename_dlg_t *, void *);
+} rename_dlg_cb_t;
 
 #endif
 

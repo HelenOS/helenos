@@ -26,30 +26,5 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-src = files(
-	'src/copy.c',
-	'src/delete.c',
-	'src/flist.c',
-	'src/fmgt.c',
-	'src/fsops.c',
-	'src/move.c',
-	'src/newdir.c',
-	'src/newfile.c',
-	'src/rename.c',
-	'src/verify.c',
-	'src/walk.c'
-)
-
-test_src = files(
-	'test/copy.c',
-	'test/flist.c',
-	'test/fmgt.c',
-	'test/fsops.c',
-	'test/main.c',
-	'test/move.c',
-	'test/newdir.c',
-	'test/newfile.c',
-	'test/rename.c',
-	'test/verify.c',
-	'test/walk.c'
-)
+deps = [ 'clui', 'console', 'fmgt', 'input' ]
+src = files('rename.c')

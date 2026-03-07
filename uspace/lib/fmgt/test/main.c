@@ -36,6 +36,7 @@ PCUT_IMPORT(fmgt);
 PCUT_IMPORT(fsops);
 PCUT_IMPORT(move);
 PCUT_IMPORT(newfile);
+PCUT_IMPORT(rename);
 PCUT_IMPORT(verify);
 PCUT_IMPORT(walk);
 

@@ -37,6 +37,7 @@
 #ifndef PRIVATE_FSOPS_H
 #define PRIVATE_FSOPS_H
 
+#include <offset.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdbool.h>
@@ -46,6 +47,7 @@ errno_t fmgt_open(fmgt_t *, const char *, int *);
 errno_t fmgt_create_file(fmgt_t *, const char *, int *, fmgt_exists_action_t *);
 errno_t fmgt_create_dir(fmgt_t *, const char *, bool);
 errno_t fmgt_remove(fmgt_t *, const char *);
+errno_t fmgt_rename_entry(fmgt_t *, const char *, const char *);
 errno_t fmgt_read(fmgt_t *, int, const char *, aoff64_t *, void *, size_t,
     size_t *);
 errno_t fmgt_write(fmgt_t *, int, const char *, aoff64_t *, void *, size_t);
