@@ -228,6 +228,12 @@ static void wnd_kbd(ui_window_t *window, void *arg, kbd_event_t *event)
 	ui_window_def_kbd(window, event);
 }
 
+/** Compute size of panel rectangle.
+ *
+ * @param navigator Navigator
+ * @param i Panel index (0 .. navigator_panels -1)
+ * @param rect Place to store rectangle.
+ */
 static void navigator_panel_rect(navigator_t *navigator, unsigned i,
     gfx_rect_t *rect)
 {
