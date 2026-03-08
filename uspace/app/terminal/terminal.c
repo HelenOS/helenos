@@ -723,6 +723,7 @@ static void term_buf_update(con_srv_t *srv, sysarg_t c0, sysarg_t r0,
     sysarg_t c1, sysarg_t r1)
 {
 	terminal_t *term = srv_to_terminal(srv);
+	bool cursor;
 
 	fibril_mutex_lock(&term->mtx);
 
@@ -748,7 +749,9 @@ static void term_buf_update(con_srv_t *srv, sysarg_t c0, sysarg_t r0,
 		termui_cell_t *cells = termui_get_active_row(term->termui, row);
 
 		for (sysarg_t col = c0; col < c1; col++) {
+			cursor = cells[col].cursor;
 			cells[col] = charfield_to_termui_cell(term, &term->ubuf[row * term->ucols + col]);
+			cells[col].cursor = cursor;
 		}
 
 		termui_update_cb(term, c0, row, &cells[c0], c1 - c0);
