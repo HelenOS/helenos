@@ -42,6 +42,7 @@
 #include "types/menu.h"
 
 extern errno_t nav_menu_create(ui_window_t *, nav_menu_t **);
+extern void nav_menu_resize(nav_menu_t *);
 extern void nav_menu_set_cb(nav_menu_t *, nav_menu_cb_t *, void *);
 extern void nav_menu_destroy(nav_menu_t *);
 extern ui_control_t *nav_menu_ctl(nav_menu_t *);

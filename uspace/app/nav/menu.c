@@ -64,8 +64,6 @@ errno_t nav_menu_create(ui_window_t *window, nav_menu_t **rmenu)
 	ui_menu_entry_t *mdelete;
 	ui_menu_entry_t *mfsep;
 	ui_menu_entry_t *mexit;
-	gfx_rect_t arect;
-	gfx_rect_t rect;
 	errno_t rc;
 
 	menu = calloc(1, sizeof(nav_menu_t));
@@ -147,6 +145,23 @@ errno_t nav_menu_create(ui_window_t *window, nav_menu_t **rmenu)
 		goto error;
 
 	ui_menu_entry_set_cb(mexit, nav_menu_file_exit, (void *) menu);
+	nav_menu_resize(menu);
+
+	*rmenu = menu;
+	return EOK;
+error:
+	nav_menu_destroy(menu);
+	return rc;
+}
+
+/** Resize navigator menu.
+ *
+ * @param menu Menu
+ */
+void nav_menu_resize(nav_menu_t *menu)
+{
+	gfx_rect_t arect;
+	gfx_rect_t rect;
 
 	ui_window_get_app_rect(menu->window, &arect);
 
@@ -154,12 +169,6 @@ errno_t nav_menu_create(ui_window_t *window, nav_menu_t **rmenu)
 	rect.p1.x = arect.p1.x;
 	rect.p1.y = arect.p0.y + 1;
 	ui_menu_bar_set_rect(menu->menubar, &rect);
-
-	*rmenu = menu;
-	return EOK;
-error:
-	nav_menu_destroy(menu);
-	return rc;
 }
 
 /** Set navigator menu callbacks.

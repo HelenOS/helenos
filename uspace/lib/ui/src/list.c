@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -470,6 +470,10 @@ void ui_list_set_rect(ui_list_t *list, gfx_rect_t *rect)
 
 	ui_list_scrollbar_rect(list, &srect);
 	ui_scrollbar_set_rect(list->scrollbar, &srect);
+
+	/* Make sure cursor stays on page after resize. */
+	if (list->cursor != NULL)
+		ui_list_cursor_move(list, list->cursor, list->cursor_idx);
 }
 
 /** Get UI list page size.

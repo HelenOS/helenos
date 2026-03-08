@@ -63,10 +63,12 @@
 
 #define EDITOR_CMD "/app/edit"
 
+static void wnd_resize(ui_window_t *, void *);
 static void wnd_close(ui_window_t *, void *);
 static void wnd_kbd(ui_window_t *, void *, kbd_event_t *);
 
 static ui_window_cb_t window_cb = {
+	.resize = wnd_resize,
 	.close = wnd_close,
 	.kbd = wnd_kbd
 };
@@ -95,6 +97,7 @@ static nav_menu_cb_t navigator_menu_cb = {
 	.file_exit = navigator_file_exit
 };
 
+static void navigator_panel_rect(navigator_t *, unsigned, gfx_rect_t *);
 static void navigator_panel_activate_req(void *, panel_t *);
 static void navigator_panel_file_open(void *, panel_t *, const char *);
 
@@ -132,6 +135,25 @@ static exists_dlg_cb_t navigator_exists_dlg_cb = {
 	.babort = navigator_exists_abort,
 	.close = navigator_exists_close
 };
+
+/** Window size has changed.
+ *
+ * @param window Window
+ * @param arg Argument (navigator)
+ */
+static void wnd_resize(ui_window_t *window, void *arg)
+{
+	navigator_t *navigator = (navigator_t *) arg;
+	unsigned i;
+	gfx_rect_t rect;
+
+	nav_menu_resize(navigator->menu);
+
+	for (i = 0; i < navigator_panels; i++) {
+		navigator_panel_rect(navigator, i, &rect);
+		panel_set_rect(navigator->panel[i], &rect);
+	}
+}
 
 /** Window close button was clicked.
  *
@@ -206,6 +228,23 @@ static void wnd_kbd(ui_window_t *window, void *arg, kbd_event_t *event)
 	ui_window_def_kbd(window, event);
 }
 
+static void navigator_panel_rect(navigator_t *navigator, unsigned i,
+    gfx_rect_t *rect)
+{
+	gfx_rect_t arect;
+	gfx_coord_t pw;
+
+	ui_window_get_app_rect(navigator->window, &arect);
+
+	/* Panel width */
+	pw = (arect.p1.x - arect.p0.x) / navigator_panels;
+
+	rect->p0.x = arect.p0.x + pw * i;
+	rect->p0.y = arect.p0.y + 1;
+	rect->p1.x = arect.p0.x + pw * (i + 1);
+	rect->p1.y = arect.p1.y - 1;
+}
+
 /** Create navigator.
  *
  * @param display_spec Display specification
@@ -219,7 +258,6 @@ errno_t navigator_create(const char *display_spec,
 	ui_wnd_params_t params;
 	gfx_rect_t rect;
 	gfx_rect_t arect;
-	gfx_coord_t pw;
 	unsigned i;
 	errno_t rc;
 
@@ -241,6 +279,7 @@ errno_t navigator_create(const char *display_spec,
 	rc = ui_window_create(navigator->ui, &params, &navigator->window);
 	if (rc != EOK) {
 		printf("Error creating window.\n");
+
 		goto error;
 	}
 
@@ -268,19 +307,14 @@ errno_t navigator_create(const char *display_spec,
 		return rc;
 	}
 
-	/* Panel width */
-	pw = (arect.p1.x - arect.p0.x) / 2;
-
-	for (i = 0; i < 2; i++) {
+	/* Create panels. */
+	for (i = 0; i < navigator_panels; i++) {
 		rc = panel_create(navigator->window, i == 0,
 		    &navigator->panel[i]);
 		if (rc != EOK)
 			goto error;
 
-		rect.p0.x = arect.p0.x + pw * i;
-		rect.p0.y = arect.p0.y + 1;
-		rect.p1.x = arect.p0.x + pw * (i + 1);
-		rect.p1.y = arect.p1.y - 1;
+		navigator_panel_rect(navigator, i, &rect);
 		panel_set_rect(navigator->panel[i], &rect);
 
 		panel_set_cb(navigator->panel[i], &navigator_panel_cb,
@@ -325,7 +359,7 @@ void navigator_destroy(navigator_t *navigator)
 {
 	unsigned i;
 
-	for (i = 0; i < 2; i++) {
+	for (i = 0; i < navigator_panels; i++) {
 		if (navigator->panel[i] != NULL) {
 			ui_fixed_remove(navigator->fixed,
 			    panel_ctl(navigator->panel[i]));
@@ -436,7 +470,7 @@ void navigator_refresh_panels(navigator_t *navigator)
 
 	/* First refresh inactive panel. */
 
-	for (i = 0; i < 2; i++) {
+	for (i = 0; i < navigator_panels; i++) {
 		if (!panel_is_active(navigator->panel[i])) {
 			rc = panel_refresh(navigator->panel[i]);
 			if (rc != EOK)
@@ -449,7 +483,7 @@ void navigator_refresh_panels(navigator_t *navigator)
 	 * to that of the active panel.
 	 */
 
-	for (i = 0; i < 2; i++) {
+	for (i = 0; i < navigator_panels; i++) {
 		if (panel_is_active(navigator->panel[i])) {
 			rc = panel_refresh(navigator->panel[i]);
 			if (rc != EOK)
