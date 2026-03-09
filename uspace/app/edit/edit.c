@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * Copyright (c) 2012 Martin Sucha
  * All rights reserved.
  *
@@ -239,12 +239,14 @@ static void status_display(char const *str);
 static errno_t edit_ui_create(edit_t *);
 static void edit_ui_destroy(edit_t *);
 
+static void edit_wnd_resize(ui_window_t *, void *);
 static void edit_wnd_close(ui_window_t *, void *);
 static void edit_wnd_focus(ui_window_t *, void *, unsigned);
 static void edit_wnd_kbd_event(ui_window_t *, void *, kbd_event_t *);
 static void edit_wnd_unfocus(ui_window_t *, void *, unsigned);
 
 static ui_window_cb_t edit_window_cb = {
+	.resize = edit_wnd_resize,
 	.close = edit_wnd_close,
 	.focus = edit_wnd_focus,
 	.kbd = edit_wnd_kbd_event,
@@ -364,6 +366,45 @@ int main(int argc, char *argv[])
 	return 0;
 }
 
+/** Set menu bar rectangle.
+ *
+ * Set the menu bar rectangle based on editor window dimensions.
+ * Used when window is created or resized.
+ *
+ * @param edit Editor
+ */
+static void edit_menubar_set_rect(edit_t *edit)
+{
+	gfx_rect_t arect;
+	gfx_rect_t rect;
+
+	ui_window_get_app_rect(edit->window, &arect);
+
+	rect.p0 = arect.p0;
+	rect.p1.x = arect.p1.x;
+	rect.p1.y = arect.p0.y + 1;
+	ui_menu_bar_set_rect(edit->menubar, &rect);
+}
+
+/** Set status bar rectangle.
+ *
+ * Set the status bar rectangle based on editor window dimensions.
+ * Used when window is created or resized.
+ *
+ * @param edit Editor
+ */
+static void edit_status_set_rect(edit_t *edit)
+{
+	gfx_rect_t arect;
+	gfx_rect_t rect;
+
+	ui_window_get_app_rect(edit->window, &arect);
+	rect.p0.x = arect.p0.x;
+	rect.p0.y = arect.p1.y - 1;
+	rect.p1 = arect.p1;
+	ui_label_set_rect(edit->status, &rect);
+}
+
 /** Create text editor UI.
  *
  * @param edit Editor
@@ -394,8 +435,6 @@ static errno_t edit_ui_create(edit_t *edit)
 	ui_menu_entry_t *mfindn = NULL;
 	ui_menu_entry_t *mssep = NULL;
 	ui_menu_entry_t *mgoto = NULL;
-	gfx_rect_t arect;
-	gfx_rect_t rect;
 
 	rc = ui_create(UI_CONSOLE_DEFAULT, &edit->ui);
 	if (rc != EOK) {
@@ -581,12 +620,7 @@ static errno_t edit_ui_create(edit_t *edit)
 
 	ui_menu_entry_set_cb(mgoto, edit_search_go_to_line, (void *) edit);
 
-	ui_window_get_app_rect(edit->window, &arect);
-
-	rect.p0 = arect.p0;
-	rect.p1.x = arect.p1.x;
-	rect.p1.y = arect.p0.y + 1;
-	ui_menu_bar_set_rect(edit->menubar, &rect);
+	edit_menubar_set_rect(edit);
 
 	rc = ui_fixed_add(fixed, ui_menu_bar_ctl(edit->menubar));
 	if (rc != EOK) {
@@ -612,10 +646,7 @@ static errno_t edit_ui_create(edit_t *edit)
 		return rc;
 	}
 
-	rect.p0.x = arect.p0.x;
-	rect.p0.y = arect.p1.y - 1;
-	rect.p1 = arect.p1;
-	ui_label_set_rect(edit->status, &rect);
+	edit_status_set_rect(edit);
 
 	rc = ui_fixed_add(fixed, ui_label_ctl(edit->status));
 	if (rc != EOK) {
@@ -1201,6 +1232,20 @@ static char *range_get_str(spt_t const *spos, spt_t const *epos)
 	return buf;
 }
 
+static void pane_set_rect(pane_t *pane)
+{
+	gfx_rect_t arect;
+
+	ui_window_get_app_rect(pane->window, &arect);
+	pane->rect.p0.x = arect.p0.x;
+	pane->rect.p0.y = arect.p0.y + 1;
+	pane->rect.p1.x = arect.p1.x;
+	pane->rect.p1.y = arect.p1.y - 1;
+
+	pane->columns = pane->rect.p1.x - pane->rect.p0.x;
+	pane->rows = pane->rect.p1.y - pane->rect.p0.y;
+}
+
 /** Initialize pane.
  *
  * TODO: Replace with pane_create() that allocates the pane.
@@ -1212,7 +1257,6 @@ static char *range_get_str(spt_t const *spos, spt_t const *epos)
 static errno_t pane_init(ui_window_t *window, pane_t *pane)
 {
 	errno_t rc;
-	gfx_rect_t arect;
 
 	pane->control = NULL;
 	pane->color = NULL;
@@ -1233,15 +1277,7 @@ static errno_t pane_init(ui_window_t *window, pane_t *pane)
 	pane->res = ui_window_get_res(window);
 	pane->window = window;
 
-	ui_window_get_app_rect(window, &arect);
-	pane->rect.p0.x = arect.p0.x;
-	pane->rect.p0.y = arect.p0.y + 1;
-	pane->rect.p1.x = arect.p1.x;
-	pane->rect.p1.y = arect.p1.y - 1;
-
-	pane->columns = pane->rect.p1.x - pane->rect.p0.x;
-	pane->rows = pane->rect.p1.y - pane->rect.p0.y;
-
+	pane_set_rect(pane);
 	return EOK;
 error:
 	if (pane->control != NULL) {
@@ -1255,6 +1291,16 @@ error:
 	}
 
 	return rc;
+}
+
+static void pane_resize(pane_t *pane)
+{
+	pane_set_rect(pane);
+
+	/* Scroll in case cursor is now outside of the editor pane. */
+	caret_move_relative(0, 0, dir_before, true);
+
+	pane_caret_display(pane);
 }
 
 /** Finalize pane.
@@ -2347,6 +2393,20 @@ static void status_display(char const *str)
 {
 	(void) ui_label_set_text(edit.status, str);
 	(void) ui_label_paint(edit.status);
+}
+
+/** Window was resized.
+ *
+ * @param window Window
+ * @param arg Argument (edit_t *)
+ */
+static void edit_wnd_resize(ui_window_t *window, void *arg)
+{
+	edit_t *edit = (edit_t *) arg;
+
+	edit_menubar_set_rect(edit);
+	edit_status_set_rect(edit);
+	pane_resize(&pane);
 }
 
 /** Window close request
