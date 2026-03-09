@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,6 +37,8 @@
 #ifndef _UI_PRIVATE_FILEDIALOG_H
 #define _UI_PRIVATE_FILEDIALOG_H
 
+#include <gfx/coord.h>
+
 /** Actual structure of file dialog.
  *
  * This is private to libui.
@@ -57,6 +59,25 @@ struct ui_file_dialog {
 	/** Callback argument */
 	void *arg;
 };
+
+/** File dialog geometry.
+ *
+ * Computed geometry of file dialog.
+ */
+typedef struct {
+	/** File name label rectangle */
+	gfx_rect_t fname_label_rect;
+	/** File name entry rectangle */
+	gfx_rect_t entry_rect;
+	/** Files label rectangle */
+	gfx_rect_t files_label_rect;
+	/** File list rectangle */
+	gfx_rect_t flist_rect;
+	/** File list rectangle */
+	gfx_rect_t bok_rect;
+	/** File list rectangle */
+	gfx_rect_t bcancel_rect;
+} ui_file_dialog_geom_t;
 
 #endif
 

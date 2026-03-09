@@ -839,10 +839,6 @@ errno_t ui_window_size_change(ui_window_t *window, gfx_rect_t *rect,
 		window->app_bmp = app_bmp;
 	}
 
-	/* Need to repaint UI if windows are emulated */
-	if (ui_is_fullscreen(window->ui))
-		(void)ui_paint(window->ui);
-
 	switch (scop) {
 	case ui_wsc_resize:
 		break;
@@ -875,7 +871,17 @@ error:
  */
 errno_t ui_window_resize(ui_window_t *window, gfx_rect_t *rect)
 {
-	return ui_window_size_change(window, rect, ui_wsc_resize);
+	errno_t rc;
+
+	rc = ui_window_size_change(window, rect, ui_wsc_resize);
+	if (rc != EOK)
+		return rc;
+
+	/* Need to repaint UI if windows are emulated */
+	if (ui_is_fullscreen(window->ui))
+		(void)ui_paint(window->ui);
+
+	return EOK;
 }
 
 /** Set window callbacks.
@@ -1577,7 +1583,12 @@ errno_t ui_window_def_maximize(ui_window_t *window)
 	}
 
 	window->normal_rect = old_rect;
-	(void) ui_window_paint(window);
+	ui_window_send_resize(window);
+
+	/* Need to repaint UI if windows are emulated */
+	if (ui_is_fullscreen(window->ui))
+		(void)ui_paint(window->ui);
+
 	return EOK;
 }
 
@@ -1602,7 +1613,12 @@ errno_t ui_window_def_unmaximize(ui_window_t *window)
 		return rc;
 	}
 
-	(void) ui_window_paint(window);
+	ui_window_send_resize(window);
+
+	/* Need to repaint UI if windows are emulated */
+	if (ui_is_fullscreen(window->ui))
+		(void)ui_paint(window->ui);
+
 	return EOK;
 }
 

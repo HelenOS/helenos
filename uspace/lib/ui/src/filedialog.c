@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,10 +47,12 @@
 #include <ui/window.h>
 #include "../private/filedialog.h"
 
+static void ui_file_dialog_wnd_resize(ui_window_t *, void *);
 static void ui_file_dialog_wnd_close(ui_window_t *, void *);
 static void ui_file_dialog_wnd_kbd(ui_window_t *, void *, kbd_event_t *);
 
 ui_window_cb_t ui_file_dialog_wnd_cb = {
+	.resize = ui_file_dialog_wnd_resize,
 	.close = ui_file_dialog_wnd_close,
 	.kbd = ui_file_dialog_wnd_kbd
 };
@@ -88,6 +90,98 @@ void ui_file_dialog_params_init(ui_file_dialog_params_t *params)
 	params->ifname = "";
 }
 
+/** Compute file dialog geometry.
+ *
+ * @param ui User interface
+ * @param wrect Window interior rectangle
+ * @param geom Place to store geometry
+ */
+static void ui_file_dialog_get_geom(ui_t *ui, gfx_rect_t *wrect,
+    ui_file_dialog_geom_t *geom)
+{
+	gfx_coord_t cx;
+
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(ui)) {
+		geom->fname_label_rect.p0.x = 3;
+		geom->fname_label_rect.p0.y = 2;
+		geom->fname_label_rect.p1.x = 17;
+		geom->fname_label_rect.p1.y = 3;
+	} else {
+		geom->fname_label_rect.p0.x = 10;
+		geom->fname_label_rect.p0.y = 35;
+		geom->fname_label_rect.p1.x = 190;
+		geom->fname_label_rect.p1.y = 50;
+	}
+
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(ui)) {
+		geom->entry_rect.p0.x = 3;
+		geom->entry_rect.p0.y = 3;
+		geom->entry_rect.p1.x = wrect->p1.x - 3;
+		geom->entry_rect.p1.y = 4;
+	} else {
+		geom->entry_rect.p0.x = 10;
+		geom->entry_rect.p0.y = 55;
+		geom->entry_rect.p1.x = wrect->p1.x - 10;
+		geom->entry_rect.p1.y = 80;
+	}
+
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(ui)) {
+		geom->files_label_rect.p0.x = 3;
+		geom->files_label_rect.p0.y = 5;
+		geom->files_label_rect.p1.x = 17;
+		geom->files_label_rect.p1.y = 6;
+	} else {
+		geom->files_label_rect.p0.x = 10;
+		geom->files_label_rect.p0.y = 90;
+		geom->files_label_rect.p1.x = 190;
+		geom->files_label_rect.p1.y = 105;
+	}
+
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(ui)) {
+		geom->flist_rect.p0.x = 3;
+		geom->flist_rect.p0.y = 6;
+		geom->flist_rect.p1.x = wrect->p1.x - 3;
+		geom->flist_rect.p1.y = wrect->p1.y - 4;
+	} else {
+		geom->flist_rect.p0.x = 10;
+		geom->flist_rect.p0.y = 110;
+		geom->flist_rect.p1.x = wrect->p1.x - 10;
+		geom->flist_rect.p1.y = wrect->p1.y - 55;
+	}
+
+	cx = (wrect->p0.x + wrect->p1.x) / 2;
+
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(ui)) {
+		geom->bok_rect.p0.x = cx - 10;
+		geom->bok_rect.p0.y = wrect->p1.y - 3;
+		geom->bok_rect.p1.x = cx;
+		geom->bok_rect.p1.y = wrect->p1.y - 2;
+	} else {
+		geom->bok_rect.p0.x = cx - 95;
+		geom->bok_rect.p0.y = wrect->p1.y - 45;
+		geom->bok_rect.p1.x = cx - 5;
+		geom->bok_rect.p1.y = wrect->p1.y - 17;
+	}
+
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(ui)) {
+		geom->bcancel_rect.p0.x = cx + 2;
+		geom->bcancel_rect.p0.y = wrect->p1.y - 3;
+		geom->bcancel_rect.p1.x = cx + 12;
+		geom->bcancel_rect.p1.y = wrect->p1.y - 2;
+	} else {
+		geom->bcancel_rect.p0.x = cx + 5;
+		geom->bcancel_rect.p0.y = wrect->p1.y - 45;
+		geom->bcancel_rect.p1.x = cx + 95;
+		geom->bcancel_rect.p1.y = wrect->p1.y - 17;
+	}
+}
+
 /** Create new file dialog.
  *
  * @param ui User interface
@@ -108,7 +202,8 @@ errno_t ui_file_dialog_create(ui_t *ui, ui_file_dialog_params_t *params,
 	ui_file_list_t *flist = NULL;
 	ui_pbutton_t *bok = NULL;
 	ui_pbutton_t *bcancel = NULL;
-	gfx_rect_t rect;
+	ui_file_dialog_geom_t geom;
+	gfx_rect_t arect;
 	ui_resource_t *ui_res;
 
 	dialog = calloc(1, sizeof(ui_file_dialog_t));
@@ -119,6 +214,7 @@ errno_t ui_file_dialog_create(ui_t *ui, ui_file_dialog_params_t *params,
 
 	ui_wnd_params_init(&wparams);
 	wparams.caption = params->caption;
+	wparams.style |= ui_wds_maximize_btn | ui_wds_resizable;
 
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
@@ -126,11 +222,17 @@ errno_t ui_file_dialog_create(ui_t *ui, ui_file_dialog_params_t *params,
 		wparams.rect.p0.y = 0;
 		wparams.rect.p1.x = 40;
 		wparams.rect.p1.y = 20;
+
+		wparams.min_size.x = 30;
+		wparams.min_size.y = 10;
 	} else {
 		wparams.rect.p0.x = 0;
 		wparams.rect.p0.y = 0;
 		wparams.rect.p1.x = 300;
 		wparams.rect.p1.y = 335;
+
+		wparams.min_size.x = 240;
+		wparams.min_size.y = 260;
 	}
 
 	rc = ui_window_create(ui, &wparams, &window);
@@ -139,7 +241,11 @@ errno_t ui_file_dialog_create(ui_t *ui, ui_file_dialog_params_t *params,
 
 	ui_window_set_cb(window, &ui_file_dialog_wnd_cb, dialog);
 
+	ui_window_get_app_rect(window, &arect);
 	ui_res = ui_window_get_res(window);
+
+	/* Compute geometry. */
+	ui_file_dialog_get_geom(ui, &arect, &geom);
 
 	rc = ui_fixed_create(&fixed);
 	if (rc != EOK)
@@ -149,20 +255,7 @@ errno_t ui_file_dialog_create(ui_t *ui, ui_file_dialog_params_t *params,
 	if (rc != EOK)
 		goto error;
 
-	/* FIXME: Auto layout */
-	if (ui_is_textmode(ui)) {
-		rect.p0.x = 3;
-		rect.p0.y = 2;
-		rect.p1.x = 17;
-		rect.p1.y = 3;
-	} else {
-		rect.p0.x = 10;
-		rect.p0.y = 35;
-		rect.p1.x = 190;
-		rect.p1.y = 50;
-	}
-
-	ui_label_set_rect(label, &rect);
+	ui_label_set_rect(label, &geom.fname_label_rect);
 
 	rc = ui_fixed_add(fixed, ui_label_ctl(label));
 	if (rc != EOK)
@@ -174,20 +267,7 @@ errno_t ui_file_dialog_create(ui_t *ui, ui_file_dialog_params_t *params,
 	if (rc != EOK)
 		goto error;
 
-	/* FIXME: Auto layout */
-	if (ui_is_textmode(ui)) {
-		rect.p0.x = 3;
-		rect.p0.y = 3;
-		rect.p1.x = 37;
-		rect.p1.y = 4;
-	} else {
-		rect.p0.x = 10;
-		rect.p0.y = 55;
-		rect.p1.x = 290;
-		rect.p1.y = 80;
-	}
-
-	ui_entry_set_rect(entry, &rect);
+	ui_entry_set_rect(entry, &geom.entry_rect);
 
 	rc = ui_fixed_add(fixed, ui_entry_ctl(entry));
 	if (rc != EOK)
@@ -207,20 +287,7 @@ errno_t ui_file_dialog_create(ui_t *ui, ui_file_dialog_params_t *params,
 	if (rc != EOK)
 		goto error;
 
-	/* FIXME: Auto layout */
-	if (ui_is_textmode(ui)) {
-		rect.p0.x = 3;
-		rect.p0.y = 5;
-		rect.p1.x = 17;
-		rect.p1.y = 6;
-	} else {
-		rect.p0.x = 10;
-		rect.p0.y = 90;
-		rect.p1.x = 190;
-		rect.p1.y = 105;
-	}
-
-	ui_label_set_rect(label, &rect);
+	ui_label_set_rect(label, &geom.files_label_rect);
 
 	rc = ui_fixed_add(fixed, ui_label_ctl(label));
 	if (rc != EOK)
@@ -234,20 +301,7 @@ errno_t ui_file_dialog_create(ui_t *ui, ui_file_dialog_params_t *params,
 	if (rc != EOK)
 		goto error;
 
-	/* FIXME: Auto layout */
-	if (ui_is_textmode(ui)) {
-		rect.p0.x = 3;
-		rect.p0.y = 6;
-		rect.p1.x = 37;
-		rect.p1.y = 16;
-	} else {
-		rect.p0.x = 10;
-		rect.p0.y = 110;
-		rect.p1.x = 290;
-		rect.p1.y = 280;
-	}
-
-	ui_file_list_set_rect(flist, &rect);
+	ui_file_list_set_rect(flist, &geom.flist_rect);
 	ui_file_list_set_cb(flist, &ui_file_dialog_flist_cb, dialog);
 
 	rc = ui_fixed_add(fixed, ui_file_list_ctl(flist));
@@ -268,22 +322,7 @@ errno_t ui_file_dialog_create(ui_t *ui, ui_file_dialog_params_t *params,
 		goto error;
 
 	ui_pbutton_set_cb(bok, &ui_file_dialog_bok_cb, dialog);
-
-	/* FIXME: Auto layout */
-	if (ui_is_textmode(ui)) {
-		rect.p0.x = 10;
-		rect.p0.y = 17;
-		rect.p1.x = 20;
-		rect.p1.y = 18;
-	} else {
-		rect.p0.x = 55;
-		rect.p0.y = 290;
-		rect.p1.x = 145;
-		rect.p1.y = 318;
-	}
-
-	ui_pbutton_set_rect(bok, &rect);
-
+	ui_pbutton_set_rect(bok, &geom.bok_rect);
 	ui_pbutton_set_default(bok, true);
 
 	rc = ui_fixed_add(fixed, ui_pbutton_ctl(bok));
@@ -300,21 +339,7 @@ errno_t ui_file_dialog_create(ui_t *ui, ui_file_dialog_params_t *params,
 		goto error;
 
 	ui_pbutton_set_cb(bcancel, &ui_file_dialog_bcancel_cb, dialog);
-
-	/* FIXME: Auto layout */
-	if (ui_is_textmode(ui)) {
-		rect.p0.x = 22;
-		rect.p0.y = 17;
-		rect.p1.x = 32;
-		rect.p1.y = 18;
-	} else {
-		rect.p0.x = 155;
-		rect.p0.y = 290;
-		rect.p1.x = 245;
-		rect.p1.y = 318;
-	}
-
-	ui_pbutton_set_rect(bcancel, &rect);
+	ui_pbutton_set_rect(bcancel, &geom.bcancel_rect);
 
 	rc = ui_fixed_add(fixed, ui_pbutton_ctl(bcancel));
 	if (rc != EOK)
@@ -377,6 +402,31 @@ void ui_file_dialog_set_cb(ui_file_dialog_t *dialog, ui_file_dialog_cb_t *cb,
 {
 	dialog->cb = cb;
 	dialog->arg = arg;
+}
+
+/** File dialog window resize handler.
+ *
+ * @param window Window
+ * @param arg Argument (ui_file_dialog_t *)
+ */
+static void ui_file_dialog_wnd_resize(ui_window_t *window, void *arg)
+{
+	ui_file_dialog_t *dialog = (ui_file_dialog_t *) arg;
+	gfx_rect_t arect;
+	ui_file_dialog_geom_t geom;
+
+	/* Get new window application rectangle. */
+	ui_window_get_app_rect(window, &arect);
+
+	/* Compute geometry. */
+	ui_file_dialog_get_geom(ui_window_get_ui(window), &arect, &geom);
+
+	ui_entry_set_rect(dialog->ename, &geom.entry_rect);
+	ui_file_list_set_rect(dialog->flist, &geom.flist_rect);
+	ui_pbutton_set_rect(dialog->bok, &geom.bok_rect);
+	ui_pbutton_set_rect(dialog->bcancel, &geom.bcancel_rect);
+
+	(void)ui_window_paint(window);
 }
 
 /** File dialog window close handler.
