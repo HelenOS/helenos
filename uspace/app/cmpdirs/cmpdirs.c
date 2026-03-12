@@ -45,6 +45,7 @@
 #include <str.h>
 #include <str_error.h>
 #include <io/log.h>
+#include <io/logctl.h>
 
 #define NAME  "cmpdirs"
 /** When reading the content of a file for comparison, how large should one chunk be. */
@@ -107,14 +108,17 @@ int main(int argc, char *argv[])
 	// initialize logging
 	rc = log_init(NAME);
 	if (rc != EOK) goto close_end;
+	logctl_set_log_level(NAME, LVL_DEBUG2);
 
 	// lookup both directories
 	int handle1;
 	int handle2;
 	rc = vfs_lookup(argv[0], 0, &handle1);
 	check_ok(rc, close_end, "Failed to lookup \"%s\"\n", argv[0]);
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "fd of \"%s\" is %d", argv[0], handle1);
 	rc = vfs_lookup(argv[1], 0, &handle2);
 	check_ok(rc, close1, "Failed to lookup \"%s\"\n", argv[1]);
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "fd of \"%s\" is %d", argv[1], handle2);
 
 	bool equal;
 	rc = trees_equal(handle1, handle2, &equal);
@@ -337,24 +341,25 @@ static errno_t trees_equal(int root_handle1, int root_handle2, bool* equal_out) 
 			// 2. lookup it in handle1
 			// 3. lookup it in handle2
 			// 4. add both new handles to stack
-			// 5. iterate again over entries of handel2 -> gives you entry name
-			// 6. try to look it up in handle1 jut to check that it exists
-
-			// 5. and 6. are probably redundant, since the sizes of both directories must be equal.
 
 			for (ssize_t pos = 0;
 				((size_t) pos) < stat1.size;
-				pos++) {
+				) {
 				// 1.
 				ssize_t read;
 				rc = list_dir(item.handle1, pos, NAME_BUFFER_SIZE, name_buffer, &read);
 				log_msg(LOG_DEFAULT, LVL_DEBUG2, "Read directory entry name: result %s, read size: %"PRIdn".", str_error_name(rc), read);
-				check_ok_break(rc, "Failed to list handle %d\n", item.handle1);
+				check_ok_break(rc, "Failed (1) to list handle %d, pos %"PRIdn", total size of directory: %"PRIu64"\n", item.handle1, pos, stat1.size);
+				// Calculate the real length of the entry name (excluding null-terminator)
+				size_t name_size = str_nsize(name_buffer, NAME_BUFFER_SIZE);
 				// check that the string is null-terminated before the end of the buffer
-				if (str_nsize(name_buffer, NAME_BUFFER_SIZE) >= NAME_BUFFER_SIZE) {
+				if (name_size >= NAME_BUFFER_SIZE) {
 					rc = ENAMETOOLONG;
 				}
 				check_ok_break(rc, "Name too long (limit is %d excluding null-terminator)", NAME_BUFFER_SIZE);
+				// advance pos to after the name of the entry (add 1 for null-terminator)
+				pos += read; // NOLINT(*-narrowing-conversions) because name_size < NAME_BUFFER_SIZE
+				log_msg(LOG_DEFAULT, LVL_DEBUG2, "Listed %d: pos %"PRIdn", name: %s\n", item.handle1, pos, name_buffer);
 				// 2.
 				int entry_handle1; // don't forget to put
 				rc = vfs_walk(item.handle1, name_buffer, 0, &entry_handle1);
@@ -383,36 +388,6 @@ static errno_t trees_equal(int root_handle1, int root_handle2, bool* equal_out) 
 					(void) rc3;
 				}
 				check_ok_break(rc, "Failed to append to stack\n");
-			}
-			if (rc != EOK) goto close_inner;
-
-			// 5.
-			for (ssize_t pos = 0;
-				((size_t) pos) < stat2.size; // must be equal to stat1.size anyway
-				pos++) {
-				// 5.
-				ssize_t read;
-				rc = list_dir(item.handle2, pos, NAME_BUFFER_SIZE, name_buffer, &read);
-				log_msg(LOG_DEFAULT, LVL_DEBUG2, "Read directory entry name: result %s, read size: %"PRIdn".", str_error_name(rc), read);
-				check_ok_break(rc, "Failed to list handle %d\n", item.handle2);
-				// check that the string is null-terminated before the end of the buffer
-				if (str_nsize(name_buffer, NAME_BUFFER_SIZE) >= NAME_BUFFER_SIZE) {
-					rc = ENAMETOOLONG;
-				}
-				check_ok_break(rc, "Name too long (limit is %d excluding null-terminator)", NAME_BUFFER_SIZE);
-				// 6.
-				int entry_handle; // don't forget to put
-				rc = vfs_walk(item.handle1, name_buffer, 0, &entry_handle);
-				errno_t rc2 = vfs_put(entry_handle);
-				(void) rc2; // if put failed, I guess there is nothing I can do about it
-				if (rc != EOK) {
-					if (rc == ENOENT) { // todo is ENOENT the correct one?
-						rc = EOK;
-						equal = false;
-						break;
-					}
-					check_ok_break(rc, "(2) Failed to find entry \"%s\" in directory of handle %d\n", name_buffer, item.handle1);
-				}
 			}
 			if (rc != EOK) goto close_inner;
 		}
