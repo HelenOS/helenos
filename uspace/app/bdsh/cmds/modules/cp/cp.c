@@ -44,7 +44,7 @@
 #include "cmds.h"
 
 #define CP_VERSION "0.0.1"
-#define CP_DEFAULT_BUFLEN  1024
+#define CP_DEFAULT_BUFLEN (1024 * 64)
 
 static const char *cmdname = "cp";
 static console_ctrl_t *con;
