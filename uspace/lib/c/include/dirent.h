@@ -45,6 +45,7 @@ struct dirent {
 
 typedef struct __dirstream DIR;
 
+extern DIR *opendir_handle(int handle);
 extern DIR *opendir(const char *);
 extern struct dirent *readdir(DIR *);
 extern void rewinddir(DIR *);

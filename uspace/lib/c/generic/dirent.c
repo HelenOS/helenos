@@ -46,13 +46,12 @@ struct __dirstream {
 	aoff64_t pos;
 };
 
-/** Open directory.
+/** Open directory by its handle (a.k.a. file descriptor).
  *
- * @param dirname Directory pathname
- *
+ * @param handle Directory handle
  * @return Non-NULL pointer on success. On error returns @c NULL and sets errno.
  */
-DIR *opendir(const char *dirname)
+DIR *opendir_handle(int handle)
 {
 	DIR *dirp = malloc(sizeof(DIR));
 	if (!dirp) {
@@ -60,24 +59,40 @@ DIR *opendir(const char *dirname)
 		return NULL;
 	}
 
-	int fd;
-	errno_t rc = vfs_lookup(dirname, WALK_DIRECTORY, &fd);
+	errno_t rc = vfs_open(handle, MODE_READ);
 	if (rc != EOK) {
 		free(dirp);
 		errno = rc;
 		return NULL;
 	}
 
-	rc = vfs_open(fd, MODE_READ);
+	dirp->fd = handle;
+	dirp->pos = 0;
+	return dirp;
+}
+
+/** Open directory by its pathname.
+ *
+ * @param dirname Directory pathname
+ *
+ * @return Non-NULL pointer on success. On error returns @c NULL and sets errno.
+ */
+DIR *opendir(const char *dirname)
+{
+	int fd;
+	errno_t rc = vfs_lookup(dirname, WALK_DIRECTORY, &fd);
 	if (rc != EOK) {
-		free(dirp);
+		errno = rc;
+		return NULL;
+	}
+
+	DIR *dirp = opendir_handle(fd);
+	rc = errno;
+	if (rc != EOK) {
 		vfs_put(fd);
 		errno = rc;
 		return NULL;
 	}
-
-	dirp->fd = fd;
-	dirp->pos = 0;
 	return dirp;
 }
 
