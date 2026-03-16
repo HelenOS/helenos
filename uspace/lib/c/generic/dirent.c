@@ -46,12 +46,8 @@ struct __dirstream {
 	aoff64_t pos;
 };
 
-/** Open directory by its handle (a.k.a. file descriptor).
- *
- * @param handle Directory handle
- * @return Non-NULL pointer on success. On error returns @c NULL and sets errno.
- */
-DIR *opendir_handle(int handle)
+/** Like opendir_handle, but takes ownership of the handle if successful. */
+static DIR *opendir_internal(int handle)
 {
 	DIR *dirp = malloc(sizeof(DIR));
 	if (!dirp) {
@@ -71,6 +67,31 @@ DIR *opendir_handle(int handle)
 	return dirp;
 }
 
+/** Open directory by its handle (a.k.a. file descriptor).
+ *
+ * @param handle Directory handle
+ * @return Non-NULL pointer on success. On error returns @c NULL and sets errno.
+ */
+DIR *opendir_handle(int handle)
+{
+	int my_handle;
+	errno_t rc = vfs_clone(handle, -1, false, &my_handle); // Clone the file handle, otherwise closedir would put the
+	                                                       // handle that was passed to us here by the caller and that we don't own.
+	if (rc != EOK) {
+		errno = rc;
+		return NULL;
+	}
+
+	DIR *dirp = opendir_internal(my_handle);
+	rc = errno;
+	if (rc != EOK) {
+		vfs_put(my_handle);
+		errno = rc;
+		return NULL;
+	}
+	return dirp;
+}
+
 /** Open directory by its pathname.
  *
  * @param dirname Directory pathname
@@ -86,7 +107,7 @@ DIR *opendir(const char *dirname)
 		return NULL;
 	}
 
-	DIR *dirp = opendir_handle(fd);
+	DIR *dirp = opendir_internal(fd);
 	rc = errno;
 	if (rc != EOK) {
 		vfs_put(fd);
@@ -96,7 +117,7 @@ DIR *opendir(const char *dirname)
 	return dirp;
 }
 
-/** Read directory entry.
+/** Read current directory entry and advance to the next one.
  *
  * @param dirp Open directory
  * @return Non-NULL pointer to directory entry on success. On error returns
