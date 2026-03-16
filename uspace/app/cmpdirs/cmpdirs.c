@@ -34,6 +34,7 @@
  * @file
  */
 
+#include <dirent.h>
 #include <getopt.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -50,8 +51,6 @@
 #define NAME  "cmpdirs"
 /** When reading the content of a file for comparison, how large should one chunk be. */
 #define CHUNK_SIZE 0x4000
-/** File names longer than this will be truncated. */
-#define NAME_BUFFER_SIZE 256
 
 // Macros to make handling errors less cumbersome
 #define _check_ok(rc, action, ...) if ((rc) != EOK) {fprintf(stderr, __VA_ARGS__); log_msg(LOG_DEFAULT, LVL_ERROR, __VA_ARGS__ ); action; }
@@ -213,19 +212,6 @@ static errno_t stack_pop(struct stack *s, struct entry *entry_out) {
 	return EOK;
 }
 
-/** Writes the name of the entry at position pos in the directory represented by the handle into buffer out_name_buffer
- * and writes the number of byte written to the buffer into out_name_len. The name should be null-terminated, unless it was too long.
- *
- * It assumes:
- *	- handle is open for reading (vfs_open())
- *
- * There is no function for listing a directory in vfs.h and the functions from dirent.h kinda suck, so here I have my own. */
-static errno_t list_dir(int handle, aoff64_t pos, size_t buffer_size, char* out_name_buffer, ssize_t *out_name_len) {
-	errno_t rc = EOK;
-	rc = vfs_read_short(handle, pos, out_name_buffer, buffer_size, out_name_len);
-	return rc;
-}
-
 /** Compares two vfs_stat_t structures in the sense that they represent the same data possibly across different filesystems. */
 static bool stat_equal(vfs_stat_t a, vfs_stat_t b) {
 	return a.is_file == b.is_file &&
@@ -289,8 +275,6 @@ static errno_t trees_equal(int root_handle1, int root_handle2, bool* equal_out) 
 	if (file_buffer2 == NULL) rc = ENOMEM;
 	check_ok(rc, close2, "No memory for file buffer #2 (%d bytes needed)\n", CHUNK_SIZE);
 
-	char name_buffer[NAME_BUFFER_SIZE];
-
 	// While there is something in the stack
 	for (struct entry item = {root_handle1, root_handle2}; // initial item
 		rc != EEMPTY; // was pop successful?
@@ -340,31 +324,33 @@ static errno_t trees_equal(int root_handle1, int root_handle2, bool* equal_out) 
 			// 3. lookup it in handle2
 			// 4. add both new handles to stack
 
-			for (ssize_t pos = 0;
-				((size_t) pos) < stat1.size;
-				) {
-				// 1.
-				ssize_t read;
-				rc = list_dir(item.handle1, pos, NAME_BUFFER_SIZE, name_buffer, &read);
-				log_msg(LOG_DEFAULT, LVL_DEBUG2, "Read directory entry name: result %s, read size: %"PRIdn".", str_error_name(rc), read);
-				check_ok_break(rc, "Failed (1) to list handle %d, pos %"PRIdn", total size of directory: %"PRIu64"\n", item.handle1, pos, stat1.size);
+			// Since the directories represented by handle1 and handle2 have equal size and all entries in handle1 are
+			// also present in handle2, then all entries in handle2 must also be present in handle1. Therefore they are equal.
+
+			struct dirent *dp;
+			DIR *dirp = opendir_handle(item.handle1);
+			if (!dirp) {
+				rc = errno;
+				assert(rc != EOK);
+			}
+			check_ok(rc, close_inner, "Failed to open directory (handle %d", item.handle1);
+
+			while ((dp = readdir(dirp))) { // 1.
 				// Calculate the real length of the entry name (excluding null-terminator)
-				size_t name_size = str_nsize(name_buffer, NAME_BUFFER_SIZE);
+				size_t name_buffer_size = sizeof(dp->d_name);
+				size_t name_size = str_nsize(dp->d_name, name_buffer_size);
 				// check that the string is null-terminated before the end of the buffer
-				if (name_size >= NAME_BUFFER_SIZE) {
+				if (name_size >= name_buffer_size) {
 					rc = ENAMETOOLONG;
 				}
-				check_ok_break(rc, "Name too long (limit is %d excluding null-terminator)", NAME_BUFFER_SIZE);
-				// advance pos to after the name of the entry (add 1 for null-terminator)
-				pos += read; // NOLINT(*-narrowing-conversions) because name_size < NAME_BUFFER_SIZE
-				log_msg(LOG_DEFAULT, LVL_DEBUG2, "Listed %d: pos %"PRIdn", name: %s\n", item.handle1, pos, name_buffer);
+				check_ok_break(rc, "Name too long (limit is %"PRIdn" excluding null-terminator)", name_buffer_size);
 				// 2.
 				int entry_handle1; // don't forget to put
-				rc = vfs_walk(item.handle1, name_buffer, 0, &entry_handle1);
-				check_ok_break(rc, "(0) Failed to find entry \"%s\" in directory of handle %d\n", name_buffer, item.handle1);
+				rc = vfs_walk(item.handle1, dp->d_name, 0, &entry_handle1);
+				check_ok_break(rc, "(0) Failed to find entry \"%s\" in directory of handle %d\n", dp->d_name, item.handle1);
 				// 3.
 				int entry_handle2; // must be put
-				rc= vfs_walk(item.handle2, name_buffer, 0, &entry_handle2);
+				rc= vfs_walk(item.handle2, dp->d_name, 0, &entry_handle2);
 				if (rc != EOK) {
 					errno_t rc2 = vfs_put(entry_handle1);
 					(void) rc2; // if put failed, I guess there is nothing I can do about it
@@ -373,7 +359,7 @@ static errno_t trees_equal(int root_handle1, int root_handle2, bool* equal_out) 
 						equal = false;
 						break;
 					}
-					check_ok_break(rc, "(1) Failed to find entry \"%s\" in directory of handle %d\n", name_buffer, item.handle2);
+					check_ok_break(rc, "(1) Failed to find entry \"%s\" in directory of handle %d\n", dp->d_name, item.handle2);
 				}
 
 				// 4.
@@ -387,6 +373,7 @@ static errno_t trees_equal(int root_handle1, int root_handle2, bool* equal_out) 
 				}
 				check_ok_break(rc, "Failed to append to stack\n");
 			}
+			closedir(dirp);
 			if (rc != EOK) goto close_inner;
 		}
 
@@ -400,8 +387,9 @@ static errno_t trees_equal(int root_handle1, int root_handle2, bool* equal_out) 
 			(void) rc2; // if put failed, I guess there is nothing I can do about it
 		}
 		if (rc != EOK) goto close_start;
+		if (!equal) break;
 	}
-	assert(rc == EEMPTY);
+	assert(rc == EEMPTY || !equal);
 	rc = EOK;
 close_start:
 close3:
