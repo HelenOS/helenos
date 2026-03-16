@@ -53,9 +53,11 @@
 /** File names longer than this will be truncated. */
 #define NAME_BUFFER_SIZE 256
 
-// Macros to make handling error less clumbersome
+// Macros to make handling errors less cumbersome
 #define _check_ok(rc, action, ...) if ((rc) != EOK) {fprintf(stderr, __VA_ARGS__); log_msg(LOG_DEFAULT, LVL_ERROR, __VA_ARGS__ ); action; }
+/** Print message (given by the variable arguments) to log and stderr if rc != EOK and then goto the specified label. */
 #define check_ok(rc, label, ...) _check_ok(rc, goto label, __VA_ARGS__)
+/** Print message (given by the variable arguments) to log and stderr if rc != EOK and then break. */
 #define check_ok_break(rc, ...) _check_ok(rc, break, __VA_ARGS__)
 
 static void print_usage(void);
@@ -138,6 +140,7 @@ close_end:
 	return equal ? 0 : 1;
 }
 
+/** Handles of 2 files or directories to compare */
 struct entry {
 	int handle1;
 	int handle2;
@@ -155,7 +158,7 @@ struct stack {
 
 size_t STACK_INIT_CAPACITY = 256;
 
-/** Create a new growable stack. Don't forget to free it in the end using stack_free */
+/** Create a new growable stack. Don't forget to free it using stack_free when you are done using it. */
 static errno_t stack_new(struct stack* s) {
 	s->size = 0;
 	s->capacity = STACK_INIT_CAPACITY;
@@ -200,7 +203,7 @@ static errno_t stack_append(struct stack *s, struct entry e) {
 	return EOK;
 }
 
-/** Returns the last entry in the stack and removes it from it. Does not free any memory */
+/** Returns the last entry in the stack and removes it from it. Does not free any memory. */
 static errno_t stack_pop(struct stack *s, struct entry *entry_out) {
 	if (s->size == 0) {
 		return EEMPTY;
@@ -230,11 +233,11 @@ static bool stat_equal(vfs_stat_t a, vfs_stat_t b) {
 		a.size == b.size;
 }
 
-/** Compares the contetn of 2 files. It assumes:
+/** Compares the content of 2 files. It assumes:
  *  - both handles represent a file, not dir
  *  - both files have the same size
  *  - both buffers are the size CHUNK_SIZE
- *  - both handle are open for reading */
+ *  - both handles are open for reading */
 static errno_t content_equal(int handle1, vfs_stat_t stat1, char* buffer1, int handle2, vfs_stat_t stat2, char* buffer2, bool *equal_out) {
 	errno_t rc = EOK;
 	bool equal = true;
@@ -264,9 +267,8 @@ static errno_t content_equal(int handle1, vfs_stat_t stat1, char* buffer1, int h
 	return rc;
 }
 
-/** Checks if the directory/file tree of both handles is equal -- checks presence of files/dirs, content of all files, and metadata. */
 static errno_t trees_equal(int root_handle1, int root_handle2, bool* equal_out) {
-	// todo don't forget to check put/close all file handles
+	// todo Check once again that all file handles are put at the end
 	// Performs a depth-first search on handle1 and compares it to handle2.
 	errno_t rc = EOK;
 	bool equal = true;
@@ -288,10 +290,6 @@ static errno_t trees_equal(int root_handle1, int root_handle2, bool* equal_out) 
 	check_ok(rc, close2, "No memory for file buffer #2 (%d bytes needed)\n", CHUNK_SIZE);
 
 	char name_buffer[NAME_BUFFER_SIZE];
-
-	// no need to add the initial entry into stack - it's the initial value in the for cycle
-	// rc = stack_append(&s, (struct entry){handle1, handle2});
-	// if (rc != EOK) goto close3;
 
 	// While there is something in the stack
 	for (struct entry item = {root_handle1, root_handle2}; // initial item
