@@ -63,8 +63,9 @@ static void print_usage(void);
 
 /** Returns true if all directories and files in the filesystem tree of handle1 also exist in the filesystem tree of
  * handle2 and in reverse and all their contents and metadata is equal.
- * hande1 and handle2 are handles to a directory (or file). */
-static errno_t trees_equal(int handle1, int handle2, bool* equal_out);
+ * hande1 and handle2 are handles to a directory (or file).
+ */
+static errno_t trees_equal(int handle1, int handle2, bool *equal_out);
 
 int main(int argc, char *argv[])
 {
@@ -108,7 +109,8 @@ int main(int argc, char *argv[])
 
 	// initialize logging
 	rc = log_init(NAME);
-	if (rc != EOK) goto close_end;
+	if (rc != EOK)
+		goto close_end;
 	logctl_set_log_level(NAME, LVL_DEBUG2);
 
 	// lookup both directories
@@ -123,7 +125,8 @@ int main(int argc, char *argv[])
 
 	bool equal;
 	rc = trees_equal(handle1, handle2, &equal);
-	if (rc != EOK) goto close2;
+	if (rc != EOK)
+		goto close2;
 close2:
 	vfs_put(handle2);
 close1:
@@ -131,7 +134,7 @@ close1:
 close_end:
 
 	if (rc != EOK) {
-		fprintf(stderr, "%d\n",rc);
+		fprintf(stderr, "%d\n", rc);
 		fprintf(stderr, "An error occurred: %s: %s\n", str_error_name(rc), str_error(rc));
 		return 2;
 	}
@@ -158,7 +161,8 @@ struct stack {
 size_t STACK_INIT_CAPACITY = 256;
 
 /** Create a new growable stack. Don't forget to free it using stack_free when you are done using it. */
-static errno_t stack_new(struct stack* s) {
+static errno_t stack_new(struct stack *s)
+{
 	s->size = 0;
 	s->capacity = STACK_INIT_CAPACITY;
 	s->buffer = malloc(sizeof(struct entry) * s->capacity);
@@ -169,7 +173,8 @@ static errno_t stack_new(struct stack* s) {
 }
 
 /** Destroy a growable stack and free its memory */
-static void stack_free(struct stack* s) {
+static void stack_free(struct stack *s)
+{
 	if (s->buffer != NULL) {
 		free(s->buffer);
 	}
@@ -179,7 +184,8 @@ static void stack_free(struct stack* s) {
 }
 
 /** Append an entry to the stack. Allocates larger memory if needed. */
-static errno_t stack_append(struct stack *s, struct entry e) {
+static errno_t stack_append(struct stack *s, struct entry e)
+{
 	if (s->capacity == 0 || s->buffer == NULL) {
 		// stack has already been freed before
 		return ENOENT;
@@ -203,7 +209,8 @@ static errno_t stack_append(struct stack *s, struct entry e) {
 }
 
 /** Returns the last entry in the stack and removes it from it. Does not free any memory. */
-static errno_t stack_pop(struct stack *s, struct entry *entry_out) {
+static errno_t stack_pop(struct stack *s, struct entry *entry_out)
+{
 	if (s->size == 0) {
 		return EEMPTY;
 	}
@@ -213,18 +220,21 @@ static errno_t stack_pop(struct stack *s, struct entry *entry_out) {
 }
 
 /** Compares two vfs_stat_t structures in the sense that they represent the same data possibly across different filesystems. */
-static bool stat_equal(vfs_stat_t a, vfs_stat_t b) {
+static bool stat_equal(vfs_stat_t a, vfs_stat_t b)
+{
 	return a.is_file == b.is_file &&
-		a.is_directory == b.is_directory &&
-		a.size == b.size;
+	    a.is_directory == b.is_directory &&
+	    a.size == b.size;
 }
 
 /** Compares the content of 2 files. It assumes:
  *  - both handles represent a file, not dir
  *  - both files have the same size
  *  - both buffers are the size CHUNK_SIZE
- *  - both handles are open for reading */
-static errno_t content_equal(int handle1, vfs_stat_t stat1, char* buffer1, int handle2, vfs_stat_t stat2, char* buffer2, bool *equal_out) {
+ *  - both handles are open for reading
+ */
+static errno_t content_equal(int handle1, vfs_stat_t stat1, char *buffer1, int handle2, vfs_stat_t stat2, char *buffer2, bool *equal_out)
+{
 	errno_t rc = EOK;
 	bool equal = true;
 	aoff64_t pos = 0;
@@ -253,7 +263,8 @@ static errno_t content_equal(int handle1, vfs_stat_t stat1, char* buffer1, int h
 	return rc;
 }
 
-static errno_t trees_equal(int root_handle1, int root_handle2, bool* equal_out) {
+static errno_t trees_equal(int root_handle1, int root_handle2, bool *equal_out)
+{
 	// todo Check once again that all file handles are put at the end
 	// Performs a depth-first search on handle1 and compares it to handle2.
 	errno_t rc = EOK;
@@ -268,18 +279,19 @@ static errno_t trees_equal(int root_handle1, int root_handle2, bool* equal_out) 
 	check_ok(rc, close_end, "Failed to create stack\n");
 
 	char *file_buffer1 = malloc(CHUNK_SIZE);
-	if (file_buffer1 == NULL) rc = ENOMEM;
+	if (file_buffer1 == NULL)
+		rc = ENOMEM;
 	check_ok(rc, close1, "No memory for file buffer #1 (%d bytes needed)\n", CHUNK_SIZE);
 
 	char *file_buffer2 = malloc(CHUNK_SIZE);
-	if (file_buffer2 == NULL) rc = ENOMEM;
+	if (file_buffer2 == NULL)
+		rc = ENOMEM;
 	check_ok(rc, close2, "No memory for file buffer #2 (%d bytes needed)\n", CHUNK_SIZE);
 
 	// While there is something in the stack
-	for (struct entry item = {root_handle1, root_handle2}; // initial item
-		rc != EEMPTY; // was pop successful?
-		rc = stack_pop(&s, &item)
-		) {
+	for (struct entry item = { root_handle1, root_handle2 }; // initial item
+	    rc != EEMPTY; // was pop successful?
+	    rc = stack_pop(&s, &item)) {
 		if (rc != EOK) {
 			// other error than EEMPTY
 			goto close3;
@@ -314,9 +326,10 @@ static errno_t trees_equal(int root_handle1, int root_handle2, bool* equal_out) 
 			// check file content
 			bool equal2;
 			rc = content_equal(item.handle1, stat1, file_buffer1, item.handle2, stat2, file_buffer2, &equal2);
-			if (rc != EOK) goto close_inner;
+			if (rc != EOK)
+				goto close_inner;
 			equal = equal && equal2;
-		}else {
+		} else {
 			// check directory listing and add its items to the stack
 
 			// 1. iterate over entries of handle1 -> gives you entry name
@@ -343,10 +356,10 @@ static errno_t trees_equal(int root_handle1, int root_handle2, bool* equal_out) 
 				if (name_size >= name_buffer_size) {
 					rc = ENAMETOOLONG;
 				}
-				check_ok_break(rc, "Name too long (limit is %"PRIdn" excluding null-terminator)", name_buffer_size);
+				check_ok_break(rc, "Name too long (limit is %" PRIdn " excluding null-terminator)", name_buffer_size);
 				// add slash to the beginning of the name, because vfs_walk requires the path to be absolute (will be
 				// resolved relatively to the starting directory)
-				char name_with_slash[name_buffer_size+1];
+				char name_with_slash[name_buffer_size + 1];
 				name_with_slash[0] = '/';
 				str_cpy(name_with_slash + 1, name_size + 1, dp->d_name);
 				// 2.
@@ -355,7 +368,7 @@ static errno_t trees_equal(int root_handle1, int root_handle2, bool* equal_out) 
 				check_ok_break(rc, "(0) Failed to find entry \"%s\" in directory of handle %d\n", name_with_slash, item.handle1);
 				// 3.
 				int entry_handle2; // must be put
-				rc= vfs_walk(item.handle2, name_with_slash, 0, &entry_handle2);
+				rc = vfs_walk(item.handle2, name_with_slash, 0, &entry_handle2);
 				if (rc != EOK) {
 					errno_t rc2 = vfs_put(entry_handle1);
 					(void) rc2; // if put failed, I guess there is nothing I can do about it
@@ -368,7 +381,7 @@ static errno_t trees_equal(int root_handle1, int root_handle2, bool* equal_out) 
 				}
 
 				// 4.
-				struct entry newitem = {entry_handle1, entry_handle2};
+				struct entry newitem = { entry_handle1, entry_handle2 };
 				rc = stack_append(&s, newitem);
 				if (rc != EOK) {
 					errno_t rc2 = vfs_put(entry_handle1);
@@ -379,7 +392,8 @@ static errno_t trees_equal(int root_handle1, int root_handle2, bool* equal_out) 
 				check_ok_break(rc, "Failed to append to stack\n");
 			}
 			closedir(dirp);
-			if (rc != EOK) goto close_inner;
+			if (rc != EOK)
+				goto close_inner;
 		}
 
 	close_inner:
@@ -391,8 +405,10 @@ static errno_t trees_equal(int root_handle1, int root_handle2, bool* equal_out) 
 			errno_t rc2 = vfs_put(item.handle2);
 			(void) rc2; // if put failed, I guess there is nothing I can do about it
 		}
-		if (rc != EOK) goto close_start;
-		if (!equal) break;
+		if (rc != EOK)
+			goto close_start;
+		if (!equal)
+			break;
 	}
 	assert(rc == EEMPTY || !equal);
 	rc = EOK;
@@ -403,22 +419,22 @@ close2:
 	free(file_buffer1);
 close1:
 	(void) 0; // Clangd is not happy about declaration right after a label, so here is a dummy statement.
-	struct entry item = {};
+	struct entry item = { };
 	for (errno_t for_rc = stack_pop(&s, &item);
-		for_rc != EEMPTY; // was pop successful?
-		for_rc = stack_pop(&s, &item)){
-			errno_t rc2 = vfs_put(item.handle1);
-			(void) rc2; // if put failed, I guess there is nothing I can do about it
-			rc2 = vfs_put(item.handle2);
-			(void) rc2; // if put failed, I guess there is nothing I can do about it
+	    for_rc != EEMPTY; // was pop successful?
+	    for_rc = stack_pop(&s, &item)) {
+		errno_t rc2 = vfs_put(item.handle1);
+		(void) rc2; // if put failed, I guess there is nothing I can do about it
+		rc2 = vfs_put(item.handle2);
+		(void) rc2; // if put failed, I guess there is nothing I can do about it
 	}
 
 	stack_free(&s);
 close_end:
-	if (rc == EOK) *equal_out = equal;
+	if (rc == EOK)
+		*equal_out = equal;
 	return rc;
 }
-
 
 static void print_usage(void)
 {

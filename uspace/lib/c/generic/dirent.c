@@ -75,8 +75,9 @@ static DIR *opendir_internal(int handle)
 DIR *opendir_handle(int handle)
 {
 	int my_handle;
-	errno_t rc = vfs_clone(handle, -1, false, &my_handle); // Clone the file handle, otherwise closedir would put the
-	                                                       // handle that was passed to us here by the caller and that we don't own.
+	// Clone the file handle, otherwise closedir would put the
+	// handle that was passed to us here by the caller and that we don't own.
+	errno_t rc = vfs_clone(handle, -1, false, &my_handle);
 	if (rc != EOK) {
 		errno = rc;
 		return NULL;
