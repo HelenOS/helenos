@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,6 +35,7 @@
 
 #include <capa.h>
 #include <fmgt.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <str_error.h>
 #include <ui/fixed.h>

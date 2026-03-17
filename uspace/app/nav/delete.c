@@ -34,6 +34,7 @@
  */
 
 #include <fmgt.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <str_error.h>
 #include <ui/fixed.h>

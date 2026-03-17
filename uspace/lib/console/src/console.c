@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * Copyright (c) 2006 Josef Cejka
  * Copyright (c) 2006 Jakub Vana
  * All rights reserved.
@@ -44,6 +44,7 @@
 #include <vfs/vfs_sess.h>
 #include <io/console.h>
 #include <ipc/console.h>
+#include "../private/console.h"
 
 console_ctrl_t *console_init(FILE *ifile, FILE *ofile)
 {

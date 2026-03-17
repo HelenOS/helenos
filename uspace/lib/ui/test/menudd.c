@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,6 +31,7 @@
 #include <mem.h>
 #include <pcut/pcut.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <str.h>
 #include <ui/control.h>
 #include <ui/menudd.h>
