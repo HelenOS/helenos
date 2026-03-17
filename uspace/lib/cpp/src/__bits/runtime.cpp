@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2026 Jiri Svoboda
  * Copyright (c) 2018 Jaroslav Jindrak
  * All rights reserved.
  *
@@ -66,6 +67,15 @@ namespace __cxxabiv1
      * call of a pure virtual function cannot be made.
      */
     extern "C" void __cxa_pure_virtual()
+    {
+        std::terminate();
+    }
+
+    /**
+     * Called when an object destructor exits due to an exception
+     * during stack unwinding.
+     */
+    extern "C" void __cxa_call_terminate()
     {
         std::terminate();
     }
