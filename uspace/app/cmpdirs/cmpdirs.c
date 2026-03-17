@@ -333,7 +333,7 @@ static errno_t trees_equal(int root_handle1, int root_handle2, bool* equal_out) 
 				rc = errno;
 				assert(rc != EOK);
 			}
-			check_ok(rc, close_inner, "Failed to open directory (handle %d", item.handle1);
+			check_ok(rc, close_inner, "Failed to open directory of handle %d", item.handle1);
 
 			while ((dp = readdir(dirp))) { // 1.
 				// Calculate the real length of the entry name (excluding null-terminator)
@@ -344,13 +344,18 @@ static errno_t trees_equal(int root_handle1, int root_handle2, bool* equal_out) 
 					rc = ENAMETOOLONG;
 				}
 				check_ok_break(rc, "Name too long (limit is %"PRIdn" excluding null-terminator)", name_buffer_size);
+				// add slash to the beginning of the name, because vfs_walk requires the path to be absolute (will be
+				// resolved relatively to the starting directory)
+				char name_with_slash[name_buffer_size+1];
+				name_with_slash[0] = '/';
+				str_cpy(name_with_slash + 1, name_size + 1, dp->d_name);
 				// 2.
 				int entry_handle1; // don't forget to put
-				rc = vfs_walk(item.handle1, dp->d_name, 0, &entry_handle1);
-				check_ok_break(rc, "(0) Failed to find entry \"%s\" in directory of handle %d\n", dp->d_name, item.handle1);
+				rc = vfs_walk(item.handle1, name_with_slash, 0, &entry_handle1);
+				check_ok_break(rc, "(0) Failed to find entry \"%s\" in directory of handle %d\n", name_with_slash, item.handle1);
 				// 3.
 				int entry_handle2; // must be put
-				rc= vfs_walk(item.handle2, dp->d_name, 0, &entry_handle2);
+				rc= vfs_walk(item.handle2, name_with_slash, 0, &entry_handle2);
 				if (rc != EOK) {
 					errno_t rc2 = vfs_put(entry_handle1);
 					(void) rc2; // if put failed, I guess there is nothing I can do about it
@@ -359,7 +364,7 @@ static errno_t trees_equal(int root_handle1, int root_handle2, bool* equal_out) 
 						equal = false;
 						break;
 					}
-					check_ok_break(rc, "(1) Failed to find entry \"%s\" in directory of handle %d\n", dp->d_name, item.handle2);
+					check_ok_break(rc, "(1) Failed to find entry \"%s\" in directory of handle %d\n", name_with_slash, item.handle2);
 				}
 
 				// 4.
