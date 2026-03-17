@@ -83,8 +83,8 @@ DIR *opendir_handle(int handle)
 	}
 
 	DIR *dirp = opendir_internal(my_handle);
-	rc = errno;
-	if (rc != EOK) {
+	if (!dirp) {
+		rc = errno;
 		vfs_put(my_handle);
 		errno = rc;
 		return NULL;
@@ -108,8 +108,8 @@ DIR *opendir(const char *dirname)
 	}
 
 	DIR *dirp = opendir_internal(fd);
-	rc = errno;
-	if (rc != EOK) {
+	if (!dirp) {
+		rc = errno;
 		vfs_put(fd);
 		errno = rc;
 		return NULL;
