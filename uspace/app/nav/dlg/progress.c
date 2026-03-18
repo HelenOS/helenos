@@ -36,6 +36,7 @@
 #include <errno.h>
 #include <fmgt.h>
 #include <mem.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <ui/fixed.h>
 #include <ui/label.h>

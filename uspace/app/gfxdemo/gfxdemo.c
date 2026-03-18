@@ -35,6 +35,7 @@
 #include <congfx/console.h>
 #include <display.h>
 #include <fibril.h>
+#include <fibril_synch.h>
 #include <gfx/bitmap.h>
 #include <gfx/color.h>
 #include <gfx/render.h>

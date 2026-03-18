@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,6 +36,7 @@
  * by its looks.
  */
 
+#include <assert.h>
 #include <clipboard.h>
 #include <errno.h>
 #include <gfx/context.h>
@@ -43,6 +44,7 @@
 #include <gfx/render.h>
 #include <gfx/text.h>
 #include <macros.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
 #include <ui/control.h>

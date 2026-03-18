@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,6 +33,7 @@
  * @file Message dialog
  */
 
+#include <assert.h>
 #include <errno.h>
 #include <mem.h>
 #include <stdlib.h>

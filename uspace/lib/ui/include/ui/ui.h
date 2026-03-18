@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,8 +39,8 @@
 #include <display.h>
 #include <errno.h>
 #include <gfx/coord.h>
-#include <io/console.h>
 #include <stdbool.h>
+#include <types/console.h>
 #include <types/ui/clickmatic.h>
 #include <types/ui/ui.h>
 

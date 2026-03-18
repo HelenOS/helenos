@@ -215,7 +215,7 @@ PCUT_TEST(write)
 	fmgt_t *fmgt = NULL;
 	char buf[L_tmpnam];
 	char dbuffer[64];
-	char data[3] = "XYZ";
+	char data[4] = "XYZ";
 	FILE *f;
 	char *p;
 	int fd;
@@ -238,7 +238,7 @@ PCUT_TEST(write)
 	pos = 0;
 	rc = fmgt_write(fmgt, fd, p, &pos, data, sizeof(data));
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_INT_EQUALS(pos, 3);
+	PCUT_ASSERT_INT_EQUALS(pos, 4);
 
 	fmgt_destroy(fmgt);
 	vfs_put(fd);
@@ -247,7 +247,7 @@ PCUT_TEST(write)
 	PCUT_ASSERT_NOT_NULL(f);
 
 	nr = fread(dbuffer, 1, sizeof(dbuffer), f);
-	PCUT_ASSERT_INT_EQUALS(nr, 3);
+	PCUT_ASSERT_INT_EQUALS(nr, 4);
 	(void)fclose(f);
 
 	PCUT_ASSERT_TRUE(memcmp(data, dbuffer, sizeof(data)) == 0);

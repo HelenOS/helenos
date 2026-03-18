@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,30 +41,9 @@
 #include <io/kbd_event.h>
 #include <io/cons_event.h>
 #include <io/keycode.h>
-#include <async.h>
 #include <stdbool.h>
 #include <stdio.h>
-
-/** Console control structure. */
-typedef struct {
-	/** Console input file */
-	FILE *input;
-
-	/** Console output file */
-	FILE *output;
-
-	/** Console input session */
-	async_sess_t *input_sess;
-
-	/** Console output session */
-	async_sess_t *output_sess;
-
-	/** Input request call with timeout */
-	ipc_call_t input_call;
-
-	/** Input response with timeout */
-	aid_t input_aid;
-} console_ctrl_t;
+#include <types/console.h>
 
 extern console_ctrl_t *console_init(FILE *, FILE *);
 extern void console_done(console_ctrl_t *);

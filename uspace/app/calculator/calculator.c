@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * Copyright (c) 2016 Martin Decky
  * All rights reserved.
  *
@@ -36,6 +36,7 @@
  *
  */
 
+#include <adt/list.h>
 #include <clipboard.h>
 #include <ctype.h>
 #include <io/kbd_event.h>
