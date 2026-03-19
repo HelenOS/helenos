@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * Copyright (c) 2011 Jiri Zarevucky
  * Copyright (c) 2011 Petr Koupy
  * All rights reserved.
@@ -59,7 +59,8 @@
 aoff64_t posix_pos[VFS_MAX_OPEN_FILES];
 
 /* Array of environment variable strings (NAME=VALUE). */
-char **environ = NULL;
+static char *environ_initial[] = { NULL };
+char **environ = environ_initial;
 
 /**
  * Sleep for the specified number of seconds.
