@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -672,6 +672,7 @@ errno_t fdisk_part_get_info(fdisk_part_t *part, fdisk_part_info_t *info)
 	info->pcnt = part->pcnt;
 	info->fstype = part->fstype;
 	info->pkind = part->pkind;
+	info->index = part->index;
 	info->label = part->label;
 	info->svc_id = part->svc_id;
 	return EOK;
@@ -1030,9 +1031,15 @@ static errno_t fdisk_part_spec_prepare(fdisk_dev_t *dev, fdisk_part_spec_t *pspe
 	}
 
 	if (pspec->pkind != lpk_logical) {
-		rc = fdisk_part_get_free_idx(dev, &index);
-		if (rc != EOK)
-			return EIO;
+		if (pspec->index == 0) {
+			/* allocate first free index */
+			rc = fdisk_part_get_free_idx(dev, &index);
+			if (rc != EOK)
+				return EIO;
+		} else {
+			/* user-specified index */
+			index = pspec->index;
+		}
 	} else {
 		index = 0;
 	}

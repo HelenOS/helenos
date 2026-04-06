@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -154,6 +154,8 @@ typedef struct {
 	label_pkind_t pkind;
 	/** File system type */
 	vol_fstype_t fstype;
+	/** Partition index, default/0 = assign automatically */
+	int index;
 	/** Volume label */
 	const char *label;
 	/** Mount point */
@@ -170,6 +172,8 @@ typedef struct {
 	vol_part_cnt_t pcnt;
 	/** File system type */
 	vol_fstype_t fstype;
+	/** Partition index */
+	int index;
 	/** Volume label */
 	char *label;
 	/** Service ID */

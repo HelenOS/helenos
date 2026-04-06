@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -74,6 +74,8 @@
 #define DEFAULT_DEV_1 "devices/\\hw\\sys\\ide1\\c0d0"
 #define DEFAULT_DEV_2 "devices/\\hw\\sys\\00:01.0\\ide1\\c0d0"
 //#define DEFAULT_DEV "devices/\\hw\\pci0\\00:01.2\\uhci_rh\\usb01_a1\\mass-storage0\\l0"
+/** Index of partition which we must install to (hardwired in load.cfg) */
+#define INST_PART_IDX 1
 /** Volume label for the new file system */
 #define INST_VOL_LABEL "HelenOS"
 /** Mount point of system partition when running installed system */
@@ -441,9 +443,11 @@ static errno_t sysinst_label_dev(sysinst_t *sysinst, const char *dev)
 {
 	fdisk_t *fdisk = NULL;
 	fdisk_dev_t *fdev = NULL;
+	fdisk_label_info_t linfo;
 	fdisk_part_t *part;
 	fdisk_part_spec_t pspec;
 	fdisk_part_info_t pinfo;
+	bool create_label = false;
 	bool dir_created = false;
 	bool label_created = false;
 	capa_spec_t capa;
@@ -482,10 +486,33 @@ static errno_t sysinst_label_dev(sysinst_t *sysinst, const char *dev)
 
 	sysinst_debug(sysinst, "sysinst_label_dev(): create label");
 
-	rc = fdisk_label_create(fdev, lt_mbr);
+	rc = fdisk_label_get_info(fdev, &linfo);
 	if (rc != EOK) {
-		sysinst_error(sysinst, "Error creating label.");
+		sysinst_error(sysinst, "Error analyzing device.");
 		goto error;
+	}
+
+	switch (linfo.ltype) {
+	case lt_none:
+		/* need to create label */
+		create_label = true;
+		break;
+	case lt_mbr:
+		/* MBR label already present */
+		break;
+	default:
+		/* a different type of label already present */
+		sysinst_error(sysinst, "Disk contains unusable label.");
+		goto error;
+	}
+
+	/* Need to create label? */
+	if (create_label) {
+		rc = fdisk_label_create(fdev, lt_mbr);
+		if (rc != EOK) {
+			sysinst_error(sysinst, "Error creating label.");
+			goto error;
+		}
 	}
 
 	label_created = true;
@@ -504,6 +531,7 @@ static errno_t sysinst_label_dev(sysinst_t *sysinst, const char *dev)
 	pspec.pkind = lpk_primary;
 	pspec.fstype = fs_ext4; /* Cannot be changed without modifying core.img */
 	pspec.mountp = MOUNT_POINT;
+	pspec.index = INST_PART_IDX; /* Cannot be changed without modifying core.img */
 	pspec.label = INST_VOL_LABEL;
 
 	rc = fdisk_part_create(fdev, &pspec, &part);
