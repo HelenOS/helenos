@@ -431,11 +431,61 @@ static errno_t sysinst_check_dev(const char *dev)
 	return EOK;
 }
 
+/** Create installation partition.
+ *
+ * @param sysinst System installer
+ * @param fdev Destination device
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t sysinst_inst_part_create(sysinst_t *sysinst, fdisk_dev_t *fdev)
+{
+	fdisk_part_t *part;
+	fdisk_part_spec_t pspec;
+	fdisk_part_info_t pinfo;
+	capa_spec_t capa;
+	errno_t rc;
+
+	sysinst_debug(sysinst, "sysinst_inst_part_create(): get maximum available block");
+
+	rc = fdisk_part_get_max_avail(fdev, spc_pri, &capa);
+	if (rc != EOK) {
+		sysinst_error(sysinst,
+		    "Error getting available capacity.");
+		goto error;
+	}
+
+	fdisk_pspec_init(&pspec);
+	pspec.capacity = capa;
+	pspec.pkind = lpk_primary;
+	pspec.fstype = fs_ext4; /* Cannot be changed without modifying core.img */
+	pspec.mountp = MOUNT_POINT;
+	pspec.index = INST_PART_IDX; /* Cannot be changed without modifying core.img */
+	pspec.label = INST_VOL_LABEL;
+
+	rc = fdisk_part_create(fdev, &pspec, &part);
+	if (rc != EOK) {
+		sysinst_error(sysinst, "Error creating partition.");
+		goto error;
+	}
+
+	rc = fdisk_part_get_info(part, &pinfo);
+	if (rc != EOK) {
+		sysinst_error(sysinst, "Error getting partition information.");
+		goto error;
+	}
+
+	sysinst_debug(sysinst, "sysinst_inst_part_create(): OK");
+	sysinst->psvc_id = pinfo.svc_id;
+	return EOK;
+error:
+	return rc;
+}
+
 /** Label and mount the destination device.
  *
  * @param sysinst System installer
  * @param dev Disk device to label
- * @param psvc_id Place to store service ID of the created partition
  *
  * @return EOK on success or an error code
  */
@@ -444,13 +494,9 @@ static errno_t sysinst_label_dev(sysinst_t *sysinst, const char *dev)
 	fdisk_t *fdisk = NULL;
 	fdisk_dev_t *fdev = NULL;
 	fdisk_label_info_t linfo;
-	fdisk_part_t *part;
-	fdisk_part_spec_t pspec;
-	fdisk_part_info_t pinfo;
 	bool create_label = false;
 	bool dir_created = false;
 	bool label_created = false;
-	capa_spec_t capa;
 	service_id_t sid;
 	errno_t rc;
 
@@ -519,37 +565,11 @@ static errno_t sysinst_label_dev(sysinst_t *sysinst, const char *dev)
 
 	sysinst_debug(sysinst, "sysinst_label_dev(): create partition");
 
-	rc = fdisk_part_get_max_avail(fdev, spc_pri, &capa);
-	if (rc != EOK) {
-		sysinst_error(sysinst,
-		    "Error getting available capacity.");
+	/* Create installation partition. */
+	rc = sysinst_inst_part_create(sysinst, fdev);
+	if (rc != EOK)
 		goto error;
-	}
 
-	fdisk_pspec_init(&pspec);
-	pspec.capacity = capa;
-	pspec.pkind = lpk_primary;
-	pspec.fstype = fs_ext4; /* Cannot be changed without modifying core.img */
-	pspec.mountp = MOUNT_POINT;
-	pspec.index = INST_PART_IDX; /* Cannot be changed without modifying core.img */
-	pspec.label = INST_VOL_LABEL;
-
-	rc = fdisk_part_create(fdev, &pspec, &part);
-	if (rc != EOK) {
-		sysinst_error(sysinst, "Error creating partition.");
-		goto error;
-	}
-
-	rc = fdisk_part_get_info(part, &pinfo);
-	if (rc != EOK) {
-		sysinst_error(sysinst, "Error getting partition information.");
-		goto error;
-	}
-
-	sysinst_debug(sysinst, "sysinst_label_dev(): OK");
-	fdisk_dev_close(fdev);
-	fdisk_destroy(fdisk);
-	sysinst->psvc_id = pinfo.svc_id;
 	return EOK;
 error:
 	if (label_created)
