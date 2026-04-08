@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -53,6 +53,14 @@ typedef struct {
 	ui_label_t *action;
 } sysinst_progress_t;
 
+/** Installer operation */
+typedef enum {
+	/** initial OS installation */
+	sio_install,
+	/** OS upgrade */
+	sio_upgrade
+} sysinst_oper_t;
+
 /** System installer. */
 typedef struct {
 	ui_t *ui;
@@ -62,6 +70,8 @@ typedef struct {
 	system_t *system;
 	/** Service ID of destination partition. */
 	sysarg_t psvc_id;
+	/** operation being performed */
+	sysinst_oper_t oper;
 	futil_t *futil;
 	char errmsg[128];
 } sysinst_t;

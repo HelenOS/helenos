@@ -628,11 +628,24 @@ static errno_t sysinst_label_dev(sysinst_t *sysinst, const char *dev)
 			    "partition.");
 			goto error;
 		}
+
+		/* performing OS upgrade */
+		sysinst->oper = sio_upgrade;
+		if (sysinst->progress != NULL) {
+			(void)ui_label_set_text(sysinst->progress->label,
+			    "Upgrading system. Please wait...");
+			(void)ui_label_paint(sysinst->progress->label);
+			(void)ui_window_set_caption(sysinst->bgwindow,
+			    "System Upgrade");
+		}
 	} else {
 		/* Create installation partition. */
 		rc = sysinst_inst_part_create(sysinst, fdev);
 		if (rc != EOK)
 			goto error;
+
+		/* performing initial OS installation */
+		sysinst->oper = sio_install;
 	}
 
 	return EOK;
@@ -1457,7 +1470,12 @@ static errno_t sysinst_restart_dlg_create(sysinst_t *sysinst)
 
 	ui_msg_dialog_params_init(&params);
 	params.caption = "Restart System";
-	params.text = "Installation complete. Restart the system?";
+
+	if (sysinst->oper == sio_install)
+		params.text = "Installation complete. Restart the system?";
+	else
+		params.text = "Upgrade complete. Restart the system?";
+
 	params.choice = umdc_ok_cancel;
 	params.flags |= umdf_topmost | umdf_center;
 
