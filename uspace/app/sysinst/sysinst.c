@@ -76,6 +76,8 @@
 //#define DEFAULT_DEV "devices/\\hw\\pci0\\00:01.2\\uhci_rh\\usb01_a1\\mass-storage0\\l0"
 /** Index of partition which we must install to (hardwired in load.cfg) */
 #define INST_PART_IDX 1
+/* File system type cannot be changed without modifying core.img */
+#define INST_FSTYPE fs_ext4
 /** Volume label for the new file system */
 #define INST_VOL_LABEL "HelenOS"
 /** Mount point of system partition when running installed system */
@@ -431,6 +433,56 @@ static errno_t sysinst_check_dev(const char *dev)
 	return EOK;
 }
 
+/** Find existing OS partition.
+ *
+ * @param sysinst System installer
+ * @param fdev Destination device
+ * @param rpart Place to store pointer to partition
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t sysinst_existing_os_part_find(sysinst_t *sysinst,
+    fdisk_dev_t *fdev, fdisk_part_t **rpart)
+{
+	fdisk_part_t *part;
+	fdisk_part_info_t pinfo;
+	errno_t rc;
+
+	sysinst_debug(sysinst, "sysinst_existing_os_part_find(): walk partitions");
+
+	part = fdisk_part_first(fdev);
+	while (part != NULL) {
+		rc = fdisk_part_get_info(part, &pinfo);
+		if (rc != EOK) {
+			sysinst_error(sysinst,
+			    "Error getting partition information.");
+			goto error;
+		}
+
+		if (pinfo.index == INST_PART_IDX && pinfo.pkind == lpk_primary)
+			break;
+
+		part = fdisk_part_next(part);
+	}
+
+	/* Partition with index INST_PART_IDX not found? */
+	if (part == NULL)
+		return ENOENT;
+
+	/* Correct file system type? */
+	if (pinfo.fstype != INST_FSTYPE) {
+		/* Not a usable existing partition. */
+		return ENOENT;
+	}
+
+	sysinst_debug(sysinst, "sysinst_existing_os_part_find(): OK");
+	sysinst->psvc_id = pinfo.svc_id;
+	*rpart = part;
+	return EOK;
+error:
+	return rc;
+}
+
 /** Create installation partition.
  *
  * @param sysinst System installer
@@ -458,7 +510,7 @@ static errno_t sysinst_inst_part_create(sysinst_t *sysinst, fdisk_dev_t *fdev)
 	fdisk_pspec_init(&pspec);
 	pspec.capacity = capa;
 	pspec.pkind = lpk_primary;
-	pspec.fstype = fs_ext4; /* Cannot be changed without modifying core.img */
+	pspec.fstype = INST_FSTYPE; /* Cannot be changed without modifying core.img */
 	pspec.mountp = MOUNT_POINT;
 	pspec.index = INST_PART_IDX; /* Cannot be changed without modifying core.img */
 	pspec.label = INST_VOL_LABEL;
@@ -493,6 +545,7 @@ static errno_t sysinst_label_dev(sysinst_t *sysinst, const char *dev)
 {
 	fdisk_t *fdisk = NULL;
 	fdisk_dev_t *fdev = NULL;
+	fdisk_part_t *part;
 	fdisk_label_info_t linfo;
 	bool create_label = false;
 	bool dir_created = false;
@@ -565,10 +618,22 @@ static errno_t sysinst_label_dev(sysinst_t *sysinst, const char *dev)
 
 	sysinst_debug(sysinst, "sysinst_label_dev(): create partition");
 
-	/* Create installation partition. */
-	rc = sysinst_inst_part_create(sysinst, fdev);
-	if (rc != EOK)
-		goto error;
+	/* Existing OS partition? */
+	rc = sysinst_existing_os_part_find(sysinst, fdev, &part);
+	if (rc == EOK) {
+		/* Set mount point for installation partition. */
+		rc = fdisk_part_set_mountp(part, MOUNT_POINT);
+		if (rc != EOK) {
+			sysinst_error(sysinst, "Cannot mount installation "
+			    "partition.");
+			goto error;
+		}
+	} else {
+		/* Create installation partition. */
+		rc = sysinst_inst_part_create(sysinst, fdev);
+		if (rc != EOK)
+			goto error;
+	}
 
 	return EOK;
 error:
@@ -626,7 +691,7 @@ static errno_t sysinst_setup_sysvol(sysinst_t *sysinst)
 		}
 
 		rc = vfs_link_path(path, KIND_DIRECTORY, NULL);
-		if (rc != EOK) {
+		if (rc != EOK && rc != EEXIST) {
 			sysinst_error(sysinst, "Error creating directory.");
 			goto error;
 		}

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -178,7 +178,7 @@ errno_t futil_rcopy_contents(futil_t *futil, const char *srcdir,
 			if (futil->cb != NULL && futil->cb->create_dir != NULL)
 				futil->cb->create_dir(futil->cb_arg, destp);
 			rc = vfs_link_path(destp, KIND_DIRECTORY, NULL);
-			if (rc != EOK)
+			if (rc != EOK && rc != EEXIST)
 				goto error;
 			rc = futil_rcopy_contents(futil, srcp, destp);
 			if (rc != EOK)
