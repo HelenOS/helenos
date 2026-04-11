@@ -36,9 +36,11 @@
 #ifndef SYSINST_H
 #define SYSINST_H
 
+#include <fibril_synch.h>
 #include <futil.h>
 #include <gfx/color.h>
 #include <loc.h>
+#include <stdbool.h>
 #include <system.h>
 #include <ui/fixed.h>
 #include <ui/label.h>
@@ -73,6 +75,14 @@ typedef struct {
 	/** operation being performed */
 	sysinst_oper_t oper;
 	futil_t *futil;
+	/** @c true after user responds to interactive query. */
+	bool responded;
+	/** Signalled when @c responded changes */
+	fibril_condvar_t responded_cv;
+	/** Synchronize access to @c responded */
+	fibril_mutex_t responded_lock;
+	/** User decided to quit installation. */
+	bool quit;
 	char errmsg[128];
 } sysinst_t;
 

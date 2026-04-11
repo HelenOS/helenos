@@ -142,6 +142,14 @@ static ui_msg_dialog_cb_t sysinst_confirm_cb = {
 	.close = sysinst_confirm_close
 };
 
+static void sysinst_upgrade_confirm_button(ui_msg_dialog_t *, void *, unsigned);
+static void sysinst_upgrade_confirm_close(ui_msg_dialog_t *, void *);
+
+static ui_msg_dialog_cb_t sysinst_upgrade_confirm_cb = {
+	.button = sysinst_upgrade_confirm_button,
+	.close = sysinst_upgrade_confirm_close
+};
+
 static errno_t sysinst_restart_dlg_create(sysinst_t *);
 static void sysinst_restart_dlg_button(ui_msg_dialog_t *, void *, unsigned);
 static void sysinst_restart_dlg_close(ui_msg_dialog_t *, void *);
@@ -162,6 +170,7 @@ static void sysinst_futil_copy_file(void *, const char *, const char *);
 static void sysinst_futil_create_dir(void *, const char *);
 static errno_t sysinst_eject_dev(sysinst_t *, service_id_t);
 static errno_t sysinst_eject_phys_by_mp(sysinst_t *, const char *);
+static errno_t sysinst_upgrade_confirm_create(sysinst_t *);
 
 static futil_cb_t sysinst_futil_cb = {
 	.copy_file = sysinst_futil_copy_file,
@@ -250,6 +259,53 @@ static void sysinst_confirm_button(ui_msg_dialog_t *dialog, void *arg,
  * @param arg Argument (sysinst_t *)
  */
 static void sysinst_confirm_close(ui_msg_dialog_t *dialog, void *arg)
+{
+	sysinst_t *sysinst = (sysinst_t *) arg;
+
+	ui_msg_dialog_destroy(dialog);
+	ui_quit(sysinst->ui);
+}
+
+/** Upgrade confirm dialog OK button press.
+ *
+ * @param dialog Message dialog
+ * @param arg Argument (sysinst_t *)
+ * @param btn Button number
+ * @param earg Entry argument
+ */
+static void sysinst_upgrade_confirm_button(ui_msg_dialog_t *dialog, void *arg,
+    unsigned btn)
+{
+	sysinst_t *sysinst = (sysinst_t *) arg;
+
+	ui_msg_dialog_destroy(dialog);
+
+	switch (btn) {
+	case 0:
+		/* OK */
+		fibril_mutex_lock(&sysinst->responded_lock);
+		sysinst->responded = true;
+		sysinst->quit = false;
+		fibril_mutex_unlock(&sysinst->responded_lock);
+		fibril_condvar_signal(&sysinst->responded_cv);
+		break;
+	default:
+		/* Cancel */
+		fibril_mutex_lock(&sysinst->responded_lock);
+		sysinst->responded = true;
+		sysinst->quit = true;
+		fibril_mutex_unlock(&sysinst->responded_lock);
+		fibril_condvar_signal(&sysinst->responded_cv);
+		break;
+	}
+}
+
+/** Upgrade confirm dialog close request.
+ *
+ * @param dialog Message dialog
+ * @param arg Argument (sysinst_t *)
+ */
+static void sysinst_upgrade_confirm_close(ui_msg_dialog_t *dialog, void *arg)
 {
 	sysinst_t *sysinst = (sysinst_t *) arg;
 
@@ -621,6 +677,25 @@ static errno_t sysinst_label_dev(sysinst_t *sysinst, const char *dev)
 	/* Existing OS partition? */
 	rc = sysinst_existing_os_part_find(sysinst, fdev, &part);
 	if (rc == EOK) {
+		/* Open dialog to confirm that user wants to upgrade. */
+		rc = sysinst_upgrade_confirm_create(sysinst);
+		if (rc != EOK) {
+			sysinst_error(sysinst, "Cannot create window.");
+			goto error;
+		}
+
+		fibril_mutex_lock(&sysinst->responded_lock);
+		while (!sysinst->responded)
+			fibril_condvar_wait(&sysinst->responded_cv,
+			    &sysinst->responded_lock);
+		fibril_mutex_unlock(&sysinst->responded_lock);
+
+		/* User decided not to upgrade existing installation? */
+		if (sysinst->quit) {
+			(void)vfs_unlink_path(MOUNT_POINT);
+			return EOK;
+		}
+
 		/* Set mount point for installation partition. */
 		rc = fdisk_part_set_mountp(part, MOUNT_POINT);
 		if (rc != EOK) {
@@ -1129,6 +1204,8 @@ static errno_t sysinst_install(sysinst_t *sysinst, const char *dev)
 	rc = sysinst_label_dev(sysinst, dev);
 	if (rc != EOK)
 		goto error;
+	if (sysinst->quit)
+		return EOK;
 
 	clean_dev = true;
 
@@ -1199,6 +1276,12 @@ static errno_t sysinst_install_fibril(void *arg)
 
 	sysinst_progress_destroy(sysinst->progress);
 	sysinst->progress = NULL;
+
+	/* User decided not to upgrade system? */
+	if (sysinst->quit) {
+		ui_quit(sysinst->ui);
+		return EOK;
+	}
 
 	rc = sysinst_restart_dlg_create(sysinst);
 	if (rc != EOK)
@@ -1457,6 +1540,32 @@ static errno_t sysinst_confirm_create(sysinst_t *sysinst)
 	return EOK;
 }
 
+/** Create upgrade confirmation dialog.
+ *
+ * @param sysinst System installer
+ * @return EOK on success or an error code
+ */
+static errno_t sysinst_upgrade_confirm_create(sysinst_t *sysinst)
+{
+	ui_msg_dialog_params_t params;
+	ui_msg_dialog_t *dialog;
+	errno_t rc;
+
+	ui_msg_dialog_params_init(&params);
+	params.caption = "System upgrade";
+	params.text = "Existing installation found. "
+	    "Do you want to upgrade it?";
+	params.choice = umdc_ok_cancel;
+	params.flags |= umdf_topmost | umdf_center;
+
+	rc = ui_msg_dialog_create(sysinst->ui, &params, &dialog);
+	if (rc != EOK)
+		return rc;
+
+	ui_msg_dialog_set_cb(dialog, &sysinst_upgrade_confirm_cb, sysinst);
+	return EOK;
+}
+
 /** Create restart dialog.
  *
  * @param sysinst System installer
@@ -1502,6 +1611,9 @@ static errno_t sysinst_run(const char *display_spec)
 	sysinst = calloc(1, sizeof(sysinst_t));
 	if (sysinst == NULL)
 		return ENOMEM;
+
+	fibril_condvar_initialize(&sysinst->responded_cv);
+	fibril_mutex_initialize(&sysinst->responded_lock);
 
 	rc = futil_create(&sysinst_futil_cb, (void *)sysinst, &sysinst->futil);
 	if (rc != EOK) {
@@ -1551,7 +1663,11 @@ static errno_t sysinst_run(const char *display_spec)
 		goto error;
 	}
 
-	(void)sysinst_confirm_create(sysinst);
+	rc = sysinst_confirm_create(sysinst);
+	if (rc != EOK) {
+		printf("Error creating window.\n");
+		goto error;
+	}
 
 	ui_run(ui);
 
