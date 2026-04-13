@@ -1285,9 +1285,10 @@ errno_t ext4_read_file(ipc_call_t *call, aoff64_t pos, size_t size,
 static errno_t ext4_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
     size_t *wbytes, aoff64_t *nsize)
 {
-	fs_node_t *fn;
+	fs_node_t *fn = NULL;
 	errno_t rc2;
 	bool fblock_allocated = false;
+	ext4_inode_ref_t *inode_ref = NULL;
 
 	errno_t rc = ext4_node_get(&fn, service_id, index);
 	if (rc != EOK)
@@ -1317,7 +1318,7 @@ static errno_t ext4_write(service_id_t service_id, fs_index_t index, aoff64_t po
 	uint32_t fblock;
 
 	/* Load inode */
-	ext4_inode_ref_t *inode_ref = enode->inode_ref;
+	inode_ref = enode->inode_ref;
 	rc = ext4_filesystem_get_inode_data_block_index(inode_ref, iblock,
 	    &fblock);
 	if (rc != EOK) {
