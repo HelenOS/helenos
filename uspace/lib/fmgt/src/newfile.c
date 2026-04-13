@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -111,6 +111,7 @@ errno_t fmgt_new_file(fmgt_t *fmgt, const char *fname, uint64_t fsize,
 	/* Clear statistics. */
 	fmgt_progress_init(fmgt);
 	fmgt_initial_progress_update(fmgt);
+	fmgt_timer_start(fmgt);
 
 	/* Create sparse file? */
 	if ((flags & nf_sparse) != 0) {
@@ -141,6 +142,7 @@ errno_t fmgt_new_file(fmgt_t *fmgt, const char *fname, uint64_t fsize,
 		if (rc != EOK) {
 			free(buffer);
 			vfs_put(fd);
+			fmgt_timer_stop(fmgt);
 			fmgt_final_progress_update(fmgt);
 			return rc;
 		}
@@ -151,6 +153,7 @@ errno_t fmgt_new_file(fmgt_t *fmgt, const char *fname, uint64_t fsize,
 		if (fmgt_abort_query(fmgt)) {
 			free(buffer);
 			vfs_put(fd);
+			fmgt_timer_stop(fmgt);
 			fmgt_final_progress_update(fmgt);
 			return EINTR;
 		}
@@ -158,6 +161,7 @@ errno_t fmgt_new_file(fmgt_t *fmgt, const char *fname, uint64_t fsize,
 
 	free(buffer);
 	vfs_put(fd);
+	fmgt_timer_stop(fmgt);
 	fmgt_final_progress_update(fmgt);
 	return EOK;
 }

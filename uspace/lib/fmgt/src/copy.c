@@ -170,6 +170,7 @@ errno_t fmgt_copy(fmgt_t *fmgt, fmgt_flist_t *flist, const char *dest)
 	fmgt_timer_start(fmgt);
 	fmgt_initial_progress_update(fmgt);
 	rc = fmgt_walk(&params);
+	fmgt_timer_stop(fmgt);
 	fmgt_final_progress_update(fmgt);
 	return rc;
 }
