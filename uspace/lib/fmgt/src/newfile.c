@@ -97,6 +97,8 @@ errno_t fmgt_new_file(fmgt_t *fmgt, const char *fname, uint64_t fsize,
 	fmgt_error_action_t action;
 	errno_t rc;
 
+	fmgt_report_action(fmgt, fmgt_ac_create, fname, NULL);
+
 	buffer = calloc(BUFFER_SIZE, 1);
 	if (buffer == NULL)
 		return ENOMEM;

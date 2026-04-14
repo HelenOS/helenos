@@ -67,6 +67,7 @@ static errno_t fmgt_verify_file(fmgt_walk_t *walk, const char *fname,
 	errno_t rc;
 
 	(void)unused;
+	fmgt_report_action(fmgt, fmgt_ac_verify, fname, NULL);
 
 	buffer = calloc(BUFFER_SIZE, 1);
 	if (buffer == NULL)

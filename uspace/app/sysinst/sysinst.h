@@ -37,7 +37,7 @@
 #define SYSINST_H
 
 #include <fibril_synch.h>
-#include <futil.h>
+#include <fmgt.h>
 #include <gfx/color.h>
 #include <loc.h>
 #include <stdbool.h>
@@ -53,6 +53,7 @@ typedef struct {
 	ui_fixed_t *fixed;
 	ui_label_t *label;
 	ui_label_t *action;
+	ui_label_t *progress;
 } sysinst_progress_t;
 
 /** Installer operation */
@@ -74,7 +75,7 @@ typedef struct {
 	sysarg_t psvc_id;
 	/** operation being performed */
 	sysinst_oper_t oper;
-	futil_t *futil;
+	fmgt_t *fmgt;
 	/** @c true after user responds to interactive query. */
 	bool responded;
 	/** Signalled when @c responded changes */

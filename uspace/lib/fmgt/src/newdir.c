@@ -83,6 +83,8 @@ errno_t fmgt_new_dir(fmgt_t *fmgt, const char *dname)
 {
 	errno_t rc;
 
+	fmgt_report_action(fmgt, fmgt_ac_create, dname, NULL);
+
 	/* Clear statistics. */
 	fmgt_progress_init(fmgt);
 	fmgt_initial_progress_update(fmgt);

@@ -53,6 +53,8 @@ extern void fmgt_progress_incr_bytes(fmgt_t *, uint64_t);
 extern void fmgt_progress_incr_files(fmgt_t *);
 extern void fmgt_initial_progress_update(fmgt_t *);
 extern void fmgt_final_progress_update(fmgt_t *);
+extern void fmgt_report_action(fmgt_t *, fmgt_action_t, const char *,
+    const char *);
 
 #endif
 

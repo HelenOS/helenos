@@ -198,56 +198,5 @@ error:
 	return rc;
 }
 
-/** Return file contents as a heap-allocated block of bytes.
- *
- * @param futil File utility instance
- * @param srcp File path
- * @param rdata Place to store pointer to data
- * @param rsize Place to store size of data
- *
- * @return EOK on success, ENOENT if failed to open file, EIO on other
- *         I/O error, ENOMEM if out of memory
- */
-errno_t futil_get_file(futil_t *futil, const char *srcp, void **rdata,
-    size_t *rsize)
-{
-	int sf;
-	size_t nr;
-	errno_t rc;
-	size_t fsize;
-	char *data;
-	vfs_stat_t st;
-
-	rc = vfs_lookup_open(srcp, WALK_REGULAR, MODE_READ, &sf);
-	if (rc != EOK)
-		return ENOENT;
-
-	if (vfs_stat(sf, &st) != EOK) {
-		vfs_put(sf);
-		return EIO;
-	}
-
-	fsize = st.size;
-
-	data = calloc(fsize, 1);
-	if (data == NULL) {
-		vfs_put(sf);
-		return ENOMEM;
-	}
-
-	rc = vfs_read(sf, (aoff64_t []) { 0 }, data, fsize, &nr);
-	if (rc != EOK || nr != fsize) {
-		vfs_put(sf);
-		free(data);
-		return EIO;
-	}
-
-	(void) vfs_put(sf);
-	*rdata = data;
-	*rsize = fsize;
-
-	return EOK;
-}
-
 /** @}
  */

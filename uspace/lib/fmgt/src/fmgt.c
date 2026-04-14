@@ -217,6 +217,21 @@ static void fmgt_progress_update(fmgt_t *fmgt)
 	}
 }
 
+/** Report action being performed to the caller.
+ *
+ * @param fmgt File management object
+ * @param action Action we started performing
+ * @param src Source (or only) path
+ * @param dest Destination path or @c NULL
+ */
+void fmgt_report_action(fmgt_t *fmgt, fmgt_action_t action, const char *src,
+    const char *dest)
+{
+	if (fmgt->cb != NULL && fmgt->cb->action != NULL) {
+		fmgt->cb->action(fmgt->cb_arg, action, src, dest);
+	}
+}
+
 /** Provide initial progress update (if required).
  *
  * The caller configures the file management object regarding whether

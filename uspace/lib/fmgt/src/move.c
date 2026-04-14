@@ -88,6 +88,8 @@ static errno_t fmgt_move_file(fmgt_walk_t *walk, const char *src,
 	char *buffer;
 	errno_t rc;
 
+	fmgt_report_action(fmgt, fmgt_ac_move, src, dest);
+
 	buffer = calloc(BUFFER_SIZE, 1);
 	if (buffer == NULL)
 		return ENOMEM;
@@ -165,6 +167,7 @@ static errno_t fmgt_move_dir_leave(fmgt_walk_t *walk, const char *src,
 	fmgt_t *fmgt = (fmgt_t *)walk->params->arg;
 
 	(void)dest;
+	fmgt_report_action(fmgt, fmgt_ac_delete, src, NULL);
 	return fmgt_remove(fmgt, src);
 }
 

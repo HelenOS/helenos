@@ -63,6 +63,8 @@ static errno_t fmgt_delete_file(fmgt_walk_t *walk, const char *src,
 	fmgt_t *fmgt = (fmgt_t *)walk->params->arg;
 	errno_t rc;
 
+	fmgt_report_action(fmgt, fmgt_ac_delete, src, NULL);
+
 	/* Remove original file. */
 	rc = fmgt_remove(fmgt, src);
 	if (rc != EOK)
@@ -84,6 +86,7 @@ static errno_t fmgt_delete_dir_leave(fmgt_walk_t *walk, const char *src,
 {
 	fmgt_t *fmgt = (fmgt_t *)walk->params->arg;
 	(void)dest;
+	fmgt_report_action(fmgt, fmgt_ac_delete, src, NULL);
 	return fmgt_remove(fmgt, src);
 }
 

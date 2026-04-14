@@ -40,7 +40,7 @@
 #include <capa.h>
 #include <errno.h>
 #include <fdisk.h>
-#include <futil.h>
+#include <fmgt.h>
 #include <gfx/render.h>
 #include <io/log.h>
 #include <loc.h>
@@ -90,11 +90,11 @@
 /** XXX Should get this from the volume server */
 #define CD_MOUNT_POINT "/vol/" CD_VOL_LABEL
 
-#define BOOT_FILES_SRC CD_MOUNT_POINT
+#define BOOT_FILES_SRC CD_MOUNT_POINT "/boot"
 #define BOOT_BLOCK_IDX 0 /* MBR */
 
 #define CFG_FILES_SRC "/cfg"
-#define CFG_FILES_DEST MOUNT_POINT "/cfg"
+#define CFG_FILES_DEST MOUNT_POINT
 
 static const char *default_devs[] = {
 	DEFAULT_DEV_0,
@@ -162,19 +162,23 @@ static ui_msg_dialog_cb_t sysinst_restart_dlg_cb = {
 static int sysinst_start(sysinst_t *);
 static errno_t sysinst_restart(sysinst_t *);
 static void sysinst_progress_destroy(sysinst_progress_t *);
+static void sysinst_progress(sysinst_t *, const char *);
 static void sysinst_action(sysinst_t *, const char *);
 static void sysinst_error(sysinst_t *, const char *);
 static void sysinst_debug(sysinst_t *, const char *);
 
-static void sysinst_futil_copy_file(void *, const char *, const char *);
-static void sysinst_futil_create_dir(void *, const char *);
+static fmgt_exists_action_t sysinst_fmgt_exists_query(void *, fmgt_exists_t *);
+static void sysinst_fmgt_action(void *, fmgt_action_t, const char *,
+    const char *);
+static void sysinst_fmgt_progress(void *, fmgt_progress_t *);
 static errno_t sysinst_eject_dev(sysinst_t *, service_id_t);
 static errno_t sysinst_eject_phys_by_mp(sysinst_t *, const char *);
 static errno_t sysinst_upgrade_confirm_create(sysinst_t *);
 
-static futil_cb_t sysinst_futil_cb = {
-	.copy_file = sysinst_futil_copy_file,
-	.create_dir = sysinst_futil_create_dir
+static fmgt_cb_t sysinst_fmgt_cb = {
+	.exists_query = sysinst_fmgt_exists_query,
+	.action = sysinst_fmgt_action,
+	.progress = sysinst_fmgt_progress
 };
 
 static void sysinst_error_msg_button(ui_msg_dialog_t *, void *, unsigned);
@@ -409,35 +413,65 @@ static errno_t sysinst_error_msg_create(sysinst_t *sysinst)
 	return EOK;
 }
 
-/** Called when futil is starting to copy a file.
+/** Called when fmgt hits an existing file while copying.
  *
  * @param arg Argument (sysinst_t *)
- * @param src Source path
- * @param dest Destination path
+ * @param exists Information about existing file
+ * @return Existing file recovery action
  */
-static void sysinst_futil_copy_file(void *arg, const char *src,
-    const char *dest)
+fmgt_exists_action_t sysinst_fmgt_exists_query(void *arg, fmgt_exists_t *exists)
+{
+	sysinst_t *sysinst = (sysinst_t *)arg;
+	(void)sysinst;
+	(void)exists->fname;
+	// XXX Do not overwrite configuration files.
+	return fmgt_exr_overwrite;
+}
+
+/** Called when fmgt is starting to perform action on a file.
+ *
+ * @param arg Argument (sysinst_t *)
+ * @param action Action being performed
+ * @param src Source or only path
+ * @param dest Destination path or @c NULL
+ */
+static void sysinst_fmgt_action(void *arg, fmgt_action_t action,
+    const char *src, const char *dest)
 {
 	sysinst_t *sysinst = (sysinst_t *)arg;
 	char buf[128];
 
 	(void)src;
-	snprintf(buf, sizeof(buf), "Copying %s.", dest);
-	sysinst_action(sysinst, buf);
+
+	switch (action) {
+	case fmgt_ac_create:
+		snprintf(buf, sizeof(buf), "Creating %s.", src);
+		sysinst_action(sysinst, buf);
+		break;
+	case fmgt_ac_copy:
+		snprintf(buf, sizeof(buf), "Copying %s.", dest);
+		sysinst_action(sysinst, buf);
+		break;
+	default:
+		break;
+	}
 }
 
-/** Called when futil is about to create a directory.
+/** Called by fmgt to update on progress.
  *
  * @param arg Argument (sysinst_t *)
+ * @param src Source path
  * @param dest Destination path
  */
-static void sysinst_futil_create_dir(void *arg, const char *dest)
+static void sysinst_fmgt_progress(void *arg, fmgt_progress_t *progress)
 {
 	sysinst_t *sysinst = (sysinst_t *)arg;
 	char buf[128];
 
-	snprintf(buf, sizeof(buf), "Creating %s.", dest);
-	sysinst_action(sysinst, buf);
+	snprintf(buf, sizeof(buf), "Copied %s files, %s; "
+	    "current file: %s done.", progress->total_procf,
+	    progress->total_procb, progress->curf_percent);
+	sysinst_progress(sysinst, buf);
 }
 
 /** System shutdown complete.
@@ -768,6 +802,7 @@ static errno_t sysinst_setup_sysvol(sysinst_t *sysinst)
 	errno_t rc;
 	char *path = NULL;
 	const char **cp;
+	fmgt_flist_t *flist = NULL;
 	int rv;
 
 	cp = sys_dirs;
@@ -793,16 +828,32 @@ static errno_t sysinst_setup_sysvol(sysinst_t *sysinst)
 	path = NULL;
 
 	/* Copy initial configuration files */
-	rc = futil_rcopy_contents(sysinst->futil, CFG_FILES_SRC,
-	    CFG_FILES_DEST);
+
+	log_msg(LOG_DEFAULT, LVL_NOTE,
+	    "sysinst_copy_boot_files(): copy initial configuration files");
+
+	rc = fmgt_flist_create(&flist);
+	if (rc != EOK)
+		goto error;
+
+	rc = fmgt_flist_append(flist, CFG_FILES_SRC);
+	if (rc != EOK)
+		goto error;
+
+	rc = fmgt_copy(sysinst->fmgt, flist, CFG_FILES_DEST);
 	if (rc != EOK) {
 		sysinst_error(sysinst, "Error copying initial configuration "
 		    "files.");
-		return rc;
+		goto error;
 	}
 
+	fmgt_flist_destroy(flist);
+	log_msg(LOG_DEFAULT, LVL_NOTE,
+	    "sysinst_copy_boot_files(): copy initial configuration files OK");
 	return EOK;
 error:
+	if (flist != NULL)
+		fmgt_flist_destroy(flist);
 	if (path != NULL)
 		free(path);
 	return rc;
@@ -814,19 +865,33 @@ error:
  */
 static errno_t sysinst_copy_boot_files(sysinst_t *sysinst)
 {
+	fmgt_flist_t *flist = NULL;
 	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_NOTE,
 	    "sysinst_copy_boot_files(): copy bootloader files");
-	rc = futil_rcopy_contents(sysinst->futil, BOOT_FILES_SRC, MOUNT_POINT);
+	rc = fmgt_flist_create(&flist);
+	if (rc != EOK)
+		goto error;
+
+	rc = fmgt_flist_append(flist, BOOT_FILES_SRC);
+	if (rc != EOK)
+		goto error;
+
+	rc = fmgt_copy(sysinst->fmgt, flist, MOUNT_POINT);
 	if (rc != EOK) {
 		sysinst_error(sysinst, "Error copying bootloader "
 		    "files.");
-		return rc;
+		goto error;
 	}
 
+	fmgt_flist_destroy(flist);
 	sysinst_debug(sysinst, "sysinst_copy_boot_files(): OK");
 	return EOK;
+error:
+	if (flist != NULL)
+		fmgt_flist_destroy(flist);
+	return rc;
 }
 
 /** Set up configuration in the initial RAM disk.
@@ -940,6 +1005,55 @@ static void set_unaligned_u64le(uint8_t *a, uint64_t data)
 	}
 }
 
+/** Return file contents as a heap-allocated block of bytes.
+ *
+ * @param srcp File path
+ * @param rdata Place to store pointer to data
+ * @param rsize Place to store size of data
+ *
+ * @return EOK on success, ENOENT if failed to open file, EIO on other
+ *         I/O error, ENOMEM if out of memory
+ */
+static errno_t sysinst_get_file(const char *srcp, void **rdata, size_t *rsize)
+{
+	int sf;
+	size_t nr;
+	errno_t rc;
+	size_t fsize;
+	char *data;
+	vfs_stat_t st;
+
+	rc = vfs_lookup_open(srcp, WALK_REGULAR, MODE_READ, &sf);
+	if (rc != EOK)
+		return ENOENT;
+
+	if (vfs_stat(sf, &st) != EOK) {
+		vfs_put(sf);
+		return EIO;
+	}
+
+	fsize = st.size;
+
+	data = calloc(fsize, 1);
+	if (data == NULL) {
+		vfs_put(sf);
+		return ENOMEM;
+	}
+
+	rc = vfs_read(sf, (aoff64_t []) { 0 }, data, fsize, &nr);
+	if (rc != EOK || nr != fsize) {
+		vfs_put(sf);
+		free(data);
+		return EIO;
+	}
+
+	(void) vfs_put(sf);
+	*rdata = data;
+	*rsize = fsize;
+
+	return EOK;
+}
+
 /** Copy boot blocks.
  *
  * Install Grub's boot blocks.
@@ -965,20 +1079,22 @@ static errno_t sysinst_copy_boot_blocks(sysinst_t *sysinst, const char *devp)
 	log_msg(LOG_DEFAULT, LVL_NOTE,
 	    "sysinst_copy_boot_blocks: Read boot block image.");
 
-	rc = futil_get_file(sysinst->futil,
-	    BOOT_FILES_SRC "/boot/grub/i386-pc/boot.img",
+	rc = sysinst_get_file(BOOT_FILES_SRC "/grub/i386-pc/boot.img",
 	    &boot_img, &boot_img_size);
-	if (rc != EOK || boot_img_size != 512)
+	if (rc != EOK || boot_img_size != 512) {
+		sysinst_error(sysinst, "Error reading boot block image.");
 		return EIO;
+	}
 
 	log_msg(LOG_DEFAULT, LVL_NOTE,
 	    "sysinst_copy_boot_blocks: Read GRUB core image.");
 
-	rc = futil_get_file(sysinst->futil,
-	    BOOT_FILES_SRC "/boot/grub/i386-pc/core.img",
+	rc = sysinst_get_file(BOOT_FILES_SRC "/grub/i386-pc/core.img",
 	    &core_img, &core_img_size);
-	if (rc != EOK)
+	if (rc != EOK) {
+		sysinst_error(sysinst, "Error reading GRUB core image.");
 		return EIO;
+	}
 
 	log_msg(LOG_DEFAULT, LVL_NOTE,
 	    "sysinst_copy_boot_blocks: get service ID.");
@@ -991,15 +1107,19 @@ static errno_t sysinst_copy_boot_blocks(sysinst_t *sysinst, const char *devp)
 	    "sysinst_copy_boot_blocks: block_init.");
 
 	rc = block_init(sid);
-	if (rc != EOK)
+	if (rc != EOK) {
+		sysinst_error(sysinst, "Error opening block device.");
 		return rc;
+	}
 
 	log_msg(LOG_DEFAULT, LVL_NOTE,
 	    "sysinst_copy_boot_blocks: get block size");
 
 	rc = block_get_bsize(sid, &bsize);
-	if (rc != EOK)
+	if (rc != EOK) {
+		sysinst_error(sysinst, "Error getting block size.");
 		return rc;
+	}
 
 	if (bsize != 512) {
 		sysinst_error(sysinst, "Device block size != 512.");
@@ -1010,8 +1130,10 @@ static errno_t sysinst_copy_boot_blocks(sysinst_t *sysinst, const char *devp)
 	    "sysinst_copy_boot_blocks: read boot block");
 
 	rc = block_read_direct(sid, BOOT_BLOCK_IDX, 1, bbuf);
-	if (rc != EOK)
+	if (rc != EOK) {
+		sysinst_error(sysinst, "Error reading boot block.");
 		return EIO;
+	}
 
 	core_start = 16;
 	core_blocks = (core_img_size + 511) / 512;
@@ -1042,16 +1164,20 @@ static errno_t sysinst_copy_boot_blocks(sysinst_t *sysinst, const char *devp)
 	    "sysinst_copy_boot_blocks: write boot block");
 
 	rc = block_write_direct(sid, BOOT_BLOCK_IDX, 1, bbuf);
-	if (rc != EOK)
+	if (rc != EOK) {
+		sysinst_error(sysinst, "Error writing boot block.");
 		return EIO;
+	}
 
 	log_msg(LOG_DEFAULT, LVL_NOTE,
 	    "sysinst_copy_boot_blocks: write core blocks");
 
 	/* XXX Must pad last block with zeros */
 	rc = block_write_direct(sid, core_start, core_blocks, core_img);
-	if (rc != EOK)
+	if (rc != EOK) {
+		sysinst_error(sysinst, "Error writing GRUB core blocks.");
 		return EIO;
+	}
 
 	log_msg(LOG_DEFAULT, LVL_NOTE,
 	    "sysinst_copy_boot_blocks: OK.");
@@ -1323,12 +1449,12 @@ static errno_t sysinst_progress_create(sysinst_t *sysinst,
 		params.rect.p0.x = 0;
 		params.rect.p0.y = 0;
 		params.rect.p1.x = 64;
-		params.rect.p1.y = 5;
+		params.rect.p1.y = 7;
 	} else {
 		params.rect.p0.x = 0;
 		params.rect.p0.y = 0;
 		params.rect.p1.x = 500;
-		params.rect.p1.y = 60;
+		params.rect.p1.y = 90;
 	}
 
 	progress = calloc(1, sizeof(sysinst_progress_t));
@@ -1354,6 +1480,7 @@ static errno_t sysinst_progress_create(sysinst_t *sysinst,
 		goto error;
 	}
 
+	/* Installing/upgrading system line */
 	rc = ui_label_create(ui_res, "Installing system. Please wait...",
 	    &progress->label);
 	if (rc != EOK) {
@@ -1386,6 +1513,7 @@ static errno_t sysinst_progress_create(sysinst_t *sysinst,
 		goto error;
 	}
 
+	/* Action line */
 	rc = ui_label_create(ui_res, "",
 	    &progress->action);
 	if (rc != EOK) {
@@ -1397,18 +1525,49 @@ static errno_t sysinst_progress_create(sysinst_t *sysinst,
 		rect.p0.x = arect.p0.x;
 		rect.p0.y = 3;
 		rect.p1.x = arect.p1.x;
-		rect.p1.y = arect.p1.y;
+		rect.p1.y = 4;
 	} else {
 		rect.p0.x = arect.p0.x;
-		rect.p0.y = 30;
+		rect.p0.y = 40;
 		rect.p1.x = arect.p1.x;
-		rect.p1.y = arect.p1.y;
+		rect.p1.y = 60;
 	}
 	ui_label_set_rect(progress->action, &rect);
 	ui_label_set_halign(progress->action, gfx_halign_center);
-	ui_label_set_valign(progress->action, gfx_valign_center);
+	ui_label_set_valign(progress->action, gfx_valign_top);
 
 	rc = ui_fixed_add(fixed, ui_label_ctl(progress->action));
+	if (rc != EOK) {
+		sysinst_error(sysinst, "Error adding control to layout.");
+		ui_label_destroy(progress->label);
+		progress->label = NULL;
+		goto error;
+	}
+
+	/* Progress line */
+	rc = ui_label_create(ui_res, "",
+	    &progress->progress);
+	if (rc != EOK) {
+		sysinst_error(sysinst, "Error creating label.");
+		goto error;
+	}
+
+	if (ui_is_textmode(sysinst->ui)) {
+		rect.p0.x = arect.p0.x;
+		rect.p0.y = 5;
+		rect.p1.x = arect.p1.x;
+		rect.p1.y = arect.p1.y;
+	} else {
+		rect.p0.x = arect.p0.x;
+		rect.p0.y = 70;
+		rect.p1.x = arect.p1.x;
+		rect.p1.y = arect.p1.y;
+	}
+	ui_label_set_rect(progress->progress, &rect);
+	ui_label_set_halign(progress->progress, gfx_halign_center);
+	ui_label_set_valign(progress->progress, gfx_valign_top);
+
+	rc = ui_fixed_add(fixed, ui_label_ctl(progress->progress));
 	if (rc != EOK) {
 		sysinst_error(sysinst, "Error adding control to layout.");
 		ui_label_destroy(progress->label);
@@ -1452,6 +1611,22 @@ static void sysinst_progress_destroy(sysinst_progress_t *progress)
 
 	ui_window_destroy(progress->window);
 	free(progress);
+}
+
+/** Set current progress message.
+ *
+ * @param sysinst System installer
+ * @param progress Progress text
+ */
+static void sysinst_progress(sysinst_t *sysinst, const char *progress)
+{
+	log_msg(LOG_DEFAULT, LVL_NOTE, "%s", progress);
+
+	if (sysinst->progress == NULL)
+		return;
+
+	ui_label_set_text(sysinst->progress->progress, progress);
+	ui_label_paint(sysinst->progress->progress);
 }
 
 /** Set current action message.
@@ -1615,11 +1790,14 @@ static errno_t sysinst_run(const char *display_spec)
 	fibril_condvar_initialize(&sysinst->responded_cv);
 	fibril_mutex_initialize(&sysinst->responded_lock);
 
-	rc = futil_create(&sysinst_futil_cb, (void *)sysinst, &sysinst->futil);
+	rc = fmgt_create(&sysinst->fmgt);
 	if (rc != EOK) {
 		printf("Out of memory.\n");
 		goto error;
 	}
+
+	fmgt_set_cb(sysinst->fmgt, &sysinst_fmgt_cb, (void *)sysinst);
+	fmgt_set_init_update(sysinst->fmgt, true);
 
 	rc = ui_create(display_spec, &ui);
 	if (rc != EOK) {
@@ -1680,8 +1858,8 @@ static errno_t sysinst_run(const char *display_spec)
 	free(sysinst);
 	return EOK;
 error:
-	if (sysinst->futil != NULL)
-		futil_destroy(sysinst->futil);
+	if (sysinst->fmgt != NULL)
+		fmgt_destroy(sysinst->fmgt);
 	if (sysinst->system != NULL)
 		system_close(sysinst->system);
 	if (sysinst->bg_color != NULL)

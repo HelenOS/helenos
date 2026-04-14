@@ -113,11 +113,28 @@ typedef enum {
 	fmgt_exr_fail
 } fmgt_exists_action_t;
 
+/** Action being performed. */
+typedef enum {
+	/** copying file */
+	fmgt_ac_copy,
+	/** creating file or directory */
+	fmgt_ac_create,
+	/** deleting file or directory */
+	fmgt_ac_delete,
+	/** moving file */
+	fmgt_ac_move,
+	/** renaming file */
+	fmgt_ac_rename,
+	/** verifying file */
+	fmgt_ac_verify,
+} fmgt_action_t;
+
 /** File management callbacks */
 typedef struct {
 	bool (*abort_query)(void *);
 	fmgt_error_action_t (*io_error_query)(void *, fmgt_io_error_t *);
 	fmgt_exists_action_t (*exists_query)(void *, fmgt_exists_t *);
+	void (*action)(void *, fmgt_action_t, const char *, const char *);
 	void (*progress)(void *, fmgt_progress_t *);
 } fmgt_cb_t;
 

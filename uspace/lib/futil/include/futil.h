@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,7 +45,6 @@ extern errno_t futil_create(futil_cb_t *, void *, futil_t **);
 extern void futil_destroy(futil_t *);
 extern errno_t futil_copy_file(futil_t *, const char *, const char *);
 extern errno_t futil_rcopy_contents(futil_t *, const char *, const char *);
-extern errno_t futil_get_file(futil_t *, const char *, void **, size_t *);
 
 #endif
 

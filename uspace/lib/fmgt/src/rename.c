@@ -49,6 +49,8 @@ errno_t fmgt_rename(fmgt_t *fmgt, const char *old_path, const char *new_name)
 {
 	errno_t rc;
 
+	fmgt_report_action(fmgt, fmgt_ac_rename, old_path, new_name);
+
 	/* Clear statistics. */
 	fmgt_progress_init(fmgt);
 	fmgt_initial_progress_update(fmgt);

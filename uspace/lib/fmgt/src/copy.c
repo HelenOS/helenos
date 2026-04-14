@@ -63,6 +63,7 @@ static errno_t fmgt_copy_dir_enter(fmgt_walk_t *walk, const char *src,
 	fmgt_t *fmgt = (fmgt_t *)walk->params->arg;
 
 	(void)dest;
+	fmgt_report_action(fmgt, fmgt_ac_create, dest, NULL);
 	return fmgt_create_dir(fmgt, dest, false);
 }
 
@@ -85,6 +86,8 @@ static errno_t fmgt_copy_file(fmgt_walk_t *walk, const char *src,
 	aoff64_t wpos = 0;
 	char *buffer;
 	errno_t rc;
+
+	fmgt_report_action(fmgt, fmgt_ac_copy, src, dest);
 
 	buffer = calloc(BUFFER_SIZE, 1);
 	if (buffer == NULL)
