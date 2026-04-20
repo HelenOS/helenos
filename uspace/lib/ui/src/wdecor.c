@@ -1368,7 +1368,7 @@ static errno_t ui_wdecor_btn_close_paint_text(ui_pbutton_t *pbutton, void *arg)
 	fmt.halign = gfx_halign_left;
 	fmt.valign = gfx_valign_top;
 
-	rc = gfx_puttext(&pbutton->rect.p0, &fmt, "[\u25a0]");
+	rc = gfx_puttext(&pbutton->rect.p0, &fmt, "[X]");
 	if (rc != EOK)
 		return rc;
 
