@@ -98,6 +98,8 @@ static logger_log_t *create_log_no_locking(const char *name, logger_log_t *paren
 	result->logged_level = LOG_LEVEL_USE_DEFAULT;
 	fibril_mutex_initialize(&result->guard);
 	link_initialize(&result->link);
+	refcount_init(&result->ref_counter);
+	refcount_up(&result->ref_counter);
 	result->parent = parent;
 
 	return result;
@@ -124,9 +126,7 @@ logger_log_t *find_or_create_log_and_lock(const char *name, sysarg_t parent_id)
 			goto leave;
 		list_append(&result->link, &log_list);
 		if (result->parent != NULL) {
-			fibril_mutex_lock(&result->parent->guard);
-			result->parent->ref_counter++;
-			fibril_mutex_unlock(&result->parent->guard);
+			refcount_up(&result->parent->ref_counter);
 		}
 	}
 
@@ -208,14 +208,14 @@ void log_unlock(logger_log_t *log)
 void log_release(logger_log_t *log)
 {
 	assert(fibril_mutex_is_locked(&log->guard));
-	assert(log->ref_counter > 0);
 
-	/* We are definitely not the last ones. */
-	if (log->ref_counter > 1) {
-		log->ref_counter--;
+	if (!refcount_down(&log->ref_counter)) {
+		/* We are definitely not the last ones. */
 		fibril_mutex_unlock(&log->guard);
 		return;
 	}
+
+
 
 	/*
 	 * To prevent deadlock, we need to get the list lock first.
@@ -224,6 +224,7 @@ void log_release(logger_log_t *log)
 	 * Someone else calls find_log_by_name_and_lock(log->fullname) ->
 	 *   LOCKED(list), wants to LOCK(log)
 	 */
+	refcount_up(&log->ref_counter);
 	fibril_mutex_unlock(&log->guard);
 
 	/* Ensuring correct locking order. */
@@ -233,10 +234,8 @@ void log_release(logger_log_t *log)
 	 * the reference counter.
 	 */
 	fibril_mutex_lock(&log->guard);
-	assert(log->ref_counter > 0);
-	log->ref_counter--;
 
-	if (log->ref_counter > 0) {
+	if (!refcount_down(&log->ref_counter)) {
 		/*
 		 * Meanwhile, someone else increased the ref counter.
 		 * No big deal, we just return immediatelly.
@@ -254,8 +253,6 @@ void log_release(logger_log_t *log)
 	 *     deadlock with ourselves
 	 * - destroy dest (if top-level log)
 	 */
-	assert(log->ref_counter == 0);
-
 	list_remove(&log->link);
 	fibril_mutex_unlock(&log_list_guard);
 	fibril_mutex_unlock(&log->guard);
@@ -313,7 +310,7 @@ bool register_log(logger_registered_logs_t *logs, logger_log_t *new_log)
 	}
 
 	assert(fibril_mutex_is_locked(&new_log->guard));
-	new_log->ref_counter++;
+	refcount_up(&new_log->ref_counter);
 
 	logs->logs[logs->logs_count] = new_log;
 	logs->logs_count++;
