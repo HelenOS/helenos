@@ -85,6 +85,8 @@ typedef struct {
 	/** User decided to quit installation. */
 	bool quit;
 	char errmsg[128];
+	/** Allow overwriting files in current copy operation. */
+	bool overwrite;
 } sysinst_t;
 
 #endif

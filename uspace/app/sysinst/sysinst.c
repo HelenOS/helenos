@@ -422,10 +422,20 @@ static errno_t sysinst_error_msg_create(sysinst_t *sysinst)
 fmgt_exists_action_t sysinst_fmgt_exists_query(void *arg, fmgt_exists_t *exists)
 {
 	sysinst_t *sysinst = (sysinst_t *)arg;
+
 	(void)sysinst;
 	(void)exists->fname;
-	// XXX Do not overwrite configuration files.
-	return fmgt_exr_overwrite;
+
+	sysinst_action(sysinst, exists->fname);
+
+	/*
+	 * Before starting fmgt operation, the caller would specify
+	 * whether to overwrite existing files.
+	 */
+	if (sysinst->overwrite)
+		return fmgt_exr_overwrite;
+	else
+		return fmgt_exr_skip;
 }
 
 /** Called when fmgt is starting to perform action on a file.
@@ -840,6 +850,8 @@ static errno_t sysinst_setup_sysvol(sysinst_t *sysinst)
 	if (rc != EOK)
 		goto error;
 
+	/* Do not overwrite configuration files. */
+	sysinst->overwrite = false;
 	rc = fmgt_copy(sysinst->fmgt, flist, CFG_FILES_DEST);
 	if (rc != EOK) {
 		sysinst_error(sysinst, "Error copying initial configuration "
@@ -878,6 +890,8 @@ static errno_t sysinst_copy_boot_files(sysinst_t *sysinst)
 	if (rc != EOK)
 		goto error;
 
+	/* Overwrite boot files with new ones during upgrade. */
+	sysinst->overwrite = true;
 	rc = fmgt_copy(sysinst->fmgt, flist, MOUNT_POINT);
 	if (rc != EOK) {
 		sysinst_error(sysinst, "Error copying bootloader "
