@@ -29,4 +29,4 @@
 
 HELENOS_RELEASE = 0.14.1
 HELENOS_CODENAME = Aladar
-HELENOS_COPYRIGHT = Copyright (c) 2001-2024 HelenOS project
+HELENOS_COPYRIGHT = Copyright (c) 2001-2026 HelenOS project
