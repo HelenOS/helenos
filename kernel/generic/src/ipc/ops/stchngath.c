@@ -44,26 +44,26 @@ static errno_t request_preprocess(call_t *call, phone_t *phone)
 {
 	task_t *other_task_s;
 
-	kobject_t *sender_obj = kobject_get(TASK,
-	    (cap_handle_t) ipc_get_arg5(&call->data), KOBJECT_TYPE_PHONE);
-	if (!sender_obj)
+	phone_t *sender_phone = phone_from_kobject(kobject_get(TASK,
+	    (cap_handle_t) ipc_get_arg5(&call->data), KOBJECT_TYPE_PHONE));
+	if (!sender_phone)
 		return ENOENT;
 
-	mutex_lock(&sender_obj->phone->lock);
-	if (sender_obj->phone->state != IPC_PHONE_CONNECTED) {
-		mutex_unlock(&sender_obj->phone->lock);
-		kobject_put(sender_obj);
+	mutex_lock(&sender_phone->lock);
+	if (sender_phone->state != IPC_PHONE_CONNECTED) {
+		mutex_unlock(&sender_phone->lock);
+		kobject_put(&sender_phone->kobject);
 		return EINVAL;
 	}
 
-	other_task_s = sender_obj->phone->callee->task;
+	other_task_s = sender_phone->callee->task;
 
-	mutex_unlock(&sender_obj->phone->lock);
+	mutex_unlock(&sender_phone->lock);
 
 	/* Remember the third party task hash. */
 	ipc_set_arg5(&call->data, (sysarg_t) other_task_s);
 
-	kobject_put(sender_obj);
+	kobject_put(&sender_phone->kobject);
 	return EOK;
 }
 
@@ -76,23 +76,23 @@ static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		task_t *other_task_s;
 		task_t *other_task_r;
 
-		kobject_t *recipient_obj = kobject_get(TASK,
+		phone_t *recipient_phone = phone_from_kobject(kobject_get(TASK,
 		    (cap_handle_t) ipc_get_arg1(&answer->data),
-		    KOBJECT_TYPE_PHONE);
-		if (!recipient_obj) {
+		    KOBJECT_TYPE_PHONE));
+		if (!recipient_phone) {
 			ipc_set_retval(&answer->data, ENOENT);
 			return ENOENT;
 		}
 
-		mutex_lock(&recipient_obj->phone->lock);
-		if (recipient_obj->phone->state != IPC_PHONE_CONNECTED) {
-			mutex_unlock(&recipient_obj->phone->lock);
+		mutex_lock(&recipient_phone->lock);
+		if (recipient_phone->state != IPC_PHONE_CONNECTED) {
+			mutex_unlock(&recipient_phone->lock);
 			ipc_set_retval(&answer->data, EINVAL);
-			kobject_put(recipient_obj);
+			kobject_put(&recipient_phone->kobject);
 			return EINVAL;
 		}
 
-		other_task_r = recipient_obj->phone->callee->task;
+		other_task_r = recipient_phone->callee->task;
 		other_task_s = (task_t *) ipc_get_arg5(olddata);
 
 		/*
@@ -113,8 +113,8 @@ static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 			ipc_set_retval(&answer->data, rc);
 		}
 
-		mutex_unlock(&recipient_obj->phone->lock);
-		kobject_put(recipient_obj);
+		mutex_unlock(&recipient_phone->lock);
+		kobject_put(&recipient_phone->kobject);
 	}
 
 	return rc;

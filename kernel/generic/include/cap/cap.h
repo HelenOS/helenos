@@ -36,13 +36,14 @@
 #define KERN_CAP_H_
 
 #include <abi/cap.h>
-#include <typedefs.h>
-#include <adt/list.h>
-#include <adt/hash.h>
 #include <adt/hash_table.h>
-#include <lib/ra.h>
-#include <synch/mutex.h>
+#include <adt/hash.h>
+#include <adt/list.h>
 #include <atomic.h>
+#include <lib/ra.h>
+#include <lib/refcount.h>
+#include <synch/mutex.h>
+#include <typedefs.h>
 
 typedef enum {
 	CAP_STATE_FREE,
@@ -58,15 +59,10 @@ typedef enum {
 	KOBJECT_TYPE_MAX
 } kobject_type_t;
 
-struct task;
-
-struct call;
-struct irq;
-struct phone;
-struct waitq;
+struct kobject;
 
 typedef struct kobject_ops {
-	void (*destroy)(void *);
+	void (*destroy)(struct kobject *);
 } kobject_ops_t;
 
 extern kobject_ops_t *kobject_ops[];
@@ -75,24 +71,16 @@ extern kobject_ops_t *kobject_ops[];
 
 /*
  * Everything in kobject_t except for the atomic reference count, the capability
- * list and its lock is imutable.
+ * list and its lock is immutable.
  */
 typedef struct kobject {
 	kobject_type_t type;
-	atomic_size_t refcnt;
+	atomic_refcount_t refcnt;
 
 	/** Mutex protecting caps_list */
 	mutex_t caps_list_lock;
 	/** List of published capabilities associated with the kobject */
 	list_t caps_list;
-
-	union {
-		void *raw;
-		struct call *call;
-		struct irq *irq;
-		struct phone *phone;
-		struct waitq *waitq;
-	};
 } kobject_t;
 
 /*
@@ -128,7 +116,8 @@ typedef struct cap_info {
 extern void caps_init(void);
 extern errno_t caps_task_alloc(struct task *);
 extern void caps_task_free(struct task *);
-extern void caps_task_init(struct task *);
+extern void caps_task_clear(struct task *task);
+extern errno_t caps_task_init(struct task *);
 extern bool caps_apply_to_kobject_type(struct task *, kobject_type_t,
     bool (*)(cap_t *, void *), void *);
 
@@ -138,9 +127,7 @@ extern kobject_t *cap_unpublish(struct task *, cap_handle_t, kobject_type_t);
 extern void cap_revoke(kobject_t *);
 extern void cap_free(struct task *, cap_handle_t);
 
-extern kobject_t *kobject_alloc(unsigned int);
-extern void kobject_free(kobject_t *);
-extern void kobject_initialize(kobject_t *, kobject_type_t, void *);
+extern void kobject_initialize(kobject_t *, kobject_type_t);
 extern kobject_t *kobject_get(struct task *, cap_handle_t, kobject_type_t);
 extern void kobject_add_ref(kobject_t *);
 extern void kobject_put(kobject_t *);
