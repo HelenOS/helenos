@@ -34,7 +34,7 @@ if MACHINE == 'virt'
 	GRUB_LOADER = 'chainloader'
 endif
 
-if MACHINE == 'hikey960'
+if MACHINE == 'hikey960' or MACHINE == 'quartz64a'
 	POSTBUILD = 'raw'
 	POST_OUTPUT = 'image.boot'
 endif

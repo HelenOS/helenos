@@ -107,6 +107,16 @@ _NO_TRACE static inline void pio_write_32(ioport32_t *port, uint32_t val)
 	*port = val;
 }
 
+/** Output double-word to port.
+ *
+ * @param port Port to write to.
+ * @param val  Value to write.
+ */
+_NO_TRACE static inline void pio_write_64(ioport64_t *port, uint64_t val)
+{
+	*port = val;
+}
+
 /** Get byte from port.
  *
  * @param port Port to read from.
@@ -117,7 +127,7 @@ _NO_TRACE static inline uint8_t pio_read_8(const ioport8_t *port)
 	return *port;
 }
 
-/** Get word from port.
+/** Get half-word from port.
  *
  * @param port Port to read from.
  * @return Value read.
@@ -127,12 +137,22 @@ _NO_TRACE static inline uint16_t pio_read_16(const ioport16_t *port)
 	return *port;
 }
 
-/** Get double word from port.
+/** Get word from port.
  *
  * @param port Port to read from.
  * @return Value read.
  */
 _NO_TRACE static inline uint32_t pio_read_32(const ioport32_t *port)
+{
+	return *port;
+}
+
+/** Get double-word from port.
+ *
+ * @param port Port to read from.
+ * @return Value read.
+ */
+_NO_TRACE static inline uint64_t pio_read_64(const ioport64_t *port)
 {
 	return *port;
 }

@@ -663,6 +663,9 @@ static void kbd_add_legacy_devs(void)
 #if defined(UARCH_arm64) && defined(MACHINE_hikey960)
 	kbd_add_dev(&chardev_port, &stty_ctl);
 #endif
+#if defined(UARCH_arm64) && defined(MACHINE_quartz64a)
+	kbd_add_dev(&chardev_port, &stty_ctl);
+#endif
 	/* Silence warning on abs32le about kbd_add_dev() being unused */
 	(void) kbd_add_dev;
 }

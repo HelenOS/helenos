@@ -184,7 +184,7 @@ static void gicv2_connection(ipc_call_t *icall, void *arg)
 	/*
 	 * Answer the first IPC_M_CONNECT_ME_TO call.
 	 */
-	async_answer_0(icall, EOK);
+	async_accept_0(icall);
 
 	gicv2 = (gicv2_t *)ddf_dev_data_get(ddf_fun_get_dev((ddf_fun_t *)arg));
 
