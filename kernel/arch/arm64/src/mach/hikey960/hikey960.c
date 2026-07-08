@@ -69,10 +69,18 @@ static void hikey960_irq_exception(unsigned int exc_no, istate_t *istate)
 	unsigned int inum, cpuid;
 	gicv2_inum_get(&hikey960.gicv2, &inum, &cpuid);
 
+	bool ack = false;
+
 	/* Dispatch the interrupt. */
 	irq_t *irq = irq_dispatch_and_lock(inum);
 	if (irq) {
 		/* The IRQ handler was found. */
+		if (irq->preack) {
+			/* Signal end of interrupt before processing it. */
+			gicv2_end(&hikey960.gicv2, inum, cpuid);
+			ack = true;
+		}
+
 		irq->handler(irq);
 		irq_spinlock_unlock(&irq->lock, false);
 	} else {
@@ -80,8 +88,10 @@ static void hikey960_irq_exception(unsigned int exc_no, istate_t *istate)
 		printf("cpu%d: spurious interrupt (inum=%u)\n", CPU->id, inum);
 	}
 
-	/* Signal end of interrupt to the controller. */
-	gicv2_end(&hikey960.gicv2, inum, cpuid);
+	if (!ack) {
+		/* Signal end of interrupt to the controller. */
+		gicv2_end(&hikey960.gicv2, inum, cpuid);
+	}
 }
 
 static void hikey960_output_init(void)
