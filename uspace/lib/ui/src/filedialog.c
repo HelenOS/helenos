@@ -36,6 +36,7 @@
 #include <errno.h>
 #include <mem.h>
 #include <stdlib.h>
+#include <str.h>
 #include <ui/entry.h>
 #include <ui/fixed.h>
 #include <ui/label.h>
@@ -46,6 +47,8 @@
 #include <ui/ui.h>
 #include <ui/window.h>
 #include "../private/filedialog.h"
+
+static void ui_file_dialog_bok(ui_file_dialog_t *, const char *);
 
 static void ui_file_dialog_wnd_resize(ui_window_t *, void *);
 static void ui_file_dialog_wnd_close(ui_window_t *, void *);
@@ -546,11 +549,8 @@ static void ui_file_dialog_wnd_kbd(ui_window_t *window, void *arg,
 	    (event->mods & (KM_CTRL | KM_SHIFT | KM_ALT)) == 0) {
 		if (event->key == KC_ENTER) {
 			/* Confirm */
-			if (dialog->cb != NULL && dialog->cb->bok != NULL) {
-				fname = ui_entry_get_text(dialog->ename);
-				dialog->cb->bok(dialog, dialog->arg, fname);
-				return;
-			}
+			fname = ui_entry_get_text(dialog->ename);
+			ui_file_dialog_bok(dialog, fname);
 		} else if (event->key == KC_ESCAPE) {
 			/* Cancel */
 			if (dialog->cb != NULL && dialog->cb->bcancel != NULL) {
@@ -574,7 +574,7 @@ static void ui_file_dialog_flist_selected(ui_file_list_t *flist, void *arg,
 {
 	ui_file_dialog_t *dialog = (ui_file_dialog_t *) arg;
 
-	dialog->cb->bok(dialog, dialog->arg, fname);
+	ui_file_dialog_bok(dialog, fname);
 }
 
 static void ui_file_dialog_flist_dir_selected(ui_file_list_t *flist, void *arg,
@@ -604,10 +604,8 @@ static void ui_file_dialog_bok_clicked(ui_pbutton_t *pbutton, void *arg)
 	ui_file_dialog_t *dialog = (ui_file_dialog_t *) arg;
 	const char *fname;
 
-	if (dialog->cb != NULL && dialog->cb->bok != NULL) {
-		fname = ui_entry_get_text(dialog->ename);
-		dialog->cb->bok(dialog, dialog->arg, fname);
-	}
+	fname = ui_entry_get_text(dialog->ename);
+	ui_file_dialog_bok(dialog, fname);
 }
 
 /** File dialog cancel button click handler.
@@ -621,6 +619,33 @@ static void ui_file_dialog_bcancel_clicked(ui_pbutton_t *pbutton, void *arg)
 
 	if (dialog->cb != NULL && dialog->cb->bcancel != NULL)
 		dialog->cb->bcancel(dialog, dialog->arg);
+}
+
+/** Call file dialog bok callback to inform caller that dialog was confirmed.
+ *
+ * @param dialog File dialog
+ * @param fname Selected file name
+ */
+static void ui_file_dialog_bok(ui_file_dialog_t *dialog, const char *fname)
+{
+	char *dfname;
+
+	/*
+	 * fname can point to an object that is part of dialog. The
+	 * user handler might destroy dialog as part of its processing
+	 * and later access the file name.
+	 *
+	 * Need pass it file name in a buffer that will remain valid
+	 * until the completion of the user handler.
+	 */
+	dfname = str_dup(fname);
+	if (dfname == NULL)
+		return;
+
+	if (dialog->cb != NULL && dialog->cb->bok != NULL)
+		dialog->cb->bok(dialog, dialog->arg, dfname);
+
+	free(dfname);
 }
 
 /** @}
