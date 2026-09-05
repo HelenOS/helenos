@@ -70,6 +70,7 @@ answerbox_t *ipc_box_0 = NULL;
 static slab_cache_t *call_cache;
 static slab_cache_t *answerbox_cache;
 
+slab_cache_t *irq_cache = NULL;
 slab_cache_t *phone_cache = NULL;
 
 /** Initialize a call structure.
@@ -86,16 +87,17 @@ static void _ipc_call_init(call_t *call)
 	call->sender = NULL;
 	call->callerbox = NULL;
 	call->buffer = NULL;
+	kobject_initialize(&call->kobject, KOBJECT_TYPE_CALL);
 }
 
-static void call_destroy(void *arg)
+static void call_destroy(kobject_t *arg)
 {
-	call_t *call = (call_t *) arg;
+	call_t *call = call_from_kobject(arg);
 
 	if (call->buffer)
 		free(call->buffer);
 	if (call->caller_phone)
-		kobject_put(call->caller_phone->kobject);
+		kobject_put(&call->caller_phone->kobject);
 	slab_free(call_cache, call);
 }
 
@@ -113,21 +115,11 @@ kobject_ops_t call_kobject_ops = {
  */
 call_t *ipc_call_alloc(void)
 {
-	// TODO: Allocate call and kobject in single allocation
-
 	call_t *call = slab_alloc(call_cache, FRAME_ATOMIC);
 	if (!call)
 		return NULL;
 
-	kobject_t *kobj = kobject_alloc(0);
-	if (!kobj) {
-		slab_free(call_cache, call);
-		return NULL;
-	}
-
 	_ipc_call_init(call);
-	kobject_initialize(kobj, KOBJECT_TYPE_CALL, call);
-	call->kobject = kobj;
 
 	return call;
 }
@@ -180,7 +172,7 @@ bool ipc_phone_connect(phone_t *phone, answerbox_t *box)
 
 	if (!connected) {
 		/* We still have phone->kobject's reference; drop it */
-		kobject_put(phone->kobject);
+		kobject_put(&phone->kobject);
 	}
 
 	return connected;
@@ -200,7 +192,7 @@ void ipc_phone_init(phone_t *phone, task_t *caller)
 	phone->state = IPC_PHONE_FREE;
 	atomic_store(&phone->active_calls, 0);
 	phone->label = 0;
-	phone->kobject = NULL;
+	kobject_initialize(&phone->kobject, KOBJECT_TYPE_PHONE);
 }
 
 /** Helper function to facilitate synchronous calls.
@@ -293,7 +285,7 @@ void _ipc_answer_free_call(call_t *call, bool selflocked)
 	if (call->forget) {
 		/* This is a forgotten call and call->sender is not valid. */
 		spinlock_unlock(&call->forget_lock);
-		kobject_put(call->kobject);
+		kobject_put(&call->kobject);
 		return;
 	} else {
 		/*
@@ -351,7 +343,7 @@ static void _ipc_call_actions_internal(phone_t *phone, call_t *call,
 	task_t *caller = phone->caller;
 
 	call->caller_phone = phone;
-	kobject_add_ref(phone->kobject);
+	kobject_add_ref(&phone->kobject);
 
 	if (preforget) {
 		call->forget = true;
@@ -361,7 +353,7 @@ static void _ipc_call_actions_internal(phone_t *phone, call_t *call,
 			atomic_inc(&call->callerbox->active_calls);
 		else
 			atomic_inc(&caller->answerbox.active_calls);
-		kobject_add_ref(phone->kobject);
+		kobject_add_ref(&phone->kobject);
 		call->sender = caller;
 		call->active = true;
 		spinlock_lock(&caller->active_calls_lock);
@@ -478,7 +470,7 @@ errno_t ipc_phone_hangup(phone_t *phone)
 		irq_spinlock_unlock(&box->lock, true);
 
 		/* Drop the answerbox reference */
-		kobject_put(phone->kobject);
+		kobject_put(&phone->kobject);
 
 		call_t *call = phone->hangup_call;
 		phone->hangup_call = NULL;
@@ -580,7 +572,7 @@ errno_t ipc_wait_for_call(answerbox_t *box, uint32_t usec, unsigned int flags,
 		list_remove(&request->ab_link);
 		atomic_dec(&request->caller_phone->active_calls);
 		atomic_dec(&box->active_calls);
-		kobject_put(request->caller_phone->kobject);
+		kobject_put(&request->caller_phone->kobject);
 	} else if (!list_empty(&box->calls)) {
 		/* Count received call */
 		call_cnt++;
@@ -696,14 +688,14 @@ restart_phones:
 
 			task_release(phone->caller);
 
-			kobject_put(phone->kobject);
+			kobject_put(&phone->kobject);
 
 			/* Must start again */
 			goto restart_phones;
 		}
 
 		mutex_unlock(&phone->lock);
-		kobject_put(phone->kobject);
+		kobject_put(&phone->kobject);
 	}
 
 	irq_spinlock_unlock(&box->lock, true);
@@ -727,18 +719,18 @@ static void ipc_forget_call(call_t *call)
 	 * with it; to avoid working with a destroyed call_t structure, we
 	 * must hold a reference to it.
 	 */
-	kobject_add_ref(call->kobject);
+	kobject_add_ref(&call->kobject);
 
 	spinlock_unlock(&call->forget_lock);
 	spinlock_unlock(&TASK->active_calls_lock);
 
 	atomic_dec(&call->caller_phone->active_calls);
 	atomic_dec(&TASK->answerbox.active_calls);
-	kobject_put(call->caller_phone->kobject);
+	kobject_put(&call->caller_phone->kobject);
 
 	SYSIPC_OP(request_forget, call);
 
-	kobject_put(call->kobject);
+	kobject_put(&call->kobject);
 }
 
 static void ipc_forget_all_active_calls(void)
@@ -776,7 +768,7 @@ restart:
 
 static bool phone_cap_cleanup_cb(cap_t *cap, void *arg)
 {
-	ipc_phone_hangup(cap->kobject->phone);
+	ipc_phone_hangup(phone_from_kobject(cap->kobject));
 	kobject_t *kobj = cap_unpublish(cap->task, cap->handle,
 	    KOBJECT_TYPE_PHONE);
 	kobject_put(kobj);
@@ -797,7 +789,7 @@ static void ipc_wait_for_all_answered_calls(void)
 
 		SYSIPC_OP(answer_process, call);
 
-		kobject_put(call->kobject);
+		kobject_put(&call->kobject);
 
 		/*
 		 * Now there may be some new phones and new hangup calls to
@@ -891,6 +883,8 @@ void ipc_init(void)
 	    NULL, 0);
 	answerbox_cache = slab_cache_create("answerbox_t", sizeof(answerbox_t),
 	    0, NULL, NULL, 0);
+	irq_cache = slab_cache_create("irq_t", sizeof(irq_kobject_t),
+	    0, NULL, NULL, 0);
 }
 
 static void ipc_print_call_list(list_t *list)
@@ -926,7 +920,7 @@ static void ipc_print_call_list(list_t *list)
 
 static bool print_task_phone_cb(cap_t *cap, void *arg)
 {
-	phone_t *phone = cap->kobject->phone;
+	phone_t *phone = phone_from_kobject(cap->kobject);
 
 	mutex_lock(&phone->lock);
 	if (phone->state != IPC_PHONE_FREE) {
