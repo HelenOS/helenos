@@ -1258,7 +1258,11 @@ errno_t vfs_unmount_path(const char *mpp)
 /** Walk a path starting in a parent node
  *
  * @param parent        File handle of the parent node where the walk starts
- * @param path          Parent-relative path to be walked
+ * @param path          Parent-relative absolute path to be walked (an
+ *                      absolute path with the parent being the root).
+ *                      If /foo is parent and path is "/bar/baz", the
+ *                      result would be /foo/bar/baz. Just "bar/baz" is
+ *                      not valid.
  * @param flags         Flags influencing the walk
  * @param[out] handle   File handle representing the result on success.
  *
