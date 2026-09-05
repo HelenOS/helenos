@@ -307,6 +307,28 @@ errno_t wndmgt_activate_window(wndmgt_t *wndmgt, sysarg_t dev_id,
 	return rc;
 }
 
+/** Deactivate (minimize) window.
+ *
+ * @param wndmgt Window management session
+ * @param dev_id ID of input device belonging to seat whose
+ *               focus is to be switched
+ * @param wnd_id Window ID
+ * @return EOK on success or an error code
+ */
+errno_t wndmgt_deactivate_window(wndmgt_t *wndmgt, sysarg_t dev_id,
+    sysarg_t wnd_id)
+{
+	async_exch_t *exch;
+	errno_t rc;
+
+	exch = async_exchange_begin(wndmgt->sess);
+	rc = async_req_2_0(exch, WNDMGT_DEACTIVATE_WINDOW, dev_id,
+	    wnd_id);
+
+	async_exchange_end(exch);
+	return rc;
+}
+
 /** Close window.
  *
  * @param wndmgt Window management

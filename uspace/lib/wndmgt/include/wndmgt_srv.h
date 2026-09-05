@@ -52,6 +52,7 @@ struct wndmgt_ops {
 	errno_t (*get_window_list)(void *, wndmgt_window_list_t **);
 	errno_t (*get_window_info)(void *, sysarg_t, wndmgt_window_info_t **);
 	errno_t (*activate_window)(void *, sysarg_t, sysarg_t);
+	errno_t (*deactivate_window)(void *, sysarg_t, sysarg_t);
 	errno_t (*close_window)(void *, sysarg_t);
 	errno_t (*get_event)(void *, wndmgt_ev_t *);
 };
