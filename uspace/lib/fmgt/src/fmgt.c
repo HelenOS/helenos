@@ -188,6 +188,7 @@ static void fmgt_get_progress(fmgt_t *fmgt, fmgt_progress_t *progress)
 		    progress->curf_totalb, sizeof(progress->curf_totalb));
 		snprintf(progress->curf_percent, sizeof(progress->curf_percent),
 		    "%u%%", percent);
+		progress->curf_int_percent = (uint8_t)percent;
 		capa_blocks_format_buf(fmgt->total_procb, 1,
 		    progress->total_procb, sizeof(progress->total_procb));
 	} else {

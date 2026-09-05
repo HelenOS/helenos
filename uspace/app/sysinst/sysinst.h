@@ -44,6 +44,7 @@
 #include <system.h>
 #include <ui/fixed.h>
 #include <ui/label.h>
+#include <ui/progress.h>
 #include <ui/ui.h>
 #include <ui/window.h>
 
@@ -53,7 +54,8 @@ typedef struct {
 	ui_fixed_t *fixed;
 	ui_label_t *label;
 	ui_label_t *action;
-	ui_label_t *progress;
+	ui_label_t *lprogress;
+	ui_progress_t *progress;
 } sysinst_progress_t;
 
 /** Installer operation */

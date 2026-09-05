@@ -481,6 +481,9 @@ static void sysinst_fmgt_progress(void *arg, fmgt_progress_t *progress)
 	snprintf(buf, sizeof(buf), "Copied %s files, %s; "
 	    "current file: %s done.", progress->total_procf,
 	    progress->total_procb, progress->curf_percent);
+	ui_progress_set_value(sysinst->progress->progress,
+	    progress->curf_int_percent);
+	(void)ui_progress_paint(sysinst->progress->progress);
 	sysinst_progress(sysinst, buf);
 }
 
@@ -1463,12 +1466,12 @@ static errno_t sysinst_progress_create(sysinst_t *sysinst,
 		params.rect.p0.x = 0;
 		params.rect.p0.y = 0;
 		params.rect.p1.x = 64;
-		params.rect.p1.y = 7;
+		params.rect.p1.y = 8;
 	} else {
 		params.rect.p0.x = 0;
 		params.rect.p0.y = 0;
 		params.rect.p1.x = 500;
-		params.rect.p1.y = 90;
+		params.rect.p1.y = 125;
 	}
 
 	progress = calloc(1, sizeof(sysinst_progress_t));
@@ -1560,7 +1563,7 @@ static errno_t sysinst_progress_create(sysinst_t *sysinst,
 
 	/* Progress line */
 	rc = ui_label_create(ui_res, "",
-	    &progress->progress);
+	    &progress->lprogress);
 	if (rc != EOK) {
 		sysinst_error(sysinst, "Error creating label.");
 		goto error;
@@ -1570,22 +1573,51 @@ static errno_t sysinst_progress_create(sysinst_t *sysinst,
 		rect.p0.x = arect.p0.x;
 		rect.p0.y = 5;
 		rect.p1.x = arect.p1.x;
-		rect.p1.y = arect.p1.y;
+		rect.p1.y = 6;
 	} else {
 		rect.p0.x = arect.p0.x;
 		rect.p0.y = 70;
 		rect.p1.x = arect.p1.x;
-		rect.p1.y = arect.p1.y;
+		rect.p1.y = 90;
 	}
-	ui_label_set_rect(progress->progress, &rect);
-	ui_label_set_halign(progress->progress, gfx_halign_center);
-	ui_label_set_valign(progress->progress, gfx_valign_top);
+	ui_label_set_rect(progress->lprogress, &rect);
+	ui_label_set_halign(progress->lprogress, gfx_halign_center);
+	ui_label_set_valign(progress->lprogress, gfx_valign_top);
 
-	rc = ui_fixed_add(fixed, ui_label_ctl(progress->progress));
+	rc = ui_fixed_add(fixed, ui_label_ctl(progress->lprogress));
 	if (rc != EOK) {
 		sysinst_error(sysinst, "Error adding control to layout.");
 		ui_label_destroy(progress->label);
 		progress->label = NULL;
+		goto error;
+	}
+
+	/* Progress bar */
+	rc = ui_progress_create(ui_res, 0, &progress->progress);
+	if (rc != EOK) {
+		sysinst_error(sysinst, "Error creating progress bar.");
+		goto error;
+	}
+
+	if (ui_is_textmode(sysinst->ui)) {
+		rect.p0.x = arect.p0.x;
+		rect.p0.y = 6;
+		rect.p1.x = arect.p1.x;
+		rect.p1.y = arect.p1.y;
+	} else {
+		rect.p0.x = arect.p0.x;
+		rect.p0.y = 90;
+		rect.p1.x = arect.p1.x;
+		rect.p1.y = 115;
+	}
+
+	ui_progress_set_rect(progress->progress, &rect);
+
+	rc = ui_fixed_add(fixed, ui_progress_ctl(progress->progress));
+	if (rc != EOK) {
+		sysinst_error(sysinst, "Error adding control to layout.");
+		ui_progress_destroy(progress->progress);
+		progress->progress = NULL;
 		goto error;
 	}
 
@@ -1639,8 +1671,8 @@ static void sysinst_progress(sysinst_t *sysinst, const char *progress)
 	if (sysinst->progress == NULL)
 		return;
 
-	ui_label_set_text(sysinst->progress->progress, progress);
-	ui_label_paint(sysinst->progress->progress);
+	ui_label_set_text(sysinst->progress->lprogress, progress);
+	ui_label_paint(sysinst->progress->lprogress);
 }
 
 /** Set current action message.

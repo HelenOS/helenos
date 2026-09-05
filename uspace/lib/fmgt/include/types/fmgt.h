@@ -42,6 +42,7 @@
 #include <errno.h>
 #include <fibril_synch.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 #define FMGT_FILE_COUNT_BUFSIZE 16
 
@@ -55,6 +56,8 @@ typedef struct {
 	char curf_totalb[CAPA_BLOCKS_BUFSIZE];
 	/** Percent of current file processed */
 	char curf_percent[5];
+	/** Percent of current file processed */
+	uint8_t curf_int_percent;
 	/** Total number of bytes processed */
 	char total_procb[CAPA_BLOCKS_BUFSIZE];
 	/** Number of files processed */
