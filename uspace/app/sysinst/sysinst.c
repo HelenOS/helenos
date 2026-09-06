@@ -1466,7 +1466,7 @@ static errno_t sysinst_progress_create(sysinst_t *sysinst,
 		params.rect.p0.x = 0;
 		params.rect.p0.y = 0;
 		params.rect.p1.x = 64;
-		params.rect.p1.y = 8;
+		params.rect.p1.y = 10;
 	} else {
 		params.rect.p0.x = 0;
 		params.rect.p0.y = 0;
@@ -1600,14 +1600,14 @@ static errno_t sysinst_progress_create(sysinst_t *sysinst,
 	}
 
 	if (ui_is_textmode(sysinst->ui)) {
-		rect.p0.x = arect.p0.x;
-		rect.p0.y = 6;
-		rect.p1.x = arect.p1.x;
-		rect.p1.y = arect.p1.y;
+		rect.p0.x = arect.p0.x + 2;
+		rect.p0.y = 7;
+		rect.p1.x = arect.p1.x - 2;
+		rect.p1.y = 8;
 	} else {
-		rect.p0.x = arect.p0.x;
+		rect.p0.x = arect.p0.x + 8;
 		rect.p0.y = 90;
-		rect.p1.x = arect.p1.x;
+		rect.p1.x = arect.p1.x - 8;
 		rect.p1.y = 115;
 	}
 

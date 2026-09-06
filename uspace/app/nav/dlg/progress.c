@@ -89,6 +89,7 @@ errno_t progress_dlg_create(ui_t *ui, progress_dlg_params_t *params,
 	ui_wnd_params_t wparams;
 	ui_fixed_t *fixed = NULL;
 	ui_label_t *label = NULL;
+	ui_progress_t *progress = NULL;
 	ui_pbutton_t *babort = NULL;
 	gfx_rect_t rect;
 	ui_resource_t *ui_res;
@@ -182,6 +183,32 @@ errno_t progress_dlg_create(ui_t *ui, progress_dlg_params_t *params,
 	dialog->lcurf_prog = label;
 	label = NULL;
 
+	rc = ui_progress_create(ui_res, 0, &progress);
+	if (rc != EOK)
+		goto error;
+
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(ui)) {
+		rect.p0.x = 2;
+		rect.p0.y = 6;
+		rect.p1.x = 48;
+		rect.p1.y = 7;
+	} else {
+		rect.p0.x = 10;
+		rect.p0.y = 35;
+		rect.p1.x = 390;
+		rect.p1.y = 50;
+	}
+
+	ui_progress_set_rect(progress, &rect);
+
+	rc = ui_fixed_add(fixed, ui_progress_ctl(progress));
+	if (rc != EOK)
+		goto error;
+
+	dialog->curf_prog = progress;
+	progress = NULL;
+
 	rc = ui_pbutton_create(ui_res, "Abort", &babort);
 	if (rc != EOK)
 		goto error;
@@ -227,6 +254,8 @@ error:
 		free(name);
 	if (babort != NULL)
 		ui_pbutton_destroy(babort);
+	if (progress != NULL)
+		ui_progress_destroy(progress);
 	if (label != NULL)
 		ui_label_destroy(label);
 	if (fixed != NULL)
@@ -303,6 +332,13 @@ errno_t progress_dlg_set_progress(progress_dlg_t *dialog,
 			return rc;
 
 		rc = ui_label_paint(dialog->lcurf_prog);
+		if (rc != EOK)
+			return rc;
+
+		ui_progress_set_value(dialog->curf_prog,
+		    progress->curf_int_percent);
+
+		rc = ui_progress_paint(dialog->curf_prog);
 		if (rc != EOK)
 			return rc;
 	}

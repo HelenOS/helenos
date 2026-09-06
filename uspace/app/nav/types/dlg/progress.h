@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,7 @@
 #include <errno.h>
 #include <ui/label.h>
 #include <ui/pbutton.h>
+#include <ui/progress.h>
 #include <ui/window.h>
 
 /** Progress dialog */
@@ -49,6 +50,8 @@ typedef struct progress_dlg {
 	ui_label_t *ltotal_prog;
 	/** Label with current file progress */
 	ui_label_t *lcurf_prog;
+	/** Progress bar with current file progress */
+	ui_progress_t *curf_prog;
 	/** Abort button */
 	ui_pbutton_t *babort;
 	/** New file dialog callbacks */
