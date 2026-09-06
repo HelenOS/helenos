@@ -750,41 +750,15 @@ static void ui_demo_timer_fun(void *arg)
 	    ui_demo_timer_fun, (void *)demo);
 }
 
-/** Create UI demo.
+/** Create UI demo menus.
  *
- * @param display_spec Display specification
- * @param rdemo Place to store pointer to new demo
+ * @param demo UI demo
+ * @param fixed Fixed layout where menu bar is to be added
  * @return EOK on success or an error code
  */
-static errno_t ui_demo_create(const char *display_spec, ui_demo_t **rdemo)
+static errno_t ui_demo_menus_create(ui_demo_t *demo, ui_fixed_t *fixed)
 {
-	ui_wnd_params_t params;
-	ui_demo_t *demo = NULL;
-	ui_fixed_t *fixed = NULL;
-	ui_fixed_t *bfixed = NULL;
-	ui_fixed_t *lfixed = NULL;
-	ui_fixed_t *bars_fixed = NULL;
-	ui_entry_t *entry = NULL;
-	ui_label_t *label = NULL;
-	ui_pbutton_t *pb1 = NULL;
-	ui_pbutton_t *pb2 = NULL;
-	ui_image_t *image = NULL;
-	ui_checkbox_t *checkbox = NULL;
-	ui_rbutton_group_t *rbgroup = NULL;
-	ui_rbutton_t *rbleft = NULL;
-	ui_rbutton_t *rbcenter = NULL;
-	ui_rbutton_t *rbright = NULL;
-	ui_slider_t *slider = NULL;
-	ui_scrollbar_t *hscrollbar = NULL;
-	ui_scrollbar_t *vscrollbar = NULL;
-	ui_progress_t *progress = NULL;
-	ui_list_t *list = NULL;
 	gfx_rect_t rect;
-	gfx_context_t *gc;
-	ui_resource_t *ui_res;
-	gfx_bitmap_params_t bparams;
-	gfx_bitmap_t *bitmap = NULL;
-	gfx_coord2_t off;
 	ui_menu_bar_t *menubar = NULL;
 	ui_menu_entry_t *mmsg;
 	ui_menu_entry_t *mload;
@@ -796,56 +770,7 @@ static errno_t ui_demo_create(const char *display_spec, ui_demo_t **rdemo)
 	ui_menu_entry_t *mmodify;
 	ui_menu_entry_t *minsert_char;
 	ui_menu_entry_t *mabout;
-	ui_tab_set_t *tabset = NULL;
-	ui_list_entry_attr_t eattr;
 	errno_t rc;
-
-	demo = calloc(1, sizeof(ui_demo_t));
-	if (demo == NULL)
-		goto error;
-
-	rc = ui_create(display_spec, &demo->ui);
-	if (rc != EOK) {
-		printf("Error creating UI on display %s.\n", display_spec);
-		goto error;
-	}
-
-	ui_wnd_params_init(&params);
-	params.caption = "UI Demo";
-	params.style |= ui_wds_maximize_btn | ui_wds_resizable;
-
-	/* FIXME: Auto layout */
-	if (ui_is_textmode(demo->ui)) {
-		params.rect.p0.x = 0;
-		params.rect.p0.y = 0;
-		params.rect.p1.x = 46;
-		params.rect.p1.y = 25;
-	} else {
-		params.rect.p0.x = 0;
-		params.rect.p0.y = 0;
-		params.rect.p1.x = 255;
-		params.rect.p1.y = 410;
-	}
-
-	/* Only allow making the window larger */
-	gfx_rect_dims(&params.rect, &params.min_size);
-
-	rc = ui_window_create(demo->ui, &params, &demo->window);
-	if (rc != EOK) {
-		printf("Error creating window.\n");
-		goto error;
-	}
-
-	ui_window_set_cb(demo->window, &window_cb, (void *)demo);
-
-	ui_res = ui_window_get_res(demo->window);
-	gc = ui_window_get_gc(demo->window);
-
-	rc = ui_fixed_create(&fixed);
-	if (rc != EOK) {
-		printf("Error creating fixed layout.\n");
-		goto error;
-	}
 
 	rc = ui_menu_bar_create(demo->ui, demo->window, &menubar);
 	if (rc != EOK) {
@@ -981,54 +906,50 @@ static errno_t ui_demo_create(const char *display_spec, ui_demo_t **rdemo)
 		goto error;
 	}
 
-	menubar = NULL;
+	return EOK;
+error:
+	ui_menu_bar_destroy(menubar);
+	return rc;
+}
 
-	rc = ui_tab_set_create(ui_res, &tabset);
-	if (rc != EOK) {
-		printf("Error creating tab set.\n");
-		goto error;
-	}
+/** Create UI demo basic tab.
+ *
+ * @param demo UI demo
+ * @param tabset Tab set
+ * @return EOK on success or an error code
+ */
+static errno_t ui_demo_tab_basic_create(ui_demo_t *demo, ui_tab_set_t *tabset)
+{
+	ui_fixed_t *bfixed = NULL;
+	ui_entry_t *entry = NULL;
+	ui_label_t *label = NULL;
+	ui_pbutton_t *pb1 = NULL;
+	ui_pbutton_t *pb2 = NULL;
+	ui_image_t *image = NULL;
+	ui_checkbox_t *checkbox = NULL;
+	ui_rbutton_group_t *rbgroup = NULL;
+	ui_rbutton_t *rbleft = NULL;
+	ui_rbutton_t *rbcenter = NULL;
+	ui_rbutton_t *rbright = NULL;
+	ui_slider_t *slider = NULL;
+	ui_scrollbar_t *hscrollbar = NULL;
+	ui_scrollbar_t *vscrollbar = NULL;
+	gfx_rect_t rect;
+	gfx_bitmap_params_t bparams;
+	gfx_bitmap_t *bitmap = NULL;
+	gfx_coord2_t off;
+	ui_resource_t *ui_res;
+	gfx_context_t *gc;
+	errno_t rc;
 
-	/* FIXME: Auto layout */
-	if (ui_is_textmode(demo->ui)) {
-		rect.p0.x = 2;
-		rect.p0.y = 2;
-		rect.p1.x = 44;
-		rect.p1.y = 24;
-	} else {
-		rect.p0.x = 8;
-		rect.p0.y = 53;
-		rect.p1.x = 250;
-		rect.p1.y = 405;
-	}
-
-	ui_tab_set_set_rect(tabset, &rect);
+	ui_res = ui_window_get_res(demo->window);
+	gc = ui_window_get_gc(demo->window);
 
 	rc = ui_tab_create(tabset, "Basic", &demo->tbasic);
 	if (rc != EOK) {
 		printf("Error creating tab.\n");
 		goto error;
 	}
-
-	rc = ui_tab_create(tabset, "Lists", &demo->tlists);
-	if (rc != EOK) {
-		printf("Error creating tab.\n");
-		goto error;
-	}
-
-	rc = ui_tab_create(tabset, "Bars", &demo->tbars);
-	if (rc != EOK) {
-		printf("Error creating tab.\n");
-		goto error;
-	}
-
-	rc = ui_fixed_add(fixed, ui_tab_set_ctl(tabset));
-	if (rc != EOK) {
-		printf("Error adding control to layout.\n");
-		goto error;
-	}
-
-	tabset = NULL;
 
 	rc = ui_fixed_create(&bfixed);
 	if (rc != EOK) {
@@ -1184,7 +1105,7 @@ static errno_t ui_demo_create(const char *display_spec, ui_demo_t **rdemo)
 	if (rc != EOK)
 		goto error;
 
-	rc = ui_image_create(ui_res, bitmap, &params.rect, &image);
+	rc = ui_image_create(ui_res, bitmap, &bparams.rect, &image);
 	if (rc != EOK) {
 		printf("Error creating label.\n");
 		goto error;
@@ -1450,7 +1371,46 @@ static errno_t ui_demo_create(const char *display_spec, ui_demo_t **rdemo)
 	vscrollbar = NULL;
 
 	ui_tab_add(demo->tbasic, ui_fixed_ctl(bfixed));
-	bfixed = NULL;
+	return EOK;
+error:
+	ui_scrollbar_destroy(vscrollbar);
+	ui_scrollbar_destroy(hscrollbar);
+	ui_slider_destroy(slider);
+	ui_rbutton_destroy(rbright);
+	ui_rbutton_destroy(rbcenter);
+	ui_rbutton_destroy(rbleft);
+	ui_rbutton_group_destroy(rbgroup);
+	ui_checkbox_destroy(checkbox);
+	ui_image_destroy(image);
+	if (bitmap != NULL)
+		gfx_bitmap_destroy(bitmap);
+	ui_pbutton_destroy(pb1);
+	ui_pbutton_destroy(pb2);
+	ui_label_destroy(label);
+	ui_entry_destroy(entry);
+	ui_fixed_destroy(bfixed);
+	return rc;
+}
+
+/** Create UI demo lists tab.
+ *
+ * @param demo UI demo
+ * @param tabset Tab set
+ * @return EOK on success or an error code
+ */
+static errno_t ui_demo_tab_lists_create(ui_demo_t *demo, ui_tab_set_t *tabset)
+{
+	ui_fixed_t *lfixed = NULL;
+	ui_list_t *list = NULL;
+	gfx_rect_t rect;
+	ui_list_entry_attr_t eattr;
+	errno_t rc;
+
+	rc = ui_tab_create(tabset, "Lists", &demo->tlists);
+	if (rc != EOK) {
+		printf("Error creating tab.\n");
+		goto error;
+	}
 
 	rc = ui_fixed_create(&lfixed);
 	if (rc != EOK) {
@@ -1532,7 +1492,34 @@ static errno_t ui_demo_create(const char *display_spec, ui_demo_t **rdemo)
 	list = NULL;
 
 	ui_tab_add(demo->tlists, ui_fixed_ctl(lfixed));
-	lfixed = NULL;
+	return EOK;
+error:
+	ui_list_destroy(list);
+	ui_fixed_destroy(lfixed);
+	return rc;
+}
+
+/** Create UI demo bars tab.
+ *
+ * @param demo UI dmeo
+ * @parma tabset Tab set
+ * @return EOK on success or an error code
+ */
+static errno_t ui_demo_tab_bars_create(ui_demo_t *demo, ui_tab_set_t *tabset)
+{
+	ui_fixed_t *bars_fixed = NULL;
+	ui_progress_t *progress = NULL;
+	gfx_rect_t rect;
+	ui_resource_t *ui_res;
+	errno_t rc;
+
+	ui_res = ui_window_get_res(demo->window);
+
+	rc = ui_tab_create(tabset, "Bars", &demo->tbars);
+	if (rc != EOK) {
+		printf("Error creating tab.\n");
+		goto error;
+	}
 
 	rc = ui_fixed_create(&bars_fixed);
 	if (rc != EOK) {
@@ -1573,8 +1560,128 @@ static errno_t ui_demo_create(const char *display_spec, ui_demo_t **rdemo)
 	ui_tab_add(demo->tbars, ui_fixed_ctl(bars_fixed));
 	bars_fixed = NULL;
 
+	return EOK;
+error:
+	ui_progress_destroy(progress);
+	ui_fixed_destroy(bars_fixed);
+	return rc;
+}
+
+/** Create UI demo.
+ *
+ * @param display_spec Display specification
+ * @param rdemo Place to store pointer to new demo
+ * @return EOK on success or an error code
+ */
+static errno_t ui_demo_create(const char *display_spec, ui_demo_t **rdemo)
+{
+	ui_wnd_params_t params;
+	ui_demo_t *demo = NULL;
+	ui_fixed_t *fixed = NULL;
+	ui_fixed_t *bars_fixed = NULL;
+	ui_progress_t *progress = NULL;
+	gfx_rect_t rect;
+	ui_resource_t *ui_res;
+	ui_tab_set_t *tabset = NULL;
+	errno_t rc;
+
+	demo = calloc(1, sizeof(ui_demo_t));
+	if (demo == NULL)
+		goto error;
+
+	rc = ui_create(display_spec, &demo->ui);
+	if (rc != EOK) {
+		printf("Error creating UI on display %s.\n", display_spec);
+		goto error;
+	}
+
+	ui_wnd_params_init(&params);
+	params.caption = "UI Demo";
+	params.style |= ui_wds_maximize_btn | ui_wds_resizable;
+
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(demo->ui)) {
+		params.rect.p0.x = 0;
+		params.rect.p0.y = 0;
+		params.rect.p1.x = 46;
+		params.rect.p1.y = 25;
+	} else {
+		params.rect.p0.x = 0;
+		params.rect.p0.y = 0;
+		params.rect.p1.x = 255;
+		params.rect.p1.y = 410;
+	}
+
+	/* Only allow making the window larger */
+	gfx_rect_dims(&params.rect, &params.min_size);
+
+	rc = ui_window_create(demo->ui, &params, &demo->window);
+	if (rc != EOK) {
+		printf("Error creating window.\n");
+		goto error;
+	}
+
+	ui_window_set_cb(demo->window, &window_cb, (void *)demo);
+
+	ui_res = ui_window_get_res(demo->window);
+
+	rc = ui_fixed_create(&fixed);
+	if (rc != EOK) {
+		printf("Error creating fixed layout.\n");
+		goto error;
+	}
+
+	rc = ui_demo_menus_create(demo, fixed);
+	if (rc != EOK)
+		goto error;
+
+	rc = ui_tab_set_create(ui_res, &tabset);
+	if (rc != EOK) {
+		printf("Error creating tab set.\n");
+		goto error;
+	}
+
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(demo->ui)) {
+		rect.p0.x = 2;
+		rect.p0.y = 2;
+		rect.p1.x = 44;
+		rect.p1.y = 24;
+	} else {
+		rect.p0.x = 8;
+		rect.p0.y = 53;
+		rect.p1.x = 250;
+		rect.p1.y = 405;
+	}
+
+	ui_tab_set_set_rect(tabset, &rect);
+
+	rc = ui_demo_tab_basic_create(demo, tabset);
+	if (rc != EOK)
+		goto error;
+
+	rc = ui_demo_tab_lists_create(demo, tabset);
+	if (rc != EOK)
+		goto error;
+
+	rc = ui_demo_tab_bars_create(demo, tabset);
+	if (rc != EOK)
+		goto error;
+
+	rc = ui_fixed_add(fixed, ui_tab_set_ctl(tabset));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		goto error;
+	}
+
+	tabset = NULL;
+
 	ui_window_add(demo->window, ui_fixed_ctl(fixed));
 	fixed = NULL;
+
+	rc = ui_window_paint(demo->window);
+	if (rc != EOK)
+		goto error;
 
 	demo->timer = fibril_timer_create(NULL);
 	if (demo->timer == NULL) {
@@ -1585,37 +1692,11 @@ static errno_t ui_demo_create(const char *display_spec, ui_demo_t **rdemo)
 	fibril_timer_set(demo->timer, 1000 * scrollbar_update_interval_ms,
 	    ui_demo_timer_fun, (void *)demo);
 
-	rc = ui_window_paint(demo->window);
-	if (rc != EOK) {
-		printf("Error painting window.\n");
-		goto error;
-	}
-
 	*rdemo = demo;
 	return EOK;
 error:
 	ui_progress_destroy(progress);
-	ui_list_destroy(list);
-	ui_scrollbar_destroy(vscrollbar);
-	ui_scrollbar_destroy(hscrollbar);
-	ui_slider_destroy(slider);
-	ui_rbutton_destroy(rbright);
-	ui_rbutton_destroy(rbcenter);
-	ui_rbutton_destroy(rbleft);
-	ui_rbutton_group_destroy(rbgroup);
-	ui_checkbox_destroy(checkbox);
-	ui_image_destroy(image);
-	if (bitmap != NULL)
-		gfx_bitmap_destroy(bitmap);
-	ui_pbutton_destroy(pb1);
-	ui_pbutton_destroy(pb2);
-	ui_label_destroy(label);
-	ui_entry_destroy(entry);
 	ui_tab_set_destroy(tabset);
-	ui_menu_bar_destroy(menubar);
-	ui_fixed_destroy(fixed);
-	ui_fixed_destroy(bfixed);
-	ui_fixed_destroy(lfixed);
 	ui_fixed_destroy(bars_fixed);
 	ui_demo_destroy(demo);
 	return rc;
