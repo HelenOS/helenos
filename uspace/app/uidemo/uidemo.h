@@ -38,20 +38,14 @@
 
 #include <display.h>
 #include <fibril_synch.h>
-#include <ui/checkbox.h>
 #include <ui/entry.h>
-#include <ui/fixed.h>
 #include <ui/label.h>
 #include <ui/list.h>
 #include <ui/menu.h>
-#include <ui/menubar.h>
 #include <ui/pbutton.h>
 #include <ui/progress.h>
 #include <ui/rbutton.h>
-#include <ui/scrollbar.h>
-#include <ui/slider.h>
 #include <ui/tab.h>
-#include <ui/tabset.h>
 #include <ui/ui.h>
 #include <ui/window.h>
 
@@ -59,16 +53,10 @@
 typedef struct {
 	ui_t *ui;
 	ui_window_t *window;
-	ui_fixed_t *fixed;
-	ui_fixed_t *bfixed;
-	ui_fixed_t *lfixed;
-	ui_fixed_t *bars_fixed;
-	ui_menu_bar_t *mbar;
 	ui_menu_t *mfile;
 	ui_menu_t *medit;
 	ui_menu_t *mpreferences;
 	ui_menu_t *mhelp;
-	ui_tab_set_t *tabset;
 	ui_tab_t *tbasic;
 	ui_tab_t *tlists;
 	ui_tab_t *tbars;
@@ -77,15 +65,7 @@ typedef struct {
 	ui_label_t *label;
 	ui_pbutton_t *pb1;
 	ui_pbutton_t *pb2;
-	ui_checkbox_t *checkbox;
 	ui_rbutton_group_t *rbgroup;
-	ui_rbutton_t *rbleft;
-	ui_rbutton_t *rbcenter;
-	ui_rbutton_t *rbright;
-	ui_slider_t *slider;
-	ui_scrollbar_t *hscrollbar;
-	ui_scrollbar_t *vscrollbar;
-	ui_list_t *list;
 	ui_progress_t *progress;
 	unsigned progress_value;
 	fibril_timer_t *timer;
