@@ -1281,8 +1281,13 @@ static errno_t ui_wdecor_btn_max_decor_paint(ui_pbutton_t *pbutton,
 	ui_wdecor_t *wdecor = (ui_wdecor_t *)arg;
 	errno_t rc;
 
-	rc = ui_paint_maxicon(wdecor->res, pos, wdecor_min_w,
-	    wdecor_min_h);
+	if (wdecor->maximized) {
+		rc = ui_paint_unmaxicon(wdecor->res, pos, wdecor_unmax_w,
+		    wdecor_unmax_h, wdecor_unmax_dw, wdecor_unmax_dh);
+	} else {
+		rc = ui_paint_maxicon(wdecor->res, pos, wdecor_max_w,
+		    wdecor_max_h);
+	}
 
 	return rc;
 }
@@ -1306,9 +1311,15 @@ static errno_t ui_wdecor_btn_max_paint_text(ui_pbutton_t *pbutton, void *arg)
 	fmt.halign = gfx_halign_left;
 	fmt.valign = gfx_valign_top;
 
-	rc = gfx_puttext(&pbutton->rect.p0, &fmt, "[\u2191]");
-	if (rc != EOK)
-		return rc;
+	if (wdecor->maximized) {
+		rc = gfx_puttext(&pbutton->rect.p0, &fmt, "[\u2195]");
+		if (rc != EOK)
+			return rc;
+	} else {
+		rc = gfx_puttext(&pbutton->rect.p0, &fmt, "[\u2191]");
+		if (rc != EOK)
+			return rc;
+	}
 
 	return gfx_update(wdecor->res->gc);
 }
