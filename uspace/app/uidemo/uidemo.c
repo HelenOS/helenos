@@ -70,9 +70,11 @@ enum {
 
 static errno_t bitmap_moire(gfx_bitmap_t *, gfx_coord_t, gfx_coord_t);
 
+static void wnd_resize(ui_window_t *, void *);
 static void wnd_close(ui_window_t *, void *);
 
 static ui_window_cb_t window_cb = {
+	.resize = wnd_resize,
 	.close = wnd_close
 };
 
@@ -160,6 +162,9 @@ static ui_msg_dialog_cb_t msg_dialog_cb = {
 };
 
 static void ui_demo_destroy(ui_demo_t *);
+static void ui_demo_get_geom(ui_demo_t *, gfx_rect_t *, ui_demo_geom_t *);
+static errno_t ui_demo_create_bitmap(ui_demo_t *, ui_demo_geom_t *,
+    gfx_rect_t *, gfx_bitmap_t **);
 
 /** Horizontal alignment selected by each radio button */
 static const gfx_halign_t uidemo_halign[3] = {
@@ -167,6 +172,55 @@ static const gfx_halign_t uidemo_halign[3] = {
 	gfx_halign_center,
 	gfx_halign_right
 };
+
+/** Window has been resized.
+ *
+ * @param window Window
+ * @param arg Argument (demo)
+ */
+static void wnd_resize(ui_window_t *window, void *arg)
+{
+	ui_demo_t *demo = (ui_demo_t *) arg;
+	gfx_bitmap_t *bitmap;
+	gfx_rect_t arect;
+	ui_demo_geom_t geom;
+	gfx_rect_t rect;
+	errno_t rc;
+
+	/* Get new window application rectangle. */
+	ui_window_get_app_rect(window, &arect);
+
+	/* Compute geometry. */
+	ui_demo_get_geom(demo, &arect, &geom);
+
+	rc = ui_demo_create_bitmap(demo, &geom, &rect, &bitmap);
+	if (rc != EOK)
+		return;
+
+	ui_image_set_bmp(demo->image, bitmap, &rect);
+	gfx_bitmap_destroy(demo->bitmap);
+	demo->bitmap = bitmap;
+
+	ui_image_set_rect(demo->image, &geom.image_rect);
+
+	ui_menu_bar_set_rect(demo->mbar, &geom.mbar_rect);
+	ui_tab_set_set_rect(demo->tabset, &geom.tabset_rect);
+	ui_entry_set_rect(demo->entry, &geom.entry_rect);
+	ui_label_set_rect(demo->label, &geom.label_rect);
+	ui_pbutton_set_rect(demo->pb1, &geom.pb1_rect);
+	ui_pbutton_set_rect(demo->pb2, &geom.pb2_rect);
+	ui_checkbox_set_rect(demo->checkbox, &geom.checkbox_rect);
+	ui_rbutton_set_rect(demo->rbleft, &geom.rbleft_rect);
+	ui_rbutton_set_rect(demo->rbcenter, &geom.rbcenter_rect);
+	ui_rbutton_set_rect(demo->rbright, &geom.rbright_rect);
+	ui_slider_set_rect(demo->slider, &geom.slider_rect);
+	ui_scrollbar_set_rect(demo->hscrollbar, &geom.hscrollbar_rect);
+	ui_scrollbar_set_rect(demo->vscrollbar, &geom.vscrollbar_rect);
+	ui_progress_set_rect(demo->progress, &geom.progress_rect);
+	ui_list_set_rect(demo->list, &geom.list_rect);
+
+	(void)ui_window_paint(window);
+}
 
 /** Window close button was clicked.
  *
@@ -754,11 +808,12 @@ static void ui_demo_timer_fun(void *arg)
  *
  * @param demo UI demo
  * @param fixed Fixed layout where menu bar is to be added
+ * @param geom UI demo geometry
  * @return EOK on success or an error code
  */
-static errno_t ui_demo_menus_create(ui_demo_t *demo, ui_fixed_t *fixed)
+static errno_t ui_demo_menus_create(ui_demo_t *demo, ui_fixed_t *fixed,
+    ui_demo_geom_t *geom)
 {
-	gfx_rect_t rect;
 	ui_menu_bar_t *menubar = NULL;
 	ui_menu_entry_t *mmsg;
 	ui_menu_entry_t *mload;
@@ -885,20 +940,7 @@ static errno_t ui_demo_menus_create(ui_demo_t *demo, ui_fixed_t *fixed)
 		goto error;
 	}
 
-	/* FIXME: Auto layout */
-	if (ui_is_textmode(demo->ui)) {
-		rect.p0.x = 1;
-		rect.p0.y = 1;
-		rect.p1.x = 43;
-		rect.p1.y = 2;
-	} else {
-		rect.p0.x = 4;
-		rect.p0.y = 30;
-		rect.p1.x = 251;
-		rect.p1.y = 52;
-	}
-
-	ui_menu_bar_set_rect(menubar, &rect);
+	ui_menu_bar_set_rect(menubar, &geom->mbar_rect);
 
 	rc = ui_fixed_add(fixed, ui_menu_bar_ctl(menubar));
 	if (rc != EOK) {
@@ -906,9 +948,54 @@ static errno_t ui_demo_menus_create(ui_demo_t *demo, ui_fixed_t *fixed)
 		goto error;
 	}
 
+	demo->mbar = menubar;
 	return EOK;
 error:
 	ui_menu_bar_destroy(menubar);
+	return rc;
+}
+
+/** Create bitmap with moire patern for the image control.
+ *
+ * @param demo UI demo
+ * @parma geom UI demo geometry
+ * @param rect Place to store bitmap rectangle
+ * @param rbitmap Place to store pointer to new bitmap.
+ * @return EOK on success or an error code.
+ */
+static errno_t ui_demo_create_bitmap(ui_demo_t *demo, ui_demo_geom_t *geom,
+    gfx_rect_t *rect, gfx_bitmap_t **rbitmap)
+{
+	gfx_bitmap_params_t bparams;
+	gfx_bitmap_t *bitmap = NULL;
+	gfx_context_t *gc;
+	errno_t rc;
+
+	gc = ui_window_get_gc(demo->window);
+
+	gfx_bitmap_params_init(&bparams);
+	gfx_rect_rtranslate(&geom->image_rect.p0, &geom->image_rect,
+	    &bparams.rect);
+	if (!ui_is_textmode(demo->ui)) {
+		/* Adjust bitmap size for image frame. */
+		bparams.rect.p1.x -= 2;
+		bparams.rect.p1.y -= 2;
+	}
+
+	rc = gfx_bitmap_create(gc, &bparams, NULL, &bitmap);
+	if (rc != EOK)
+		goto error;
+
+	rc = bitmap_moire(bitmap, bparams.rect.p1.x, bparams.rect.p1.y);
+	if (rc != EOK)
+		goto error;
+
+	*rect = bparams.rect;
+	*rbitmap = bitmap;
+	return EOK;
+error:
+	if (bitmap != NULL)
+		gfx_bitmap_destroy(bitmap);
 	return rc;
 }
 
@@ -916,9 +1003,11 @@ error:
  *
  * @param demo UI demo
  * @param tabset Tab set
+ * @param geom UI demo geometry
  * @return EOK on success or an error code
  */
-static errno_t ui_demo_tab_basic_create(ui_demo_t *demo, ui_tab_set_t *tabset)
+static errno_t ui_demo_tab_basic_create(ui_demo_t *demo, ui_tab_set_t *tabset,
+    ui_demo_geom_t *geom)
 {
 	ui_fixed_t *bfixed = NULL;
 	ui_entry_t *entry = NULL;
@@ -939,11 +1028,9 @@ static errno_t ui_demo_tab_basic_create(ui_demo_t *demo, ui_tab_set_t *tabset)
 	gfx_bitmap_t *bitmap = NULL;
 	gfx_coord2_t off;
 	ui_resource_t *ui_res;
-	gfx_context_t *gc;
 	errno_t rc;
 
 	ui_res = ui_window_get_res(demo->window);
-	gc = ui_window_get_gc(demo->window);
 
 	rc = ui_tab_create(tabset, "Basic", &demo->tbasic);
 	if (rc != EOK) {
@@ -963,20 +1050,7 @@ static errno_t ui_demo_tab_basic_create(ui_demo_t *demo, ui_tab_set_t *tabset)
 		goto error;
 	}
 
-	/* FIXME: Auto layout */
-	if (ui_is_textmode(demo->ui)) {
-		rect.p0.x = 4;
-		rect.p0.y = 5;
-		rect.p1.x = 41;
-		rect.p1.y = 6;
-	} else {
-		rect.p0.x = 15;
-		rect.p0.y = 88;
-		rect.p1.x = 205;
-		rect.p1.y = 113;
-	}
-
-	ui_entry_set_rect(entry, &rect);
+	ui_entry_set_rect(entry, &geom->entry_rect);
 	ui_entry_set_halign(entry, gfx_halign_center);
 
 	rc = ui_fixed_add(bfixed, ui_entry_ctl(entry));
@@ -994,20 +1068,7 @@ static errno_t ui_demo_tab_basic_create(ui_demo_t *demo, ui_tab_set_t *tabset)
 		goto error;
 	}
 
-	/* FIXME: Auto layout */
-	if (ui_is_textmode(demo->ui)) {
-		rect.p0.x = 4;
-		rect.p0.y = 7;
-		rect.p1.x = 41;
-		rect.p1.y = 8;
-	} else {
-		rect.p0.x = 60;
-		rect.p0.y = 123;
-		rect.p1.x = 160;
-		rect.p1.y = 136;
-	}
-
-	ui_label_set_rect(label, &rect);
+	ui_label_set_rect(label, &geom->label_rect);
 	ui_label_set_halign(label, gfx_halign_center);
 
 	rc = ui_fixed_add(bfixed, ui_label_ctl(label));
@@ -1026,22 +1087,7 @@ static errno_t ui_demo_tab_basic_create(ui_demo_t *demo, ui_tab_set_t *tabset)
 	}
 
 	ui_pbutton_set_cb(pb1, &pbutton_cb, (void *)demo);
-
-	/* FIXME: Auto layout */
-	if (ui_is_textmode(demo->ui)) {
-		rect.p0.x = 4;
-		rect.p0.y = 9;
-		rect.p1.x = 15;
-		rect.p1.y = 10;
-	} else {
-		rect.p0.x = 15;
-		rect.p0.y = 146;
-		rect.p1.x = 105;
-		rect.p1.y = 174;
-	}
-
-	ui_pbutton_set_rect(pb1, &rect);
-
+	ui_pbutton_set_rect(pb1, &geom->pb1_rect);
 	ui_pbutton_set_default(pb1, true);
 
 	rc = ui_fixed_add(bfixed, ui_pbutton_ctl(pb1));
@@ -1060,20 +1106,7 @@ static errno_t ui_demo_tab_basic_create(ui_demo_t *demo, ui_tab_set_t *tabset)
 	}
 
 	ui_pbutton_set_cb(pb2, &pbutton_cb, (void *)demo);
-
-	if (ui_is_textmode(demo->ui)) {
-		rect.p0.x = 30;
-		rect.p0.y = 9;
-		rect.p1.x = 41;
-		rect.p1.y = 10;
-	} else {
-		rect.p0.x = 115;
-		rect.p0.y = 146;
-		rect.p1.x = 205;
-		rect.p1.y = 174;
-	}
-
-	ui_pbutton_set_rect(pb2, &rect);
+	ui_pbutton_set_rect(pb2, &geom->pb2_rect);
 
 	rc = ui_fixed_add(bfixed, ui_pbutton_ctl(pb2));
 	if (rc != EOK) {
@@ -1084,42 +1117,18 @@ static errno_t ui_demo_tab_basic_create(ui_demo_t *demo, ui_tab_set_t *tabset)
 	demo->pb2 = pb2;
 	pb2 = NULL;
 
-	gfx_bitmap_params_init(&bparams);
-	if (ui_is_textmode(demo->ui)) {
-		bparams.rect.p0.x = 0;
-		bparams.rect.p0.y = 0;
-		bparams.rect.p1.x = 37;
-		bparams.rect.p1.y = 2;
-	} else {
-		bparams.rect.p0.x = 0;
-		bparams.rect.p0.y = 0;
-		bparams.rect.p1.x = 188;
-		bparams.rect.p1.y = 24;
-	}
-
-	rc = gfx_bitmap_create(gc, &bparams, NULL, &bitmap);
+	rc = ui_demo_create_bitmap(demo, geom, &rect, &bitmap);
 	if (rc != EOK)
 		goto error;
 
-	rc = bitmap_moire(bitmap, bparams.rect.p1.x, bparams.rect.p1.y);
-	if (rc != EOK)
-		goto error;
-
-	rc = ui_image_create(ui_res, bitmap, &bparams.rect, &image);
+	rc = ui_image_create(ui_res, bitmap, &rect, &image);
 	if (rc != EOK) {
 		printf("Error creating label.\n");
 		goto error;
 	}
 
+	demo->bitmap = bitmap;
 	bitmap = NULL;
-
-	if (ui_is_textmode(demo->ui)) {
-		off.x = 4;
-		off.y = 11;
-	} else {
-		off.x = 15;
-		off.y = 190;
-	}
 
 	gfx_rect_translate(&off, &bparams.rect, &rect);
 
@@ -1130,7 +1139,7 @@ static errno_t ui_demo_tab_basic_create(ui_demo_t *demo, ui_tab_set_t *tabset)
 		rect.p1.y += 2;
 	}
 
-	ui_image_set_rect(image, &rect);
+	ui_image_set_rect(image, &geom->image_rect);
 
 	rc = ui_fixed_add(bfixed, ui_image_ctl(image));
 	if (rc != EOK) {
@@ -1149,20 +1158,7 @@ static errno_t ui_demo_tab_basic_create(ui_demo_t *demo, ui_tab_set_t *tabset)
 
 	ui_checkbox_set_cb(checkbox, &checkbox_cb, (void *)demo);
 
-	/* FIXME: Auto layout */
-	if (ui_is_textmode(demo->ui)) {
-		rect.p0.x = 4;
-		rect.p0.y = 14;
-		rect.p1.x = 14;
-		rect.p1.y = 15;
-	} else {
-		rect.p0.x = 15;
-		rect.p0.y = 225;
-		rect.p1.x = 140;
-		rect.p1.y = 245;
-	}
-
-	ui_checkbox_set_rect(checkbox, &rect);
+	ui_checkbox_set_rect(checkbox, &geom->checkbox_rect);
 
 	rc = ui_fixed_add(bfixed, ui_checkbox_ctl(checkbox));
 	if (rc != EOK) {
@@ -1170,6 +1166,7 @@ static errno_t ui_demo_tab_basic_create(ui_demo_t *demo, ui_tab_set_t *tabset)
 		goto error;
 	}
 
+	demo->checkbox = checkbox;
 	checkbox = NULL;
 
 	rc = ui_rbutton_group_create(ui_res, &rbgroup);
@@ -1188,19 +1185,7 @@ static errno_t ui_demo_tab_basic_create(ui_demo_t *demo, ui_tab_set_t *tabset)
 	ui_rbutton_group_set_cb(rbgroup, &rbutton_group_cb,
 	    (void *)demo);
 
-	/* FIXME: Auto layout */
-	if (ui_is_textmode(demo->ui)) {
-		rect.p0.x = 4;
-		rect.p0.y = 16;
-		rect.p1.x = 14;
-		rect.p1.y = 17;
-	} else {
-		rect.p0.x = 15;
-		rect.p0.y = 255;
-		rect.p1.x = 140;
-		rect.p1.y = 275;
-	}
-	ui_rbutton_set_rect(rbleft, &rect);
+	ui_rbutton_set_rect(rbleft, &geom->rbleft_rect);
 
 	rc = ui_fixed_add(bfixed, ui_rbutton_ctl(rbleft));
 	if (rc != EOK) {
@@ -1208,6 +1193,7 @@ static errno_t ui_demo_tab_basic_create(ui_demo_t *demo, ui_tab_set_t *tabset)
 		goto error;
 	}
 
+	demo->rbleft = rbleft;
 	rbleft = NULL;
 
 	rc = ui_rbutton_create(rbgroup, "Center", (void *) &uidemo_halign[1],
@@ -1217,19 +1203,7 @@ static errno_t ui_demo_tab_basic_create(ui_demo_t *demo, ui_tab_set_t *tabset)
 		goto error;
 	}
 
-	/* FIXME: Auto layout */
-	if (ui_is_textmode(demo->ui)) {
-		rect.p0.x = 4;
-		rect.p0.y = 17;
-		rect.p1.x = 14;
-		rect.p1.y = 18;
-	} else {
-		rect.p0.x = 15;
-		rect.p0.y = 285;
-		rect.p1.x = 140;
-		rect.p1.y = 305;
-	}
-	ui_rbutton_set_rect(rbcenter, &rect);
+	ui_rbutton_set_rect(rbcenter, &geom->rbcenter_rect);
 	ui_rbutton_select(rbcenter);
 
 	rc = ui_fixed_add(bfixed, ui_rbutton_ctl(rbcenter));
@@ -1238,6 +1212,7 @@ static errno_t ui_demo_tab_basic_create(ui_demo_t *demo, ui_tab_set_t *tabset)
 		goto error;
 	}
 
+	demo->rbcenter = rbcenter;
 	rbcenter = NULL;
 
 	rc = ui_rbutton_create(rbgroup, "Right", (void *) &uidemo_halign[2],
@@ -1247,19 +1222,7 @@ static errno_t ui_demo_tab_basic_create(ui_demo_t *demo, ui_tab_set_t *tabset)
 		goto error;
 	}
 
-	/* FIXME: Auto layout */
-	if (ui_is_textmode(demo->ui)) {
-		rect.p0.x = 4;
-		rect.p0.y = 18;
-		rect.p1.x = 14;
-		rect.p1.y = 19;
-	} else {
-		rect.p0.x = 15;
-		rect.p0.y = 315;
-		rect.p1.x = 140;
-		rect.p1.y = 335;
-	}
-	ui_rbutton_set_rect(rbright, &rect);
+	ui_rbutton_set_rect(rbright, &geom->rbright_rect);
 
 	rc = ui_fixed_add(bfixed, ui_rbutton_ctl(rbright));
 	if (rc != EOK) {
@@ -1267,6 +1230,7 @@ static errno_t ui_demo_tab_basic_create(ui_demo_t *demo, ui_tab_set_t *tabset)
 		goto error;
 	}
 
+	demo->rbright = rbright;
 	rbright = NULL;
 
 	rc = ui_slider_create(ui_res, &slider);
@@ -1276,21 +1240,7 @@ static errno_t ui_demo_tab_basic_create(ui_demo_t *demo, ui_tab_set_t *tabset)
 	}
 
 	ui_slider_set_cb(slider, &slider_cb, (void *)demo);
-
-	/* FIXME: Auto layout */
-	if (ui_is_textmode(demo->ui)) {
-		rect.p0.x = 4;
-		rect.p0.y = 20;
-		rect.p1.x = 32;
-		rect.p1.y = 21;
-	} else {
-		rect.p0.x = 15;
-		rect.p0.y = 345;
-		rect.p1.x = 130;
-		rect.p1.y = 365;
-	}
-
-	ui_slider_set_rect(slider, &rect);
+	ui_slider_set_rect(slider, &geom->slider_rect);
 
 	rc = ui_fixed_add(bfixed, ui_slider_ctl(slider));
 	if (rc != EOK) {
@@ -1298,6 +1248,7 @@ static errno_t ui_demo_tab_basic_create(ui_demo_t *demo, ui_tab_set_t *tabset)
 		goto error;
 	}
 
+	demo->slider = slider;
 	slider = NULL;
 
 	rc = ui_scrollbar_create(demo->ui, demo->window, ui_sbd_horiz,
@@ -1308,21 +1259,7 @@ static errno_t ui_demo_tab_basic_create(ui_demo_t *demo, ui_tab_set_t *tabset)
 	}
 
 	ui_scrollbar_set_cb(hscrollbar, &scrollbar_cb, (void *)demo);
-
-	/* FIXME: Auto layout */
-	if (ui_is_textmode(demo->ui)) {
-		rect.p0.x = 4;
-		rect.p0.y = 22;
-		rect.p1.x = 42;
-		rect.p1.y = 23;
-	} else {
-		rect.p0.x = 15;
-		rect.p0.y = 375;
-		rect.p1.x = 220;
-		rect.p1.y = 398;
-	}
-
-	ui_scrollbar_set_rect(hscrollbar, &rect);
+	ui_scrollbar_set_rect(hscrollbar, &geom->hscrollbar_rect);
 
 	ui_scrollbar_set_thumb_length(hscrollbar,
 	    ui_scrollbar_trough_length(hscrollbar) / 4);
@@ -1333,6 +1270,7 @@ static errno_t ui_demo_tab_basic_create(ui_demo_t *demo, ui_tab_set_t *tabset)
 		goto error;
 	}
 
+	demo->hscrollbar = hscrollbar;
 	hscrollbar = NULL;
 
 	rc = ui_scrollbar_create(demo->ui, demo->window, ui_sbd_vert,
@@ -1343,21 +1281,7 @@ static errno_t ui_demo_tab_basic_create(ui_demo_t *demo, ui_tab_set_t *tabset)
 	}
 
 	ui_scrollbar_set_cb(vscrollbar, &scrollbar_cb, (void *)demo);
-
-	/* FIXME: Auto layout */
-	if (ui_is_textmode(demo->ui)) {
-		rect.p0.x = 42;
-		rect.p0.y = 5;
-		rect.p1.x = 43;
-		rect.p1.y = 22;
-	} else {
-		rect.p0.x = 220;
-		rect.p0.y = 88;
-		rect.p1.x = 243;
-		rect.p1.y = 375;
-	}
-
-	ui_scrollbar_set_rect(vscrollbar, &rect);
+	ui_scrollbar_set_rect(vscrollbar, &geom->vscrollbar_rect);
 
 	ui_scrollbar_set_thumb_length(vscrollbar,
 	    ui_scrollbar_trough_length(vscrollbar) / 4);
@@ -1368,7 +1292,7 @@ static errno_t ui_demo_tab_basic_create(ui_demo_t *demo, ui_tab_set_t *tabset)
 		goto error;
 	}
 
-	vscrollbar = NULL;
+	demo->vscrollbar = vscrollbar;
 
 	ui_tab_add(demo->tbasic, ui_fixed_ctl(bfixed));
 	return EOK;
@@ -1396,13 +1320,14 @@ error:
  *
  * @param demo UI demo
  * @param tabset Tab set
+ * @param geom UI demo geometry
  * @return EOK on success or an error code
  */
-static errno_t ui_demo_tab_lists_create(ui_demo_t *demo, ui_tab_set_t *tabset)
+static errno_t ui_demo_tab_lists_create(ui_demo_t *demo, ui_tab_set_t *tabset,
+    ui_demo_geom_t *geom)
 {
 	ui_fixed_t *lfixed = NULL;
 	ui_list_t *list = NULL;
-	gfx_rect_t rect;
 	ui_list_entry_attr_t eattr;
 	errno_t rc;
 
@@ -1468,20 +1393,7 @@ static errno_t ui_demo_tab_lists_create(ui_demo_t *demo, ui_tab_set_t *tabset)
 		goto error;
 	}
 
-	/* FIXME: Auto layout */
-	if (ui_is_textmode(demo->ui)) {
-		rect.p0.x = 4;
-		rect.p0.y = 5;
-		rect.p1.x = 41;
-		rect.p1.y = 10;
-	} else {
-		rect.p0.x = 15;
-		rect.p0.y = 88;
-		rect.p1.x = 245;
-		rect.p1.y = 173;
-	}
-
-	ui_list_set_rect(list, &rect);
+	ui_list_set_rect(list, &geom->list_rect);
 
 	rc = ui_fixed_add(lfixed, ui_list_ctl(list));
 	if (rc != EOK) {
@@ -1489,6 +1401,7 @@ static errno_t ui_demo_tab_lists_create(ui_demo_t *demo, ui_tab_set_t *tabset)
 		goto error;
 	}
 
+	demo->list = list;
 	list = NULL;
 
 	ui_tab_add(demo->tlists, ui_fixed_ctl(lfixed));
@@ -1501,15 +1414,16 @@ error:
 
 /** Create UI demo bars tab.
  *
- * @param demo UI dmeo
- * @parma tabset Tab set
+ * @param demo UI demo
+ * @param tabset Tab set
+ * @param geom UI demo geometry
  * @return EOK on success or an error code
  */
-static errno_t ui_demo_tab_bars_create(ui_demo_t *demo, ui_tab_set_t *tabset)
+static errno_t ui_demo_tab_bars_create(ui_demo_t *demo, ui_tab_set_t *tabset,
+    ui_demo_geom_t *geom)
 {
 	ui_fixed_t *bars_fixed = NULL;
 	ui_progress_t *progress = NULL;
-	gfx_rect_t rect;
 	ui_resource_t *ui_res;
 	errno_t rc;
 
@@ -1533,20 +1447,7 @@ static errno_t ui_demo_tab_bars_create(ui_demo_t *demo, ui_tab_set_t *tabset)
 		goto error;
 	}
 
-	/* FIXME: Auto layout */
-	if (ui_is_textmode(demo->ui)) {
-		rect.p0.x = 4;
-		rect.p0.y = 5;
-		rect.p1.x = 42;
-		rect.p1.y = 6;
-	} else {
-		rect.p0.x = 15;
-		rect.p0.y = 88;
-		rect.p1.x = 243;
-		rect.p1.y = 113;
-	}
-
-	ui_progress_set_rect(progress, &rect);
+	ui_progress_set_rect(progress, &geom->progress_rect);
 
 	rc = ui_fixed_add(bars_fixed, ui_progress_ctl(progress));
 	if (rc != EOK) {
@@ -1567,6 +1468,226 @@ error:
 	return rc;
 }
 
+/** Get UI demo geometry.
+ *
+ * @param demo UI demo
+ * @param arect Application rectangle
+ * @param geom Place to store computed geometry.
+ */
+static void ui_demo_get_geom(ui_demo_t *demo, gfx_rect_t *arect,
+    ui_demo_geom_t *geom)
+{
+	gfx_coord_t center;
+
+	center = (arect->p0.x + arect->p1.x) / 2;
+
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(demo->ui)) {
+		geom->mbar_rect.p0.x = arect->p0.x;
+		geom->mbar_rect.p0.y = arect->p0.y;
+		geom->mbar_rect.p1.x = arect->p1.x - 2;
+		geom->mbar_rect.p1.y = arect->p0.x + 1;
+	} else {
+		geom->mbar_rect.p0.x = arect->p0.x + 4;
+		geom->mbar_rect.p0.y = arect->p0.y + 4;
+		geom->mbar_rect.p1.x = arect->p1.x - 4;
+		geom->mbar_rect.p1.y = arect->p0.y + 26;
+	}
+
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(demo->ui)) {
+		geom->tabset_rect.p0.x = arect->p0.x + 1;
+		geom->tabset_rect.p0.y = arect->p0.y + 1;
+		geom->tabset_rect.p1.x = arect->p1.x - 1;
+		geom->tabset_rect.p1.y = arect->p1.y;
+	} else {
+		geom->tabset_rect.p0.x = arect->p0.x;
+		geom->tabset_rect.p0.y = arect->p0.y + 27;
+		geom->tabset_rect.p1.x = arect->p1.x - 1;
+		geom->tabset_rect.p1.y = arect->p1.y - 1;
+	}
+
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(demo->ui)) {
+		geom->entry_rect.p0.x = arect->p0.x + 3;
+		geom->entry_rect.p0.y = arect->p0.y + 4;
+		geom->entry_rect.p1.x = arect->p1.x - 4;
+		geom->entry_rect.p1.y = arect->p0.y + 5;
+	} else {
+		geom->entry_rect.p0.x = arect->p0.x + 11;
+		geom->entry_rect.p0.y = arect->p0.y + 62;
+		geom->entry_rect.p1.x = arect->p1.x - 46;
+		geom->entry_rect.p1.y = arect->p0.y + 87;
+	}
+
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(demo->ui)) {
+		geom->label_rect.p0.x = arect->p0.x + 3;
+		geom->label_rect.p0.y = arect->p0.y + 6;
+		geom->label_rect.p1.x = arect->p1.x - 4;
+		geom->label_rect.p1.y = arect->p0.y + 7;
+	} else {
+		geom->label_rect.p0.x = arect->p0.x + 56;
+		geom->label_rect.p0.y = arect->p0.y + 97;
+		geom->label_rect.p1.x = arect->p1.x - 91;
+		geom->label_rect.p1.y = arect->p0.y + 110;
+	}
+
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(demo->ui)) {
+		geom->pb1_rect.p0.x = center - 19;
+		geom->pb1_rect.p0.y = arect->p0.y + 8;
+		geom->pb1_rect.p1.x = center - 8;
+		geom->pb1_rect.p1.y = arect->p0.y + 9;
+	} else {
+		geom->pb1_rect.p0.x = center - 110;
+		geom->pb1_rect.p0.y = arect->p0.y + 120;
+		geom->pb1_rect.p1.x = center - 22;
+		geom->pb1_rect.p1.y = arect->p0.y + 148;
+	}
+
+	if (ui_is_textmode(demo->ui)) {
+		geom->pb2_rect.p0.x = center + 7;
+		geom->pb2_rect.p0.y = arect->p0.y + 8;
+		geom->pb2_rect.p1.x = center + 18;
+		geom->pb2_rect.p1.y = arect->p0.y + 9;
+	} else {
+		geom->pb2_rect.p0.x = center - 12;
+		geom->pb2_rect.p0.y = arect->p0.y + 120;
+		geom->pb2_rect.p1.x = center + 78;
+		geom->pb2_rect.p1.y = arect->p0.y + 148;
+	}
+
+	if (ui_is_textmode(demo->ui)) {
+		geom->image_rect.p0.x = arect->p0.x + 3;
+		geom->image_rect.p0.y = arect->p0.y + 10;
+		geom->image_rect.p1.x = arect->p1.x - 4;
+		geom->image_rect.p1.y = arect->p1.y - 11;
+	} else {
+		geom->image_rect.p0.x = arect->p0.x + 11;
+		geom->image_rect.p0.y = arect->p0.y + 166;
+		geom->image_rect.p1.x = arect->p1.x - 48;
+		geom->image_rect.p1.y = arect->p1.y - 190;
+	}
+
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(demo->ui)) {
+		geom->checkbox_rect.p0.x = arect->p0.x + 3;
+		geom->checkbox_rect.p0.y = arect->p1.y - 10;
+		geom->checkbox_rect.p1.x = arect->p0.x + 13;
+		geom->checkbox_rect.p1.y = arect->p1.y - 9;
+	} else {
+		geom->checkbox_rect.p0.x = arect->p0.x + 11;
+		geom->checkbox_rect.p0.y = arect->p1.y - 181;
+		geom->checkbox_rect.p1.x = arect->p0.x + 136;
+		geom->checkbox_rect.p1.y = arect->p1.y - 161;
+	}
+
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(demo->ui)) {
+		geom->rbleft_rect.p0.x = arect->p0.x + 3;
+		geom->rbleft_rect.p0.y = arect->p1.y - 7;
+		geom->rbleft_rect.p1.x = arect->p0.x + 13;
+		geom->rbleft_rect.p1.y = arect->p1.y - 6;
+	} else {
+		geom->rbleft_rect.p0.x = arect->p0.x + 11;
+		geom->rbleft_rect.p0.y = arect->p1.y - 151;
+		geom->rbleft_rect.p1.x = arect->p0.x + 136;
+		geom->rbleft_rect.p1.y = arect->p1.y - 131;
+	}
+
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(demo->ui)) {
+		geom->rbcenter_rect.p0.x = arect->p0.x + 3;
+		geom->rbcenter_rect.p0.y = arect->p1.y - 6;
+		geom->rbcenter_rect.p1.x = arect->p0.x + 13;
+		geom->rbcenter_rect.p1.y = arect->p1.y - 5;
+	} else {
+		geom->rbcenter_rect.p0.x = arect->p0.x + 11;
+		geom->rbcenter_rect.p0.y = arect->p1.y - 121;
+		geom->rbcenter_rect.p1.x = arect->p0.x + 136;
+		geom->rbcenter_rect.p1.y = arect->p1.y - 101;
+	}
+
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(demo->ui)) {
+		geom->rbright_rect.p0.x = arect->p0.x + 3;
+		geom->rbright_rect.p0.y = arect->p1.y - 5;
+		geom->rbright_rect.p1.x = arect->p0.x + 13;
+		geom->rbright_rect.p1.y = arect->p1.y - 4;
+	} else {
+		geom->rbright_rect.p0.x = arect->p0.x + 11;
+		geom->rbright_rect.p0.y = arect->p1.y - 91;
+		geom->rbright_rect.p1.x = arect->p0.x + 136;
+		geom->rbright_rect.p1.y = arect->p1.y - 71;
+	}
+
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(demo->ui)) {
+		geom->slider_rect.p0.x = arect->p0.x + 3;
+		geom->slider_rect.p0.y = arect->p1.y - 3;
+		geom->slider_rect.p1.x = arect->p0.x + 31;
+		geom->slider_rect.p1.y = arect->p1.y - 2;
+	} else {
+		geom->slider_rect.p0.x = arect->p0.x + 11;
+		geom->slider_rect.p0.y = arect->p1.y - 61;
+		geom->slider_rect.p1.x = arect->p0.x + 126;
+		geom->slider_rect.p1.y = arect->p1.y - 41;
+	}
+
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(demo->ui)) {
+		geom->hscrollbar_rect.p0.x = arect->p0.x + 3;
+		geom->hscrollbar_rect.p0.y = arect->p1.y - 2;
+		geom->hscrollbar_rect.p1.x = arect->p1.x - 3;
+		geom->hscrollbar_rect.p1.y = arect->p1.y - 1;
+	} else {
+		geom->hscrollbar_rect.p0.x = arect->p0.x + 11;
+		geom->hscrollbar_rect.p0.y = arect->p1.y - 31;
+		geom->hscrollbar_rect.p1.x = arect->p1.x - 31;
+		geom->hscrollbar_rect.p1.y = arect->p1.y - 8;
+	}
+
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(demo->ui)) {
+		geom->vscrollbar_rect.p0.x = arect->p1.x - 3;
+		geom->vscrollbar_rect.p0.y = arect->p0.y + 4;
+		geom->vscrollbar_rect.p1.x = arect->p1.x - 2;
+		geom->vscrollbar_rect.p1.y = arect->p1.y - 2;
+	} else {
+		geom->vscrollbar_rect.p0.x = arect->p1.x - 31;
+		geom->vscrollbar_rect.p0.y = arect->p0.y + 62;
+		geom->vscrollbar_rect.p1.x = arect->p1.x - 8;
+		geom->vscrollbar_rect.p1.y = arect->p1.y - 31;
+	}
+
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(demo->ui)) {
+		geom->list_rect.p0.x = arect->p0.x + 3;
+		geom->list_rect.p0.y = arect->p0.y + 4;
+		geom->list_rect.p1.x = arect->p1.x - 4;
+		geom->list_rect.p1.y = arect->p0.y + 9;
+	} else {
+		geom->list_rect.p0.x = arect->p0.x + 11;
+		geom->list_rect.p0.y = arect->p0.y + 62;
+		geom->list_rect.p1.x = arect->p1.x - 6;
+		geom->list_rect.p1.y = arect->p0.x + 147;
+	}
+
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(demo->ui)) {
+		geom->progress_rect.p0.x = arect->p0.x + 3;
+		geom->progress_rect.p0.y = arect->p0.y + 4;
+		geom->progress_rect.p1.x = arect->p1.x - 3;
+		geom->progress_rect.p1.y = arect->p0.y + 5;
+	} else {
+		geom->progress_rect.p0.x = arect->p0.x + 15;
+		geom->progress_rect.p0.y = arect->p0.y + 62;
+		geom->progress_rect.p1.x = arect->p1.x - 8;
+		geom->progress_rect.p1.y = arect->p0.y + 87;
+	}
+}
+
 /** Create UI demo.
  *
  * @param display_spec Display specification
@@ -1580,14 +1701,17 @@ static errno_t ui_demo_create(const char *display_spec, ui_demo_t **rdemo)
 	ui_fixed_t *fixed = NULL;
 	ui_fixed_t *bars_fixed = NULL;
 	ui_progress_t *progress = NULL;
-	gfx_rect_t rect;
 	ui_resource_t *ui_res;
 	ui_tab_set_t *tabset = NULL;
+	gfx_rect_t arect;
+	ui_demo_geom_t geom;
 	errno_t rc;
 
 	demo = calloc(1, sizeof(ui_demo_t));
-	if (demo == NULL)
+	if (demo == NULL) {
+		rc = ENOMEM;
 		goto error;
+	}
 
 	rc = ui_create(display_spec, &demo->ui);
 	if (rc != EOK) {
@@ -1631,7 +1755,10 @@ static errno_t ui_demo_create(const char *display_spec, ui_demo_t **rdemo)
 		goto error;
 	}
 
-	rc = ui_demo_menus_create(demo, fixed);
+	ui_window_get_app_rect(demo->window, &arect);
+	ui_demo_get_geom(demo, &arect, &geom);
+
+	rc = ui_demo_menus_create(demo, fixed, &geom);
 	if (rc != EOK)
 		goto error;
 
@@ -1641,30 +1768,17 @@ static errno_t ui_demo_create(const char *display_spec, ui_demo_t **rdemo)
 		goto error;
 	}
 
-	/* FIXME: Auto layout */
-	if (ui_is_textmode(demo->ui)) {
-		rect.p0.x = 2;
-		rect.p0.y = 2;
-		rect.p1.x = 44;
-		rect.p1.y = 24;
-	} else {
-		rect.p0.x = 8;
-		rect.p0.y = 53;
-		rect.p1.x = 250;
-		rect.p1.y = 405;
-	}
+	ui_tab_set_set_rect(tabset, &geom.tabset_rect);
 
-	ui_tab_set_set_rect(tabset, &rect);
-
-	rc = ui_demo_tab_basic_create(demo, tabset);
+	rc = ui_demo_tab_basic_create(demo, tabset, &geom);
 	if (rc != EOK)
 		goto error;
 
-	rc = ui_demo_tab_lists_create(demo, tabset);
+	rc = ui_demo_tab_lists_create(demo, tabset, &geom);
 	if (rc != EOK)
 		goto error;
 
-	rc = ui_demo_tab_bars_create(demo, tabset);
+	rc = ui_demo_tab_bars_create(demo, tabset, &geom);
 	if (rc != EOK)
 		goto error;
 
@@ -1674,6 +1788,7 @@ static errno_t ui_demo_create(const char *display_spec, ui_demo_t **rdemo)
 		goto error;
 	}
 
+	demo->tabset = tabset;
 	tabset = NULL;
 
 	ui_window_add(demo->window, ui_fixed_ctl(fixed));
