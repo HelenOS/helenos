@@ -37,6 +37,7 @@
 
 #ifndef __ASSEMBLER__
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <trace.h>
 
@@ -62,6 +63,11 @@ _NO_TRACE static inline bool range_end(uint64_t start, uint64_t size, uint64_t *
 }
 
 /** Return true if the intervals overlap.
+ *
+ * Non-empty intervals whose inclusive end address overflows are
+ * conservatively treated as overlapping. Two zero-sized intervals do not
+ * overlap. If only one interval has zero size, its start address is tested
+ * for membership in the other interval.
  *
  * @param s1  Start address of the first interval.
  * @param sz1 Size of the first interval.
