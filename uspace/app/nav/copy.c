@@ -190,8 +190,8 @@ static void copy_bok(copy_dlg_t *dlg, void *arg)
 		return;
 	}
 
-	copy_dlg_destroy(dlg);
 	dlg->flist = NULL;
+	copy_dlg_destroy(dlg);
 
 	progress_dlg_params_init(&pd_params);
 	pd_params.caption = "Copying";

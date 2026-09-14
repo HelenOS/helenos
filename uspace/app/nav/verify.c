@@ -157,8 +157,6 @@ static void verify_bok(verify_dlg_t *dlg, void *arg)
 	char *msg = NULL;
 	errno_t rc;
 
-	verify_dlg_destroy(dlg);
-
 	job = calloc(1, sizeof(navigator_verify_job_t));
 	if (job == NULL)
 		return;
@@ -166,6 +164,8 @@ static void verify_bok(verify_dlg_t *dlg, void *arg)
 	job->navigator = nav;
 	job->flist = dlg->flist;
 	dlg->flist = NULL;
+
+	verify_dlg_destroy(dlg);
 
 	progress_dlg_params_init(&pd_params);
 	pd_params.caption = "Verifying";

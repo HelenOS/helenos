@@ -190,8 +190,8 @@ static void move_bok(move_dlg_t *dlg, void *arg)
 		return;
 	}
 
-	move_dlg_destroy(dlg);
 	dlg->flist = NULL;
+	move_dlg_destroy(dlg);
 
 	progress_dlg_params_init(&pd_params);
 	pd_params.caption = "Moving";
