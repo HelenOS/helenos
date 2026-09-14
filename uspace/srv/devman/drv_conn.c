@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * Copyright (c) 2010 Lenka Trochtova
  * All rights reserved.
  *
@@ -503,7 +503,7 @@ static void devman_drv_fun_wait_stable(ipc_call_t *icall, driver_t *drv)
 
 	fibril_rwlock_read_lock(&device_tree.rwlock);
 
-	fun = find_fun_node(&device_tree, ipc_get_arg1(icall));
+	fun = find_fun_node_no_lock(&device_tree, ipc_get_arg1(icall));
 	if (fun == NULL) {
 		fibril_rwlock_read_unlock(&device_tree.rwlock);
 		async_answer_0(icall, ENOENT);
