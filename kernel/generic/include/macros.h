@@ -40,6 +40,27 @@
 #include <stdint.h>
 #include <trace.h>
 
+/** Return true if the interval is non-empty and its end address does
+ *  not overflow, false otherwise.
+ *
+ * @param start Start address of the interval.
+ * @param size  Size of the interval.
+ * @param end   Output parameter, set to start + size - 1 on success.
+ *
+ */
+_NO_TRACE static inline bool range_end(uint64_t start, uint64_t size, uint64_t *end)
+{
+	if (size == 0)
+		return false;
+
+	if (start > UINT64_MAX - (size - 1))
+		return false;
+
+	*end = start + size - 1;
+
+	return true;
+}
+
 /** Return true if the intervals overlap.
  *
  * @param s1  Start address of the first interval.
@@ -51,22 +72,27 @@
 _NO_TRACE static inline int overlaps(uint64_t s1, uint64_t sz1, uint64_t s2,
     uint64_t sz2)
 {
-	uint64_t e1 = s1 + sz1 - 1;
-	uint64_t e2 = s2 + sz2 - 1;
+	uint64_t e1, e2;
 
-	/* both sizes are non-zero */
+	if (sz1 == 0 && sz2 == 0)
+		return 0;
+
+	bool ok1 = range_end(s1, sz1, &e1);
+	bool ok2 = range_end(s2, sz2, &e2);
+
+	if ((sz1 && !ok1) || (sz2 && !ok2))
+		return 1;
+
 	if (sz1 && sz2)
-		return ((s1 <= e2) && (s2 <= e1));
+		return (s1 <= e2) && (s2 <= e1);
 
-	/* one size is non-zero */
 	if (sz2)
-		return ((s1 >= s2) && (s1 <= e2));
+		return (s1 >= s2) && (s1 <= e2);
 
 	if (sz1)
-		return ((s2 >= s1) && (s2 <= e1));
+		return (s2 >= s1) && (s2 <= e1);
 
-	/* both are zero */
-	return (s1 == s2);
+	return 0;
 }
 
 /** Return true if the second interval is within the first interval.
