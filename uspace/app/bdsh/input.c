@@ -55,6 +55,8 @@
 #include "exec.h"
 #include "tok.h"
 
+#define MAX_PIPES 10U
+
 extern volatile unsigned int cli_quit;
 
 /** Text input field. */
@@ -62,7 +64,6 @@ static tinput_t *tinput;
 
 /* Private helpers */
 static int run_command(char **, cliuser_t *, iostate_t *);
-static void print_pipe_usage(void);
 
 typedef struct {
 	link_t alias_hup_link;
@@ -80,6 +81,65 @@ static bool find_alias_hup(alias_t *alias, list_t *alias_hups)
 	return false;
 }
 
+static errno_t find_alias(char **cmd, list_t *alias_hups, alias_t **data)
+{
+	errno_t rc = EOK;
+
+	/* test if the passed cmd is an alias */
+	odlink_t *alias_link = odict_find_eq(&alias_dict, (void *)cmd[0], NULL);
+	if (alias_link != NULL) {
+		*data = odict_get_instance(alias_link, alias_t, odict);
+		/* check if the alias already has been resolved once */
+		if (! find_alias_hup(*data, alias_hups)) {
+			alias_hup_t *hup = (alias_hup_t *)calloc(1, sizeof(alias_hup_t));
+			if (hup == NULL) {
+				cli_error(CL_EFAIL, "%s: cannot allocate alias structure\n", PACKAGE_NAME);
+				rc = ENOMEM;
+				goto exit;
+			}
+			hup->alias = *data;
+			list_append(&hup->alias_hup_link, alias_hups);
+		}
+	}
+
+exit:
+	return rc;
+}
+
+static errno_t replace_alias(token_t *tokens, unsigned int tokens_start, unsigned int tokens_len, alias_t *data, char **cmd, char **line)
+{
+	errno_t rc = EOK;
+	const size_t input_length = str_size(*line) - str_size(cmd[0]) + str_size(data->value) + 1;
+	char *newline = (char *)malloc(input_length);
+	if (newline == NULL) {
+		cli_error(CL_EFAIL, "%s: cannot allocate input structure\n", PACKAGE_NAME);
+		rc = ENOMEM;
+		goto exit;
+	}
+
+	newline[0] = '\0';
+
+	unsigned int cmd_replace_index = tokens_start;
+	for (unsigned int i = 0; i < tokens_len; i++) {
+		if (i == cmd_replace_index) {
+			/* if there is a pipe symbol than cmd_token_start will point at the SPACE after the pipe symbol */
+			if (tokens[i].type == TOKTYPE_SPACE) {
+				tokens_start++;
+				str_append(*line, input_length, tokens[i].text);
+				continue;
+			}
+
+			str_append(newline, input_length, data->value);
+		} else {
+			str_append(newline, input_length, tokens[i].text);
+		}
+	}
+
+	*line = newline;
+exit:
+	return rc;
+}
+
 /*
  * Tokenizes input from console, sees if the first word is a built-in, if so
  * invokes the built-in entry point (a[0]) passing all arguments in a[] to
@@ -87,6 +147,15 @@ static bool find_alias_hup(alias_t *alias, list_t *alias_hups)
  */
 static errno_t process_input_nohup(cliuser_t *usr, list_t *alias_hups, size_t count_executed_hups)
 {
+	char *cmd[WORD_MAX];
+	size_t cmd_argc = 0;
+	errno_t rc = EOK;
+	tokenizer_t tok;
+	unsigned int i, pipe_count;
+	unsigned int pipe_pos[MAX_PIPES];
+	char *redir_from = NULL;
+	char *redir_to = NULL;
+
 	if (count_executed_hups >= HUBS_MAX) {
 		cli_error(CL_EFAIL, "%s: maximal alias hubs reached\n", PACKAGE_NAME);
 		return ELIMIT;
@@ -96,14 +165,6 @@ static errno_t process_input_nohup(cliuser_t *usr, list_t *alias_hups, size_t co
 	if (tokens_buf == NULL)
 		return ENOMEM;
 	token_t *tokens = tokens_buf;
-
-	char *cmd[WORD_MAX];
-	errno_t rc = EOK;
-	tokenizer_t tok;
-	unsigned int i, pipe_count, processed_pipes;
-	unsigned int pipe_pos[2];
-	char *redir_from = NULL;
-	char *redir_to = NULL;
 
 	if (usr->line == NULL) {
 		free(tokens_buf);
@@ -130,119 +191,55 @@ static errno_t process_input_nohup(cliuser_t *usr, list_t *alias_hups, size_t co
 		tokens_length--;
 	}
 
-	/*
-	 * Until full support for pipes is implemented, allow for a simple case:
-	 * [from <file> |] command [| to <file>]
-	 *
-	 * First find the pipes and check that there are no more
-	 */
+	cmd_argc = tokens_length;
+	unsigned wait_from = 0;
+	unsigned wait_to = 0;
 	for (i = 0, pipe_count = 0; i < tokens_length; i++) {
-		if (tokens[i].type == TOKTYPE_PIPE) {
-			if (pipe_count >= 2) {
-				print_pipe_usage();
-				rc = ENOTSUP;
-				goto finit;
+		switch (tokens[i].type) {
+		case  TOKTYPE_PIPE:
+			pipe_pos[pipe_count++] = i;
+			cmd_argc = i;
+			redir_from = redir_to = tmpnam(NULL);
+			break;
+
+		case TOKTYPE_RDIN:
+			wait_from = 1;
+			cmd_argc = i;
+			break;
+
+		case TOKTYPE_RDOU:
+			wait_to = 1;
+			cmd_argc = i;
+			break;
+
+		case TOKTYPE_TEXT:
+			if (wait_from) {
+				redir_from = tokens[i].text;
+				wait_from = 0;
 			}
-			pipe_pos[pipe_count] = i;
-			pipe_count++;
+			if (wait_to) {
+				redir_to = tokens[i].text;
+				wait_to = 0;
+			}
+			break;
+
+		default:
+			break;
 		}
-	}
 
-	unsigned int cmd_token_start = 0;
-	unsigned int cmd_token_end = tokens_length;
-
-	processed_pipes = 0;
-
-	/* Check if the first part (from <file> |) is present */
-	if (pipe_count > 0 && (pipe_pos[0] == 3 || pipe_pos[0] == 4) && str_cmp(tokens[0].text, "from") == 0) {
-		/* Ignore the first three tokens (from, file, pipe) and set from */
-		redir_from = tokens[2].text;
-		cmd_token_start = pipe_pos[0] + 1;
-		processed_pipes++;
-	}
-
-	/* Check if the second part (| to <file>) is present */
-	if ((pipe_count - processed_pipes) > 0 &&
-	    (pipe_pos[processed_pipes] == tokens_length - 4 ||
-	    (pipe_pos[processed_pipes] == tokens_length - 5 &&
-	    tokens[tokens_length - 4].type == TOKTYPE_SPACE)) &&
-	    str_cmp(tokens[tokens_length - 3].text, "to") == 0) {
-		/* Ignore the last three tokens (pipe, to, file) and set to */
-		redir_to = tokens[tokens_length - 1].text;
-		cmd_token_end = pipe_pos[processed_pipes];
-		processed_pipes++;
-	}
-
-	if (processed_pipes != pipe_count) {
-		print_pipe_usage();
-		rc = ENOTSUP;
-		goto finit;
-	}
-
-	/* Convert tokens of the command to string array */
-	unsigned int cmd_pos = 0;
-	for (i = cmd_token_start; i < cmd_token_end; i++) {
-		if (tokens[i].type != TOKTYPE_SPACE) {
-			cmd[cmd_pos++] = tokens[i].text;
-		}
-	}
-	cmd[cmd_pos++] = NULL;
-
-	if (cmd[0] == NULL) {
-		print_pipe_usage();
-		rc = ENOTSUP;
-		goto finit;
-	}
-
-	/* test if the passed cmd is an alias */
-	odlink_t *alias_link = odict_find_eq(&alias_dict, (void *)cmd[0], NULL);
-	if (alias_link != NULL) {
-		alias_t *data = odict_get_instance(alias_link, alias_t, odict);
-		/* check if the alias already has been resolved once */
-		if (!find_alias_hup(data, alias_hups)) {
-			alias_hup_t *hup = (alias_hup_t *)calloc(1, sizeof(alias_hup_t));
-			if (hup == NULL) {
-				cli_error(CL_EFAIL, "%s: cannot allocate alias structure\n", PACKAGE_NAME);
-				rc = ENOMEM;
-				goto finit;
-			}
-
-			hup->alias = data;
-			list_append(&hup->alias_hup_link, alias_hups);
-
-			char *oldLine = usr->line;
-			const size_t input_length = str_size(usr->line) - str_size(cmd[0]) + str_size(data->value) + 1;
-			usr->line = (char *)malloc(input_length);
-			if (usr->line == NULL) {
-				cli_error(CL_EFAIL, "%s: cannot allocate input structure\n", PACKAGE_NAME);
-				rc = ENOMEM;
-				goto finit;
-			}
-
-			usr->line[0] = '\0';
-
-			unsigned int cmd_replace_index = cmd_token_start;
-			for (i = 0; i < tokens_length; i++) {
-				if (i == cmd_replace_index) {
-					/* if there is a pipe symbol than cmd_token_start will point at the SPACE after the pipe symbol */
-					if (tokens[i].type == TOKTYPE_SPACE) {
-						cmd_replace_index++;
-						str_append(usr->line, input_length, tokens[i].text);
-						continue;
-					}
-
-					str_append(usr->line, input_length, data->value);
-				} else {
-					str_append(usr->line, input_length, tokens[i].text);
-				}
-			}
-
-			/* reprocess input after string replace */
-			rc = process_input_nohup(usr, alias_hups, count_executed_hups + 1);
-			usr->line = oldLine;
+		if (pipe_count > MAX_PIPES) {
+			rc = ENOTSUP;
 			goto finit;
 		}
 	}
+
+	if (wait_from || wait_to) {
+		printf("Parse error near `\\n'\n");
+		goto finit;
+	}
+
+	unsigned int cmd_token_start = 0;
+	unsigned int cmd_token_end = cmd_argc;
 
 	iostate_t new_iostate = {
 		.stdin = stdin,
@@ -253,30 +250,83 @@ static errno_t process_input_nohup(cliuser_t *usr, list_t *alias_hups, size_t co
 	FILE *from = NULL;
 	FILE *to = NULL;
 
-	if (redir_from) {
-		from = fopen(redir_from, "r");
-		if (from == NULL) {
-			printf("Cannot open file %s\n", redir_from);
-			rc = errno;
-			goto finit_with_files;
-		}
-		new_iostate.stdin = from;
-	}
 
-	if (redir_to) {
-		to = fopen(redir_to, "w");
-		if (to == NULL) {
-			printf("Cannot open file %s\n", redir_to);
-			rc = errno;
-			goto finit_with_files;
+	for (unsigned p = 0; p <= pipe_count; p++) {
+		/* Convert tokens of the command to string array */
+		unsigned int cmd_pos = 0;
+		for (i = cmd_token_start; i < cmd_token_end; i++) {
+			if (tokens[i].type != TOKTYPE_SPACE) {
+				cmd[cmd_pos++] = tokens[i].text;
+			}
 		}
-		new_iostate.stdout = to;
-	}
+		cmd[cmd_pos] = NULL;
 
-	if (run_command(cmd, usr, &new_iostate) == 0) {
-		rc = EOK;
-	} else {
-		rc = EINVAL;
+		if (cmd[0] == NULL) {
+			printf("Command not found.\n");
+			rc = ENOTSUP;
+			goto finit;
+		}
+
+		alias_t *data = NULL;
+		rc = find_alias(cmd, alias_hups, &data);
+		if (rc != EOK) {
+			goto finit;
+		}
+
+		if (data != NULL) {
+			rc = replace_alias(tokens, cmd_token_start, tokens_length, data, cmd, &usr->line);
+			if (rc == EOK) {
+				/* reprocess input after string replace */
+				rc = process_input_nohup(usr, alias_hups, count_executed_hups + 1);
+			}
+			goto finit;
+		}
+
+		if (redir_to) {
+			if ((p < pipe_count) || (pipe_count == 0)) {
+				to = fopen(redir_to, "w");
+				if (to == NULL) {
+					printf("Cannot open file %s\n", redir_to);
+					rc = errno;
+					goto finit_with_files;
+				}
+				new_iostate.stdout = to;
+			}
+		}
+
+		if (redir_from) {
+			if ((p && p == pipe_count) || (pipe_count == 0)) {
+				from = fopen(redir_from, "r");
+				if (from == NULL) {
+					printf("Cannot open file %s\n", redir_from);
+					rc = errno;
+					goto finit_with_files;
+				}
+				new_iostate.stdin = from;
+			}
+		}
+
+		if (run_command(cmd, usr, &new_iostate) == 0) {
+			rc = EOK;
+		} else {
+			rc = EINVAL;
+		}
+
+		if (to) {
+			fclose(to);
+			to = NULL;
+		}
+		if (from) {
+			fclose(from);
+			from = NULL;
+		}
+		// Restore the Standard Input, Output and Error file descriptors
+		new_iostate.stdin = stdin;
+		new_iostate.stdout = stdout;
+		new_iostate.stderr = stderr;
+
+		cmd_token_start = cmd_token_end + 1;
+		cmd_token_end = (p < pipe_count - 1) ? pipe_pos[p + 1] : tokens_length;
 	}
 
 finit_with_files:
@@ -311,16 +361,6 @@ errno_t process_input(cliuser_t *usr)
 	}
 
 	return rc;
-}
-
-void print_pipe_usage(void)
-{
-	printf("Invalid syntax!\n");
-	printf("Usage of redirection (pipes in the future):\n");
-	printf("from filename | command ...\n");
-	printf("from filename | command ... | to filename\n");
-	printf("command ... | to filename\n");
-
 }
 
 int run_command(char **cmd, cliuser_t *usr, iostate_t *new_iostate)
