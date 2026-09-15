@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -391,14 +391,15 @@ static errno_t vbds_part_remove(vbds_part_t *part, vbds_rem_flag_t flag,
 		}
 	}
 
+	part->lpart = NULL;
+
 	list_remove(&part->ldisk);
 	fibril_mutex_lock(&vbds_parts_lock);
 	list_remove(&part->lparts);
 	fibril_mutex_unlock(&vbds_parts_lock);
 
-	vbds_part_del_ref(part);
-	part->lpart = NULL;
 	fibril_rwlock_write_unlock(&part->lock);
+	vbds_part_del_ref(part);
 
 	if (rlpart != NULL)
 		*rlpart = lpart;
@@ -810,8 +811,8 @@ errno_t vbds_part_get_info(vbds_part_id_t partid, vbd_part_info_t *pinfo)
 	pinfo->block0 = lpinfo.block0;
 	pinfo->nblocks = lpinfo.nblocks;
 	pinfo->svc_id = part->svc_id;
-	vbds_part_del_ref(part);
 	fibril_rwlock_read_unlock(&part->lock);
+	vbds_part_del_ref(part);
 
 	return EOK;
 }
