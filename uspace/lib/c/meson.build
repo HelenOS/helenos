@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2025 Jiri Svoboda
+# Copyright (c) 2026 Jiri Svoboda
 # Copyright (c) 2005 Martin Decky
 # Copyright (c) 2007 Jakub Jermar
 # All rights reserved.
@@ -168,6 +168,12 @@ if CONFIG_RTLD
 		'generic/rtld/module.c',
 		'generic/rtld/rtld.c',
 		'generic/rtld/symbol.c',
+	)
+endif
+
+if CONFIG_DEBUG_MALLOC
+	src += files(
+		'generic/dmalloc.c',
 	)
 endif
 

@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2026 Jiri Svoboda
- * Copyright (c) 2009 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,35 +29,38 @@
 /** @addtogroup libc
  * @{
  */
-/** @file
+/** @file Debug memory allocator.
  */
 
-#ifndef _LIBC_MALLOC_H_
-#define _LIBC_MALLOC_H_
+#ifndef _LIBC_PRIVATE_DMALLOC_H_
+#define _LIBC_PRIVATE_DMALLOC_H_
 
-#include <stddef.h>
-#include <_bits/decls.h>
+#include <stdbool.h>
 
-#ifdef _HELENOS_SOURCE
-__HELENOS_DECLS_BEGIN;
+enum {
+	/** Size of padding at the beginning of a block. */
+	pad_begin = 16,
+	/** Size of padding at the end of a block */
+	pad_end = 16,
+	/** Pattern for freed memory. */
+	freed_pattern = 0xdd,
+	/** Padding pattern. */
+	pad_pattern = 0xee,
+	/** Uninitialized memory pattern. */
+	uninit_pattern = 0xaa
+};
 
-/*
- * If debugging memory allocator is enabled, the standard allocator
- * exports public functions under a different name.
- */
-#ifdef CONFIG_DEBUG_MALLOC
-void *_malloc(size_t size);
-void _free(void *ptr);
-void *_calloc(size_t n, size_t size);
-void *_realloc(void *ptr, size_t size);
-void *_memalign(const size_t align, const size_t);
-void *_reallocarray(void *ptr, size_t, size_t);
-#endif
-
-extern void *heap_check(void);
-
-__HELENOS_DECLS_END;
-#endif
+/** Debug allocator heap block metadata. */
+typedef struct {
+	/** Link to list of all blocks. */
+	link_t lblocks;
+	/** Pointer to start of user data */
+	void *ptr;
+	/** @c true if block was freed by user */
+	bool freed;
+	/** Size of user data in bytes. */
+	size_t size;
+} dblock_t;
 
 #endif
 

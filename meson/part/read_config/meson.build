@@ -1,4 +1,5 @@
 #
+# Copyright (c) 2026 Jiri Svoboda
 # Copyright (c) 2019 Jiří Zárevúcky
 # All rights reserved.
 #
@@ -47,6 +48,7 @@ _config_variables = [
 	'CONFIG_DEVEL_FILES',
 	'CONFIG_FPU',
 	'CONFIG_LINE_DEBUG',
+	'CONFIG_DEBUG_MALLOC',
 	'CONFIG_LTO',
 	'CONFIG_PCUT_SELF_TESTS',
 	'CONFIG_PCUT_TESTS',

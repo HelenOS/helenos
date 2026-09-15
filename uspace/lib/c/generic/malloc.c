@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2026 Jiri Svoboda
  * Copyright (c) 2009 Martin Decky
  * Copyright (c) 2009 Petr Tuma
  * All rights reserved.
@@ -51,6 +52,18 @@
 
 #include "private/malloc.h"
 #include "private/fibril.h"
+
+/*
+ * If debugging memory allocator enabled, export public functions under
+ * a different name to avoid collisions.
+ */
+#ifdef CONFIG_DEBUG_MALLOC
+#define malloc _malloc
+#define free _free
+#define realloc _realloc
+#define memalign _memalign
+#define reallocarray _reallocarray
+#endif
 
 /** Magic used in heap headers. */
 #define HEAP_BLOCK_HEAD_MAGIC  UINT32_C(0xBEEF0101)
