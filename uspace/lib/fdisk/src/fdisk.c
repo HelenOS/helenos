@@ -270,6 +270,10 @@ static errno_t fdisk_part_add(fdisk_dev_t *dev, vbd_part_id_t partid,
 		part->pcnt = vpinfo.pcnt;
 		part->fstype = vpinfo.fstype;
 		part->label = str_dup(vpinfo.label);
+		if (part->label == NULL) {
+			rc = ENOMEM;
+			goto error;
+		}
 	}
 
 	part->dev = dev;
@@ -278,6 +282,11 @@ static errno_t fdisk_part_add(fdisk_dev_t *dev, vbd_part_id_t partid,
 	part->nblocks = pinfo.nblocks;
 	part->pkind = pinfo.pkind;
 	part->svc_id = pinfo.svc_id;
+	part->label = str_dup("");
+	if (part->label == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
 
 	switch (part->pkind) {
 	case lpk_primary:
@@ -819,9 +828,11 @@ errno_t fdisk_part_destroy(fdisk_part_t *part)
 {
 	errno_t rc;
 
-	rc = vol_part_eject(part->dev->fdisk->vol, part->svc_id, vef_none);
-	if (rc != EOK)
-		return EIO;
+	if (part->svc_id != 0) {
+		rc = vol_part_eject(part->dev->fdisk->vol, part->svc_id, vef_none);
+		if (rc != EOK)
+			return EIO;
+	}
 
 	rc = vbd_part_delete(part->dev->fdisk->vbd, part->part_id);
 	if (rc != EOK)

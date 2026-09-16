@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -441,6 +441,7 @@ static errno_t fdsk_create_part(fdisk_dev_t *dev, label_pkind_t pkind)
 	char *smcapa = NULL;
 	char *label = NULL;
 	char *mountp = NULL;
+	bool vl_supported;
 
 	if (pkind == lpk_logical)
 		spc = spc_log;
@@ -491,10 +492,14 @@ static errno_t fdsk_create_part(fdisk_dev_t *dev, label_pkind_t pkind)
 		rc = fdsk_select_fstype(&fstype);
 		if (rc != EOK)
 			goto error;
+
+		fdisk_get_vollabel_support(dev, fstype, &vlsupp);
+		vl_supported = vlsupp.supported;
+	} else {
+		vl_supported = false;
 	}
 
-	fdisk_get_vollabel_support(dev, fstype, &vlsupp);
-	if (vlsupp.supported) {
+	if (vl_supported) {
 		tinput = tinput_new();
 		if (tinput == NULL) {
 			rc = ENOMEM;
@@ -515,33 +520,35 @@ static errno_t fdsk_create_part(fdisk_dev_t *dev, label_pkind_t pkind)
 		tinput = NULL;
 	}
 
-	/* Ask for mount point */
-	tinput = tinput_new();
-	if (tinput == NULL) {
-		rc = ENOMEM;
-		goto error;
-	}
+	if (pkind != lpk_extended) {
+		/* Ask for mount point */
+		tinput = tinput_new();
+		if (tinput == NULL) {
+			rc = ENOMEM;
+			goto error;
+		}
 
-	rc = tinput_set_prompt(tinput, "?> ");
-	if (rc != EOK)
-		goto error;
-
-	while (true) {
-		printf("Enter mount point for new partition (Auto, None or /path).\n");
-		rc = tinput_read_i(tinput, "Auto", &mountp);
+		rc = tinput_set_prompt(tinput, "?> ");
 		if (rc != EOK)
 			goto error;
 
-		rc = vol_mountp_validate(mountp);
-		if (rc == EOK)
-			break;
+		while (true) {
+			printf("Enter mount point for new partition (Auto, None or /path).\n");
+			rc = tinput_read_i(tinput, "Auto", &mountp);
+			if (rc != EOK)
+				goto error;
 
-		free(mountp);
-		mountp = NULL;
+			rc = vol_mountp_validate(mountp);
+			if (rc == EOK)
+				break;
+
+			free(mountp);
+			mountp = NULL;
+		}
+
+		tinput_destroy(tinput);
+		tinput = NULL;
 	}
-
-	tinput_destroy(tinput);
-	tinput = NULL;
 
 	fdisk_pspec_init(&pspec);
 	pspec.capacity = capa;
