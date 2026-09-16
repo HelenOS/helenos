@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2026 Jiri Svoboda
  * Copyright (c) 2024 Nataliia Korop
  * All rights reserved.
  *
@@ -35,6 +36,9 @@
  * @brief Headers and functions for .pcap file and packets to be dumped
  */
 
+#include <stddef.h>
+#include <stdint.h>
+#include <time.h>
 #include "pcap.h"
 
 /** Set time in seconds and microseconds for the packet header .

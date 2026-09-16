@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2026 Jiri Svoboda
  * Copyright (c) 2012 Jan Vesely
  * All rights reserved.
  *
@@ -37,7 +38,7 @@
 #define PCM_SAMPLE_FORMAT_H_
 
 #include <stdbool.h>
-#include <time.h>
+#include <timeint.h>
 
 /** Known and supported PCM sample formats */
 typedef enum {

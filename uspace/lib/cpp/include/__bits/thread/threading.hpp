@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2026 Jiri Svoboda
  * Copyright (c) 2018 Jaroslav Jindrak
  * All rights reserved.
  *
@@ -33,6 +34,7 @@
 
 #include <fibril.h>
 #include <fibril_synch.h>
+#include <timeint.h>
 
 namespace std::aux
 {

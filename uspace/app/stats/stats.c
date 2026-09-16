@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2026 Jiri Svoboda
  * Copyright (c) 2010 Stanislav Kozina
  * Copyright (c) 2010 Martin Decky
  * All rights reserved.
@@ -36,6 +37,7 @@
 
 #include <stdio.h>
 #include <task.h>
+#include <time.h>
 #include <stats.h>
 #include <errno.h>
 #include <stdlib.h>

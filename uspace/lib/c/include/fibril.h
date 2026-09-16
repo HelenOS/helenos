@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2026 Jiri Svoboda
  * Copyright (c) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
@@ -35,7 +36,8 @@
 #ifndef _LIBC_FIBRIL_H_
 #define _LIBC_FIBRIL_H_
 
-#include <time.h>
+#include <stddef.h>
+#include <timeint.h>
 #include <_bits/errno.h>
 #include <_bits/__noreturn.h>
 #include <_bits/decls.h>

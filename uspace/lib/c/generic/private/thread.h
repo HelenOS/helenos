@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2026 Jiri Svoboda
  * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
@@ -35,7 +36,7 @@
 #ifndef _LIBC_PRIVATE_THREAD_H_
 #define _LIBC_PRIVATE_THREAD_H_
 
-#include <time.h>
+#include <timeint.h>
 #include <libarch/thread.h>
 #include <abi/proc/thread.h>
 

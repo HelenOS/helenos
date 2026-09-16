@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2026 Jiri Svoboda
  * Copyright (c) 2015 Jan Kolarik
  * All rights reserved.
  *
@@ -39,7 +40,6 @@
 
 #include <adt/list.h>
 #include <nic/nic.h>
-#include <time.h>
 
 /** Max length of scan results array. */
 #define IEEE80211_MAX_RESULTS_LENGTH  32

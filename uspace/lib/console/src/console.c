@@ -41,6 +41,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <str.h>
+#include <time.h>
 #include <vfs/vfs_sess.h>
 #include <io/console.h>
 #include <ipc/console.h>

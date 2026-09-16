@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * Copyright (c) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
@@ -41,7 +41,7 @@
 #define _LIBC_ASYNC_H_
 
 #include <ipc/common.h>
-#include <time.h>
+#include <timeint.h>
 #include <stdbool.h>
 #include <abi/proc/task.h>
 #include <abi/ddi/irq.h>

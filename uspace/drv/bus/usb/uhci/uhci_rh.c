@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2026 Jiri Svoboda
  * Copyright (c) 2013 Jan Vesely
  * Copyright (c) 2018 Ondrej Hlavaty
  * All rights reserved.
@@ -33,7 +34,6 @@
 #include <errno.h>
 #include <macros.h>
 #include <mem.h>
-#include <time.h>
 
 #include <usb/debug.h>
 #include <usb/descriptor.h>

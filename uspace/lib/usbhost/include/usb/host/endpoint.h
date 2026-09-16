@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2026 Jiri Svoboda
  * Copyright (c) 2011 Jan Vesely
  * Copyright (c) 2018 Ondrej Hlavaty
  * All rights reserved.
@@ -44,7 +45,7 @@
 #include <fibril_synch.h>
 #include <refcount.h>
 #include <stdbool.h>
-#include <time.h>
+#include <timeint.h>
 #include <usb/usb.h>
 #include <usb/host/bus.h>
 #include <usbhc_iface.h>

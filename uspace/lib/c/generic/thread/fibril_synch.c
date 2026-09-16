@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * Copyright (c) 2009 Jakub Jermar
  * All rights reserved.
  *
@@ -37,7 +37,7 @@
 #include <fibril.h>
 #include <async.h>
 #include <adt/list.h>
-#include <time.h>
+#include <timeint.h>
 #include <errno.h>
 #include <assert.h>
 #include <stacktrace.h>

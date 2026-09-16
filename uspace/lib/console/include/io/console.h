@@ -35,7 +35,7 @@
 #ifndef _LIBCONSOLE_IO_CONSOLE_H_
 #define _LIBCONSOLE_IO_CONSOLE_H_
 
-#include <time.h>
+#include <timeint.h>
 #include <io/charfield.h>
 #include <io/concaps.h>
 #include <io/kbd_event.h>

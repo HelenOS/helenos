@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2026 Jiri Svoboda
  * Copyright (c) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
@@ -109,7 +110,7 @@
 #include <adt/list.h>
 #include <assert.h>
 #include <errno.h>
-#include <time.h>
+#include <timeint.h>
 #include <barrier.h>
 #include <stdbool.h>
 #include <stdlib.h>

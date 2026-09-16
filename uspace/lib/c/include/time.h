@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2026 Jiri Svoboda
  * Copyright (c) 2018 Jakub Jermar
  * All rights reserved.
  *
@@ -115,29 +116,9 @@ __C_DECLS_END;
 
 #include <stdbool.h>
 #include <_bits/errno.h>
+#include <timeint.h>
 
 __HELENOS_DECLS_BEGIN;
-
-typedef long long sec_t;
-typedef long long msec_t;
-typedef long long usec_t;
-typedef long long nsec_t;	/* good for +/- 292 years */
-
-#define SEC2MSEC(s)	((s) * 1000ll)
-#define SEC2USEC(s)	((s) * 1000000ll)
-#define SEC2NSEC(s)	((s) * 1000000000ll)
-
-#define MSEC2SEC(ms)	((ms) / 1000ll)
-#define MSEC2USEC(ms)	((ms) * 1000ll)
-#define MSEC2NSEC(ms)	((ms) * 1000000ll)
-
-#define USEC2SEC(us)	((us) / 1000000ll)
-#define USEC2MSEC(us)	((us) / 1000ll)
-#define USEC2NSEC(us)	((us) * 1000ll)
-
-#define NSEC2SEC(ns)	((ns) / 1000000000ll)
-#define NSEC2MSEC(ns)	((ns) / 1000000ll)
-#define NSEC2USEC(ns)	((ns) / 1000ll)
 
 extern void getuptime(struct timespec *);
 extern void getrealtime(struct timespec *);

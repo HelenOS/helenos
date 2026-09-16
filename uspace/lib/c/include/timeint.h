@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2026 Jiri Svoboda
- * Copyright (c) 2024 Nataliia Korop
+ * Copyright (c) 2018 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,18 +27,43 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup pcapcat
+/** @addtogroup libc
  * @{
  */
-/** @file Functions for parsing PCAP file of LinkType 1 (LINKTYPE_ETHERNET).
+/** @file
  */
 
-#include <stdio.h>
-#include <stdbool.h>
-#include <pcap.h>
+#ifndef _LIBC_TIMEINT_H_
+#define _LIBC_TIMEINT_H_
 
-extern void eth_parse_frames(FILE *, int, bool);
-extern void eth_parse_header(pcap_file_header_t *);
+#include <_bits/decls.h>
+
+__HELENOS_DECLS_BEGIN;
+
+typedef long long sec_t;
+typedef long long msec_t;
+typedef long long usec_t;
+typedef long long nsec_t;	/* good for +/- 292 years */
+
+#define SEC2MSEC(s)	((s) * 1000ll)
+#define SEC2USEC(s)	((s) * 1000000ll)
+#define SEC2NSEC(s)	((s) * 1000000000ll)
+
+#define MSEC2SEC(ms)	((ms) / 1000ll)
+#define MSEC2USEC(ms)	((ms) * 1000ll)
+#define MSEC2NSEC(ms)	((ms) * 1000000ll)
+
+#define USEC2SEC(us)	((us) / 1000000ll)
+#define USEC2MSEC(us)	((us) / 1000ll)
+#define USEC2NSEC(us)	((us) * 1000ll)
+
+#define NSEC2SEC(ns)	((ns) / 1000000000ll)
+#define NSEC2MSEC(ns)	((ns) / 1000000ll)
+#define NSEC2USEC(ns)	((ns) / 1000ll)
+
+__HELENOS_DECLS_END;
+
+#endif
 
 /** @}
  */

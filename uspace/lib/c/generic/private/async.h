@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * Copyright (c) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
@@ -40,7 +40,6 @@
 #include <adt/list.h>
 #include <fibril.h>
 #include <fibril_synch.h>
-#include <time.h>
 #include <stdbool.h>
 
 /** Session data */

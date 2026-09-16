@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2026 Jiri Svoboda
  * Copyright (c) 2010 Radim Vansa
  * All rights reserved.
  *
@@ -38,6 +39,7 @@
 #include <async.h>
 #include <nic/nic.h>
 #include <ipc/common.h>
+#include <time.h>
 
 typedef enum {
 	NIC_EV_ADDR_CHANGED = IPC_FIRST_USER_METHOD,

@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2026 Jiri Svoboda
  * Copyright (c) 2023 Nataliia Korop
  * All rights reserved.
  *
@@ -41,7 +42,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <str_error.h>
-#include <time.h>
 #include <stdbool.h>
 #include <errno.h>
 

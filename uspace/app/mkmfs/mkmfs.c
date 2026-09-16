@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * Copyright (c) 2011 Maurizio Lombardi
  * All rights reserved.
  *
@@ -45,7 +45,6 @@
 #include <getopt.h>
 #include <mem.h>
 #include <str.h>
-#include <time.h>
 #include <minix.h>
 
 #define NAME	"mkmfs"

@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2026 Jiri Svoboda
  * Copyright (c) 2024 Nataliia Korop
  * All rights reserved.
  *
@@ -26,15 +27,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
 #include <stdbool.h>
 #include <errno.h>
-#include <str.h>
 #include <getopt.h>
-#include <io/log.h>
 #include <pcap.h>
 
 #include "linktype_parser.h"

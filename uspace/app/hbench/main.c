@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * Copyright (c) 2018 Vojtech Horky
  * All rights reserved.
  *
@@ -41,7 +41,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <str.h>
-#include <time.h>
+#include <timeint.h>
 #include <errno.h>
 #include <str_error.h>
 #include <perf.h>
