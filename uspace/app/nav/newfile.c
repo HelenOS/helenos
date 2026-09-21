@@ -188,6 +188,7 @@ static void new_file_bok(new_file_dlg_t *dlg, void *arg, const char *fname,
 
 	progress_dlg_params_init(&pd_params);
 	pd_params.caption = "Creating new file";
+	pd_params.file_progress = true;
 
 	rc = progress_dlg_create(nav->ui, &pd_params, &nav->progress_dlg);
 	if (rc != EOK) {

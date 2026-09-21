@@ -195,6 +195,7 @@ static void copy_bok(copy_dlg_t *dlg, void *arg)
 
 	progress_dlg_params_init(&pd_params);
 	pd_params.caption = "Copying";
+	pd_params.file_progress = true;
 
 	rc = progress_dlg_create(nav->ui, &pd_params, &nav->progress_dlg);
 	if (rc != EOK) {

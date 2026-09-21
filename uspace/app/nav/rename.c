@@ -169,7 +169,7 @@ static void rename_bok(rename_dlg_t *dlg, void *arg, const char *new_name)
 	rename_dlg_destroy(dlg);
 
 	progress_dlg_params_init(&pd_params);
-	pd_params.caption = "Creating new file";
+	pd_params.caption = "Renaming";
 
 	rc = progress_dlg_create(nav->ui, &pd_params, &nav->progress_dlg);
 	if (rc != EOK) {

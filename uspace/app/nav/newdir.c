@@ -162,7 +162,7 @@ static void new_dir_bok(new_dir_dlg_t *dlg, void *arg, const char *dname)
 	job->dname = dname;
 
 	progress_dlg_params_init(&pd_params);
-	pd_params.caption = "Creating new file";
+	pd_params.caption = "Creating new directory";
 
 	rc = progress_dlg_create(nav->ui, &pd_params, &nav->progress_dlg);
 	if (rc != EOK) {

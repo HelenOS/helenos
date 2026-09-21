@@ -72,6 +72,8 @@ typedef struct progress_dlg_cb {
 typedef struct {
 	/** Window caption */
 	const char *caption;
+	/** Display file progress */
+	bool file_progress;
 } progress_dlg_params_t;
 
 #endif
