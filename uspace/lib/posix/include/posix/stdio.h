@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2026 Jiri Svoboda
  * Copyright (c) 2011 Jiri Zarevucky
  * Copyright (c) 2011 Petr Koupy
  * All rights reserved.
@@ -61,6 +62,8 @@ extern ssize_t getdelim(char **__restrict__ lineptr, size_t *__restrict__ n,
     int delimiter, FILE *__restrict__ stream);
 extern ssize_t getline(char **__restrict__ lineptr, size_t *__restrict__ n,
     FILE *__restrict__ stream);
+extern int getw(FILE *);
+extern int putw(int, FILE *);
 
 #if defined(_LARGEFILE64_SOURCE) || defined(_GNU_SOURCE)
 extern int fseeko64(FILE *stream, off64_t offset, int whence);

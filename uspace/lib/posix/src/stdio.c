@@ -1,7 +1,7 @@
 /*
+ * Copyright (c) 2026 Jiri Svoboda
  * Copyright (c) 2011 Jiri Zarevucky
  * Copyright (c) 2011 Petr Koupy
- * Copyright (c) 2018 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -171,6 +171,45 @@ ssize_t getline(char **restrict lineptr, size_t *restrict n,
     FILE *restrict stream)
 {
 	return getdelim(lineptr, n, '\n', stream);
+}
+
+/** Read a word (int) from a stream.
+ *
+ * This SVr4 compatibility function appears in SUSv2.
+ *
+ * @param w Word
+ * @param stream Output stream
+ * @return The word read on success, EOF on error.
+ */
+int getw(FILE *stream)
+{
+	size_t nr;
+	int w;
+
+	nr = fread(&w, sizeof(w), 1, stream);
+	if (nr < 1)
+		return EOF;
+
+	return w;
+}
+
+/** Write a word (int) to a stream.
+ *
+ * This SVr4 compatibility function appears in SUSv2.
+ *
+ * @param w Word
+ * @param stream Output stream
+ * @return Zero on success, EOF on error.
+ */
+int putw(int w, FILE *stream)
+{
+	size_t nw;
+
+	nw = fwrite(&w, sizeof(w), 1, stream);
+	if (nw < 1)
+		return EOF;
+
+	return 0;
 }
 
 /**
