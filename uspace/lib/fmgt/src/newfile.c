@@ -112,6 +112,9 @@ errno_t fmgt_new_file(fmgt_t *fmgt, const char *fname, uint64_t fsize,
 
 	/* Clear statistics. */
 	fmgt_progress_init(fmgt);
+	fmgt->curf_procb = 0;
+	fmgt->curf_totalb = fsize;
+	fmgt->file_progress = true;
 	fmgt_initial_progress_update(fmgt);
 	fmgt_timer_start(fmgt);
 
