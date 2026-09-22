@@ -166,6 +166,8 @@ static void rename_bok(rename_dlg_t *dlg, void *arg, const char *new_name)
 		return;
 	}
 
+	nav->abort_op = false;
+
 	rename_dlg_destroy(dlg);
 
 	progress_dlg_params_init(&pd_params);

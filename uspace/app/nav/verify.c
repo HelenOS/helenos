@@ -165,6 +165,8 @@ static void verify_bok(verify_dlg_t *dlg, void *arg)
 	job->flist = dlg->flist;
 	dlg->flist = NULL;
 
+	nav->abort_op = false;
+
 	verify_dlg_destroy(dlg);
 
 	progress_dlg_params_init(&pd_params);

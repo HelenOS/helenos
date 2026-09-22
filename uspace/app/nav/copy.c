@@ -190,6 +190,8 @@ static void copy_bok(copy_dlg_t *dlg, void *arg)
 		return;
 	}
 
+	nav->abort_op = false;
+
 	dlg->flist = NULL;
 	copy_dlg_destroy(dlg);
 

@@ -165,6 +165,8 @@ static void delete_bok(delete_dlg_t *dlg, void *arg)
 	job->flist = dlg->flist;
 	dlg->flist = NULL;
 
+	nav->abort_op = false;
+
 	delete_dlg_destroy(dlg);
 
 	progress_dlg_params_init(&pd_params);
