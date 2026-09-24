@@ -40,6 +40,7 @@
 #include <io/log.h>
 #include <async.h>
 #include <stdbool.h>
+#include <refcount.h>
 #include <fibril_synch.h>
 #include <stdio.h>
 
@@ -63,7 +64,7 @@ typedef struct {
 struct logger_log {
 	link_t link;
 
-	size_t ref_counter;
+	atomic_refcount_t ref_counter;
 
 	fibril_mutex_t guard;
 
