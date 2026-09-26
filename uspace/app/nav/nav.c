@@ -44,6 +44,7 @@
 #include <task.h>
 #include <ui/fixed.h>
 #include <ui/filelist.h>
+#include <ui/msgdialog.h>
 #include <ui/resource.h>
 #include <ui/ui.h>
 #include <ui/window.h>
@@ -135,6 +136,8 @@ static exists_dlg_cb_t navigator_exists_dlg_cb = {
 	.babort = navigator_exists_abort,
 	.close = navigator_exists_close
 };
+
+static errno_t navigator_show_error_oper_updir(navigator_t *);
 
 /** Window size has changed.
  *
@@ -643,6 +646,12 @@ static void navigator_file_edit(void *arg)
 	entry = ui_file_list_get_cursor(panel->flist);
 	ui_file_list_entry_get_attr(entry, &attr);
 
+	if (str_cmp(attr.name, "..") == 0) {
+		/* Refuse to operate on '..'. */
+		(void)navigator_show_error_oper_updir(navigator);
+		return;
+	}
+
 	(void)navigator_edit_file(navigator, attr.name);
 }
 
@@ -660,6 +669,12 @@ static void navigator_file_verify(void *arg)
 	panel = navigator_get_active_panel(navigator);
 	entry = ui_file_list_get_cursor(panel->flist);
 	ui_file_list_entry_get_attr(entry, &attr);
+
+	if (str_cmp(attr.name, "..") == 0) {
+		/* Refuse to operate on '..'. */
+		(void)navigator_show_error_oper_updir(navigator);
+		return;
+	}
 
 	rc = fmgt_flist_create(&flist);
 	if (rc != EOK)
@@ -690,6 +705,12 @@ static void navigator_file_copy(void *arg)
 	entry = ui_file_list_get_cursor(panel->flist);
 	ui_file_list_entry_get_attr(entry, &attr);
 
+	if (str_cmp(attr.name, "..") == 0) {
+		/* Refuse to operate on '..'. */
+		(void)navigator_show_error_oper_updir(navigator);
+		return;
+	}
+
 	rc = fmgt_flist_create(&flist);
 	if (rc != EOK)
 		return;
@@ -718,6 +739,12 @@ static void navigator_file_move(void *arg)
 	panel = navigator_get_active_panel(navigator);
 	entry = ui_file_list_get_cursor(panel->flist);
 	ui_file_list_entry_get_attr(entry, &attr);
+
+	if (str_cmp(attr.name, "..") == 0) {
+		/* Refuse to operate on '..'. */
+		(void)navigator_show_error_oper_updir(navigator);
+		return;
+	}
 
 	rc = fmgt_flist_create(&flist);
 	if (rc != EOK)
@@ -748,6 +775,12 @@ static void navigator_file_delete(void *arg)
 	entry = ui_file_list_get_cursor(panel->flist);
 	ui_file_list_entry_get_attr(entry, &attr);
 
+	if (str_cmp(attr.name, "..") == 0) {
+		/* Refuse to operate on '..'. */
+		(void)navigator_show_error_oper_updir(navigator);
+		return;
+	}
+
 	rc = fmgt_flist_create(&flist);
 	if (rc != EOK)
 		return;
@@ -774,6 +807,12 @@ static void navigator_file_rename(void *arg)
 	panel = navigator_get_active_panel(navigator);
 	entry = ui_file_list_get_cursor(panel->flist);
 	ui_file_list_entry_get_attr(entry, &attr);
+
+	if (str_cmp(attr.name, "..") == 0) {
+		/* Refuse to operate on '..'. */
+		(void)navigator_show_error_oper_updir(navigator);
+		return;
+	}
 
 	/* flist ownership transferred */
 	navigator_rename_dlg(navigator, attr.name);
@@ -1147,6 +1186,22 @@ static void navigator_exists_close(exists_dlg_t *dlg, void *arg)
 	nav->exists_act_sel = true;
 	fibril_condvar_signal(&nav->exists_act_cv);
 	fibril_mutex_unlock(&nav->exists_act_lock);
+}
+
+/** Show error message "Cannot operate on '..'.
+ *
+ * @param nav Navigator
+ * @return EOK on success or an error code
+ */
+static errno_t navigator_show_error_oper_updir(navigator_t *nav)
+{
+	ui_msg_dialog_t *dialog = NULL;
+	ui_msg_dialog_params_t params;
+
+	ui_msg_dialog_params_init(&params);
+	params.caption = "Error";
+	params.text = "Cannot operate on '..'!";
+	return ui_msg_dialog_create(nav->ui, &params, &dialog);
 }
 
 /** @}
