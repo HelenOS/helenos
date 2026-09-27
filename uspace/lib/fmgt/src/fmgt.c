@@ -348,6 +348,22 @@ const char *fmgt_basename(const char *path)
 		return path;
 }
 
+/** Return directory component of pathname (without base file name).
+ *
+ * @param path Pathname
+ * @return Newly allocated directory name
+ */
+char *fmgt_dirname(const char *path)
+{
+	const char *p;
+
+	p = str_rchr(path, '/');
+	if (p == NULL || p == path)
+		return str_dup(path);
+
+	return str_ndup(path, p - path);
+}
+
 /** Determine if pathname is an existing directory.
  *
  * @param path Pathname

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,7 @@
 #include <gfx/render.h>
 #include <gfx/text.h>
 #include <stdlib.h>
+#include <str.h>
 #include <task.h>
 #include <ui/control.h>
 #include <ui/filelist.h>
@@ -67,6 +68,8 @@ static ui_file_list_cb_t panel_flist_cb = {
 	.activate_req = panel_flist_activate_req,
 	.selected = panel_flist_selected,
 };
+
+static errno_t panel_fall_back_parent(panel_t *);
 
 /** Create panel.
  *
@@ -285,6 +288,9 @@ errno_t panel_activate(panel_t *panel)
 	errno_t rc;
 
 	rc = ui_file_list_activate(panel->flist);
+	if (rc == ENOENT)
+		rc = panel_fall_back_parent(panel);
+
 	if (rc != EOK)
 		return rc;
 
@@ -374,6 +380,43 @@ char *panel_get_dir(panel_t *panel)
 	return ui_file_list_get_dir(panel->flist);
 }
 
+/** Fall back to parent directory when current directory is gone.
+ *
+ * @param panel Panel
+ * @return EOK on success or an error code
+ */
+static errno_t panel_fall_back_parent(panel_t *panel)
+{
+	errno_t rc;
+	char *dirname;
+	char *parent;
+
+	dirname = ui_file_list_get_dir(panel->flist);
+	if (dirname == NULL)
+		return ENOMEM;
+
+	do {
+		/* Already in the root directory? */
+		if (str_cmp(dirname, "/") == 0) {
+			free(dirname);
+			return ENOENT;
+		}
+
+		/* Try moving to parent directory. */
+		parent = fmgt_dirname(dirname);
+		free(dirname);
+		if (parent == NULL)
+			return ENOMEM;
+
+		rc = ui_file_list_read_dir(panel->flist, parent);
+		dirname = parent;
+		parent = NULL;
+	} while (rc == ENOENT);
+
+	free(dirname);
+	return rc;
+}
+
 /** Refresh panel contents.
  *
  * @param panel Panel
@@ -384,6 +427,10 @@ errno_t panel_refresh(panel_t *panel)
 	errno_t rc;
 
 	rc = ui_file_list_refresh(panel->flist);
+
+	if (rc == ENOENT)
+		rc = panel_fall_back_parent(panel);
+
 	if (rc != EOK)
 		return rc;
 

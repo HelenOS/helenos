@@ -57,6 +57,7 @@ extern void fmgt_set_cb(fmgt_t *, fmgt_cb_t *, void *);
 extern void fmgt_destroy(fmgt_t *);
 extern void fmgt_set_init_update(fmgt_t *, bool);
 extern const char *fmgt_basename(const char *);
+extern char *fmgt_dirname(const char *path);
 extern bool fmgt_is_dir(const char *);
 
 #endif
