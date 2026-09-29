@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * Copyright (c) 2012 Vojtech Horky
  * All rights reserved.
  *
@@ -305,6 +305,7 @@ static void remcons_set_style(con_srv_t *srv, console_style_t style)
 		attrs.type = CHAR_ATTR_STYLE;
 		attrs.val.style = style;
 		vt100_set_attr(remcons->vt, attrs);
+		remcons->cur_attrs = attrs;
 	}
 }
 
@@ -320,6 +321,7 @@ static void remcons_set_color(con_srv_t *srv, console_color_t bgcolor,
 		attrs.val.index.fgcolor = fgcolor;
 		attrs.val.index.attr = flags;
 		vt100_set_attr(remcons->vt, attrs);
+		remcons->cur_attrs = attrs;
 	}
 }
 
@@ -334,6 +336,7 @@ static void remcons_set_rgb_color(con_srv_t *srv, pixel_t bgcolor,
 		attrs.val.rgb.bgcolor = bgcolor;
 		attrs.val.rgb.fgcolor = fgcolor;
 		vt100_set_attr(remcons->vt, attrs);
+		remcons->cur_attrs = attrs;
 	}
 }
 
@@ -532,6 +535,8 @@ static void remcons_update(con_srv_t *srv, sysarg_t c0, sysarg_t r0,
 			vt100_putuchar(remcons->vt, ch->ch);
 		}
 	}
+
+	vt100_set_attr(remcons->vt, remcons->cur_attrs);
 
 	if (remcons->curs_visible) {
 		old_x = remcons->user->cursor_x = old_x;

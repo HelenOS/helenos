@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * Copyright (c) 2012 Vojtech Horky
  * All rights reserved.
  *
@@ -55,6 +55,7 @@ typedef struct {
 	sysarg_t urows;		/**< number of rows in user buffer */
 	charfield_t *ubuf;	/**< user buffer */
 	bool curs_visible;	/**< cursor is visible */
+	char_attrs_t cur_attrs; /**< current attributes */
 
 	/** List of remcons_event_t. */
 	list_t in_events;
