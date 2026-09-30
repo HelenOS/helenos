@@ -1886,7 +1886,7 @@ static errno_t bitmap_moire(gfx_bitmap_t *bitmap, gfx_coord_t w, gfx_coord_t h)
 		for (j = 0; j < h; j++) {
 			k = i * i + j * j;
 			pixelmap_put_pixel(&pixelmap, i, j,
-			    PIXEL(0, k, k, 255 - k));
+			    PIXEL(255, k, k, 255 - k));
 		}
 	}
 
