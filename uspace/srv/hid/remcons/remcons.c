@@ -233,7 +233,7 @@ static void remcons_clear(con_srv_t *srv)
 
 	if (remcons->enable_ctl) {
 		vt100_cls(remcons->vt);
-		vt100_goto(remcons->vt, 0, 0);
+		vt100_set_pos(remcons->vt, 0, 0);
 		remcons->user->cursor_x = 0;
 		remcons->user->cursor_y = 0;
 	}
@@ -245,7 +245,7 @@ static void remcons_set_pos(con_srv_t *srv, sysarg_t col, sysarg_t row)
 	telnet_user_t *user = srv_to_user(srv);
 
 	if (remcons->enable_ctl) {
-		vt100_goto(remcons->vt, col, row);
+		vt100_set_pos(remcons->vt, col, row);
 		remcons->user->cursor_x = col;
 		remcons->user->cursor_y = row;
 		(void)telnet_user_flush(remcons->user);
@@ -346,7 +346,7 @@ static void remcons_cursor_visibility(con_srv_t *srv, bool visible)
 
 	if (remcons->enable_ctl) {
 		if (!remcons->curs_visible && visible) {
-			vt100_goto(remcons->vt, remcons->user->cursor_x,
+			vt100_set_pos(remcons->vt, remcons->user->cursor_x,
 			    remcons->user->cursor_y);
 		}
 		vt100_cursor_visibility(remcons->vt, visible);
@@ -529,7 +529,7 @@ static void remcons_update(con_srv_t *srv, sysarg_t c0, sysarg_t r0,
 
 	for (row = r0; row < r1; row++) {
 		for (col = c0; col < c1; col++) {
-			vt100_goto(remcons->vt, col, row);
+			vt100_set_pos(remcons->vt, col, row);
 			ch = &remcons->ubuf[row * remcons->ucols + col];
 			vt100_set_attr(remcons->vt, ch->attrs);
 			vt100_putuchar(remcons->vt, ch->ch);
@@ -541,7 +541,7 @@ static void remcons_update(con_srv_t *srv, sysarg_t c0, sysarg_t r0,
 	if (remcons->curs_visible) {
 		old_x = remcons->user->cursor_x = old_x;
 		remcons->user->cursor_y = old_y;
-		vt100_goto(remcons->vt, old_x, old_y);
+		vt100_set_pos(remcons->vt, old_x, old_y);
 		vt100_cursor_visibility(remcons->vt, true);
 	}
 
@@ -749,7 +749,7 @@ static void remcons_new_conn(tcp_listener_t *lst, tcp_conn_t *conn)
 		attrs.val.style = STYLE_NORMAL;
 		vt100_set_sgr(remcons->vt, attrs);
 		vt100_cls(remcons->vt);
-		vt100_goto(remcons->vt, 0, 0);
+		vt100_set_pos(remcons->vt, 0, 0);
 		vt100_set_button_reporting(remcons->vt, true);
 	}
 
@@ -810,7 +810,7 @@ static void remcons_new_conn(tcp_listener_t *lst, tcp_conn_t *conn)
 		/* Reset all character attributes and clear screen */
 		vt100_sgr(remcons->vt, 0);
 		vt100_cls(remcons->vt);
-		vt100_goto(remcons->vt, 0, 0);
+		vt100_set_pos(remcons->vt, 0, 0);
 
 		telnet_user_flush(user);
 	}
