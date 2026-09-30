@@ -492,6 +492,24 @@ static void remcons_unmap(con_srv_t *srv)
 		as_area_destroy(buf);
 }
 
+static void remcons_put_run(remcons_t *remcons, sysarg_t run_len,
+    charfield_t run_ch)
+{
+	sysarg_t i;
+
+	vt100_set_attr(remcons->vt, run_ch.attrs);
+
+	if (run_len > 5) {
+		/* Use character repeat command. */
+		vt100_putuchar(remcons->vt, run_ch.ch);
+		vt100_repeat(remcons->vt, run_len - 1);
+	} else {
+		/* Run is too short. Just output characters. */
+		for (i = 0; i < run_len; i++)
+			vt100_putuchar(remcons->vt, run_ch.ch);
+	}
+}
+
 static void remcons_update(con_srv_t *srv, sysarg_t c0, sysarg_t r0,
     sysarg_t c1, sysarg_t r1)
 {
@@ -499,6 +517,8 @@ static void remcons_update(con_srv_t *srv, sysarg_t c0, sysarg_t r0,
 	charfield_t *ch;
 	sysarg_t col, row;
 	sysarg_t old_x, old_y;
+	sysarg_t run_len;
+	charfield_t run_ch;
 
 	if (remcons->ubuf == NULL)
 		return;
@@ -527,19 +547,34 @@ static void remcons_update(con_srv_t *srv, sysarg_t c0, sysarg_t r0,
 	if (remcons->curs_visible)
 		vt100_cursor_visibility(remcons->vt, false);
 
+	/* Encode runs of same characters. */
+
+	run_len = 0;
 	for (row = r0; row < r1; row++) {
+		vt100_set_pos(remcons->vt, c0, row);
 		for (col = c0; col < c1; col++) {
-			vt100_set_pos(remcons->vt, col, row);
 			ch = &remcons->ubuf[row * remcons->ucols + col];
-			vt100_set_attr(remcons->vt, ch->attrs);
-			vt100_putuchar(remcons->vt, ch->ch);
+			if (run_len == 0) {
+				run_len = 1;
+				run_ch = *ch;
+			} else if (ch->ch == run_ch.ch &&
+			    attrs_same(ch->attrs, run_ch.attrs)) {
+				++run_len;
+			} else {
+				remcons_put_run(remcons, run_len, run_ch);
+				run_len = 1;
+				run_ch = *ch;
+			}
 		}
+
+		remcons_put_run(remcons, run_len, run_ch);
+		run_len = 0;
 	}
 
 	vt100_set_attr(remcons->vt, remcons->cur_attrs);
 
 	if (remcons->curs_visible) {
-		old_x = remcons->user->cursor_x = old_x;
+		remcons->user->cursor_x = old_x;
 		remcons->user->cursor_y = old_y;
 		vt100_set_pos(remcons->vt, old_x, old_y);
 		vt100_cursor_visibility(remcons->vt, true);

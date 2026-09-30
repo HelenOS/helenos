@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
@@ -185,6 +185,7 @@ extern void vt100_cursor_visibility(vt100_t *, bool);
 extern void vt100_set_button_reporting(vt100_t *, bool);
 extern void vt100_set_title(vt100_t *, const char *);
 extern void vt100_putuchar(vt100_t *, char32_t);
+extern void vt100_repeat(vt100_t *, sysarg_t);
 extern void vt100_flush(vt100_t *);
 
 extern void vt100_rcvd_char(vt100_t *, char);

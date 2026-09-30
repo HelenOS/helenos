@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
@@ -344,6 +344,20 @@ void vt100_set_title(vt100_t *vt, const char *title)
 	vt->cb->control_puts(vt->arg, "\a");
 }
 
+/** Advance internal cursor position to the next character.
+ *
+ * @param vt VT instance
+ */
+static void vt100_advance_cursor(vt100_t *vt)
+{
+	vt->cur_col++;
+
+	if (vt->cur_col >= vt->cols) {
+		vt->cur_row += vt->cur_col / vt->cols;
+		vt->cur_col %= vt->cols;
+	}
+}
+
 /** Print Unicode character.
  *
  * @param vt VT instance
@@ -352,12 +366,24 @@ void vt100_set_title(vt100_t *vt, const char *title)
 void vt100_putuchar(vt100_t *vt, char32_t ch)
 {
 	vt->cb->putuchar(vt->arg, ch == 0 ? ' ' : ch);
-	vt->cur_col++;
+	vt100_advance_cursor(vt);
+}
 
-	if (vt->cur_col >= vt->cols) {
-		vt->cur_row += vt->cur_col / vt->cols;
-		vt->cur_col %= vt->cols;
-	}
+/** Repeat last graphic character.
+ *
+ * @param vt VT instance
+ * @parma count Number of times to repeat
+ */
+void vt100_repeat(vt100_t *vt, sysarg_t count)
+{
+	char control[MAX_CONTROL];
+	sysarg_t i;
+
+	snprintf(control, MAX_CONTROL, "\033[%ub", (unsigned)count);
+	vt->cb->control_puts(vt->arg, control);
+
+	for (i = 0; i < count; i++)
+		vt100_advance_cursor(vt);
 }
 
 /** Flush VT.
