@@ -510,6 +510,39 @@ static void remcons_put_run(remcons_t *remcons, sysarg_t run_len,
 	}
 }
 
+/** Determine if an entire rectangle consists of empty characters
+ * with the same attribute.
+ *
+ * @param remcons Remote console
+ * @param c0 Starting column
+ * @param r0 Starting row
+ * @param c1 Ending column + 1
+ * @param r1 Ending row + 1
+ * @param attrs Desired attributes
+ *
+ * @return @c true iff rectangle is empty with the given attributes.
+ */
+static bool remcons_rect_is_empty(remcons_t *remcons, sysarg_t c0, sysarg_t r0,
+    sysarg_t c1, sysarg_t r1, char_attrs_t attrs)
+{
+	sysarg_t row;
+	sysarg_t col;
+	charfield_t *ch;
+
+	for (row = r0; row < r1; row++) {
+		for (col = c0; col < c1; col++) {
+			ch = &remcons->ubuf[row * remcons->ucols + col];
+			if (ch->ch != '\0' && ch->ch != ' ')
+				return false;
+
+			if (!attrs_same(ch->attrs, attrs))
+				return false;
+		}
+	}
+
+	return true;
+}
+
 static void remcons_update(con_srv_t *srv, sysarg_t c0, sysarg_t r0,
     sysarg_t c1, sysarg_t r1)
 {
@@ -547,28 +580,41 @@ static void remcons_update(con_srv_t *srv, sysarg_t c0, sysarg_t r0,
 	if (remcons->curs_visible)
 		vt100_cursor_visibility(remcons->vt, false);
 
-	/* Encode runs of same characters. */
+	/* Is the entire screen supposed to be empty? */
+	ch = &remcons->ubuf[r0 * remcons->ucols + c0];
 
-	run_len = 0;
-	for (row = r0; row < r1; row++) {
-		vt100_set_pos(remcons->vt, c0, row);
-		for (col = c0; col < c1; col++) {
-			ch = &remcons->ubuf[row * remcons->ucols + col];
-			if (run_len == 0) {
-				run_len = 1;
-				run_ch = *ch;
-			} else if (ch->ch == run_ch.ch &&
-			    attrs_same(ch->attrs, run_ch.attrs)) {
-				++run_len;
-			} else {
-				remcons_put_run(remcons, run_len, run_ch);
-				run_len = 1;
-				run_ch = *ch;
-			}
-		}
+	if (c0 == 0 && r0 == 0 && c1 == remcons->vt->cols &&
+	    r1 == remcons->vt->rows &&
+	    remcons_rect_is_empty(remcons, c0, r0, c1, r1, ch->attrs)) {
 
-		remcons_put_run(remcons, run_len, run_ch);
+		/* Clear the screen. */
+		vt100_set_attr(remcons->vt, ch->attrs);
+		vt100_cls(remcons->vt);
+	} else {
+		/* Encode runs of the same characters. */
+
 		run_len = 0;
+		for (row = r0; row < r1; row++) {
+			vt100_set_pos(remcons->vt, c0, row);
+			for (col = c0; col < c1; col++) {
+				ch = &remcons->ubuf[row * remcons->ucols + col];
+				if (run_len == 0) {
+					run_len = 1;
+					run_ch = *ch;
+				} else if (ch->ch == run_ch.ch &&
+				    attrs_same(ch->attrs, run_ch.attrs)) {
+					++run_len;
+				} else {
+					remcons_put_run(remcons, run_len,
+					    run_ch);
+					run_len = 1;
+					run_ch = *ch;
+				}
+			}
+
+			remcons_put_run(remcons, run_len, run_ch);
+			run_len = 0;
+		}
 	}
 
 	vt100_set_attr(remcons->vt, remcons->cur_attrs);
