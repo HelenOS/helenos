@@ -37,6 +37,7 @@
 #include <errno.h>
 #include <gfx/render.h>
 #include <gfx/text.h>
+#include <macros.h>
 #include <stdlib.h>
 #include <str.h>
 #include <task.h>
@@ -62,11 +63,13 @@ static ui_control_ops_t panel_ctl_ops = {
 
 static void panel_flist_activate_req(ui_file_list_t *, void *);
 static void panel_flist_selected(ui_file_list_t *, void *, const char *);
+static void panel_flist_dir_selected(ui_file_list_t *, void *, const char *);
 
 /** Panel file list callbacks */
 static ui_file_list_cb_t panel_flist_cb = {
 	.activate_req = panel_flist_activate_req,
 	.selected = panel_flist_selected,
+	.dir_selected = panel_flist_dir_selected
 };
 
 static errno_t panel_fall_back_parent(panel_t *);
@@ -148,6 +151,64 @@ void panel_set_cb(panel_t *panel, panel_cb_t *cb, void *arg)
 	panel->cb_arg = arg;
 }
 
+/** Paint current directory name.
+ *
+ * @param panel Panel
+ * @return EON on success or an error code
+ */
+static errno_t panel_paint_dirname(panel_t *panel)
+{
+	gfx_context_t *gc = ui_window_get_gc(panel->window);
+	ui_resource_t *res = ui_window_get_res(panel->window);
+	gfx_text_fmt_t fmt;
+	gfx_font_t *font;
+	gfx_coord2_t pos;
+	gfx_coord_t width;
+	errno_t rc;
+	gfx_rect_t rect;
+	gfx_color_t *color;
+	char *dir;
+
+	dir = ui_file_list_get_dir(panel->flist);
+	if (dir == NULL)
+		return ENOMEM;
+
+	font = ui_resource_get_font(res);
+	width = gfx_text_width(font, dir);
+
+	rect.p0.x = panel->rect.p0.x + 3;
+	rect.p0.y = panel->rect.p0.y;
+	rect.p1.x = min(rect.p0.x + 2 + width, panel->rect.p1.x - 3);
+	rect.p1.y = panel->rect.p0.y + 1;
+
+	color = panel->active ? panel->act_border_color : panel->color;
+
+	rc = gfx_set_color(gc, color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_fill_rect(gc, &rect);
+	if (rc != EOK)
+		goto error;
+
+	gfx_text_fmt_init(&fmt);
+	fmt.font = font;
+	fmt.color = color;
+	fmt.halign = gfx_halign_left;
+	fmt.valign = gfx_valign_top;
+	fmt.width = rect.p1.x - rect.p0.x - 2;
+	fmt.abbreviate = true;
+
+	pos.x = rect.p0.x + 1;
+	pos.y = rect.p0.y;
+	rc = gfx_puttext(&pos, &fmt, dir);
+	free(dir);
+	return rc;
+error:
+	free(dir);
+	return rc;
+}
+
 /** Paint panel.
  *
  * @param panel Panel
@@ -178,6 +239,10 @@ errno_t panel_paint(panel_t *panel)
 	}
 
 	rc = ui_paint_text_box(res, &panel->rect, bstyle, bcolor);
+	if (rc != EOK)
+		return rc;
+
+	rc = panel_paint_dirname(panel);
 	if (rc != EOK)
 		return rc;
 
@@ -474,6 +539,21 @@ static void panel_flist_selected(ui_file_list_t *flist, void *arg,
 
 	if (panel->cb != NULL && panel->cb->file_open != NULL)
 		panel->cb->file_open(panel->cb_arg, panel, fname);
+}
+
+/** Directory in panel file list was selected.
+ *
+ * @param flist File list
+ * @param arg Argument (panel_t *)
+ * @param dname Directory name
+ */
+static void panel_flist_dir_selected(ui_file_list_t *flist, void *arg,
+    const char *dname)
+{
+	panel_t *panel = (panel_t *)arg;
+
+	(void)ui_file_list_read_dir(flist, dname);
+	(void)panel_paint(panel);
 }
 
 /** @}

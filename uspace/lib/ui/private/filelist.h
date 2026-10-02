@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -105,6 +105,7 @@ extern errno_t ui_file_list_open_dir(ui_file_list_t *, ui_file_list_entry_t *);
 extern errno_t ui_file_list_open_file(ui_file_list_t *, ui_file_list_entry_t *);
 extern void ui_file_list_activate_req(ui_file_list_t *);
 extern void ui_file_list_selected(ui_file_list_t *, const char *);
+extern void ui_file_list_dir_selected(ui_file_list_t *, const char *);
 extern errno_t ui_file_list_paint(ui_file_list_t *);
 extern int ui_file_list_list_compare(ui_list_entry_t *, ui_list_entry_t *);
 

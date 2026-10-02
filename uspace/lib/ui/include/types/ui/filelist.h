@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -64,6 +64,8 @@ typedef struct ui_file_list_cb {
 	void (*activate_req)(ui_file_list_t *, void *);
 	/** File was selected */
 	void (*selected)(ui_file_list_t *, void *, const char *);
+	/** Directory was selected */
+	void (*dir_selected)(ui_file_list_t *, void *, const char *);
 } ui_file_list_cb_t;
 
 #endif

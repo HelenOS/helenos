@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -608,31 +608,7 @@ errno_t ui_file_list_open(ui_file_list_t *flist, ui_file_list_entry_t *entry)
 errno_t ui_file_list_open_dir(ui_file_list_t *flist,
     ui_file_list_entry_t *entry)
 {
-	char *dirname;
-	errno_t rc;
-
-	assert(entry->isdir);
-
-	/*
-	 * Need to copy out name before we free the entry below
-	 * via ui_file_list_clear_entries().
-	 */
-	dirname = str_dup(entry->name);
-	if (dirname == NULL)
-		return ENOMEM;
-
-	rc = ui_file_list_read_dir(flist, dirname);
-	if (rc != EOK) {
-		free(dirname);
-		return rc;
-	}
-
-	free(dirname);
-
-	rc = ui_file_list_paint(flist);
-	if (rc != EOK)
-		return rc;
-
+	ui_file_list_dir_selected(flist, entry->name);
 	return EOK;
 }
 
@@ -673,6 +649,17 @@ void ui_file_list_selected(ui_file_list_t *flist, const char *fname)
 {
 	if (flist->cb != NULL && flist->cb->selected != NULL)
 		flist->cb->selected(flist, flist->cb_arg, fname);
+}
+
+/** Call back when a directory is selected.
+ *
+ * @param flist File list
+ * @param fname File name
+ */
+void ui_file_list_dir_selected(ui_file_list_t *flist, const char *dname)
+{
+	if (flist->cb != NULL && flist->cb->dir_selected != NULL)
+		flist->cb->dir_selected(flist, flist->cb_arg, dname);
 }
 
 /** Paint file list.

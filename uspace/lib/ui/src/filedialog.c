@@ -60,10 +60,13 @@ ui_window_cb_t ui_file_dialog_wnd_cb = {
 static void ui_file_dialog_flist_activate_req(ui_file_list_t *, void *);
 static void ui_file_dialog_flist_selected(ui_file_list_t *, void *,
     const char *);
+static void ui_file_dialog_flist_dir_selected(ui_file_list_t *, void *,
+    const char *);
 
 ui_file_list_cb_t ui_file_dialog_flist_cb = {
 	.activate_req = ui_file_dialog_flist_activate_req,
-	.selected = ui_file_dialog_flist_selected
+	.selected = ui_file_dialog_flist_selected,
+	.dir_selected = ui_file_dialog_flist_dir_selected
 };
 
 static void ui_file_dialog_bok_clicked(ui_pbutton_t *, void *);
@@ -492,6 +495,15 @@ static void ui_file_dialog_flist_selected(ui_file_list_t *flist, void *arg,
 	ui_file_dialog_t *dialog = (ui_file_dialog_t *) arg;
 
 	dialog->cb->bok(dialog, dialog->arg, fname);
+}
+
+static void ui_file_dialog_flist_dir_selected(ui_file_list_t *flist, void *arg,
+    const char *dname)
+{
+	ui_file_dialog_t *dialog = (ui_file_dialog_t *) arg;
+
+	(void)ui_file_list_read_dir(flist, dname);
+	(void)ui_window_paint(dialog->window);
 }
 
 /** File dialog OK button click handler.

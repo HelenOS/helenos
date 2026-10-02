@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -50,14 +50,20 @@ typedef struct {
 	bool selected;
 	ui_file_list_t *selected_file_list;
 	const char *selected_fname;
+
+	bool dir_selected;
+	ui_file_list_t *dir_selected_file_list;
+	const char *dir_selected_dname;
 } test_resp_t;
 
 static void test_file_list_activate_req(ui_file_list_t *, void *);
 static void test_file_list_selected(ui_file_list_t *, void *, const char *);
+static void test_file_list_dir_selected(ui_file_list_t *, void *, const char *);
 
 static ui_file_list_cb_t test_cb = {
 	.activate_req = test_file_list_activate_req,
-	.selected = test_file_list_selected
+	.selected = test_file_list_selected,
+	.dir_selected = test_file_list_dir_selected
 };
 
 /** Create and destroy file list. */
@@ -1260,6 +1266,44 @@ PCUT_TEST(selected)
 	ui_destroy(ui);
 }
 
+/** ui_file_list_dir_selected() runs dir_selected callback */
+PCUT_TEST(dir_selected)
+{
+	ui_t *ui;
+	ui_window_t *window;
+	ui_wnd_params_t params;
+	ui_file_list_t *flist;
+	errno_t rc;
+	test_resp_t resp;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Test";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_file_list_create(window, true, &flist);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_file_list_set_cb(flist, &test_cb, &resp);
+
+	resp.dir_selected = false;
+	resp.dir_selected_file_list = NULL;
+	resp.dir_selected_dname = NULL;
+
+	ui_file_list_dir_selected(flist, "mydir");
+	PCUT_ASSERT_TRUE(resp.dir_selected);
+	PCUT_ASSERT_EQUALS(flist, resp.dir_selected_file_list);
+	PCUT_ASSERT_STR_EQUALS("mydir", resp.dir_selected_dname);
+
+	ui_file_list_destroy(flist);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
 /** ui_file_list_get_cursor() returns the current cursor position */
 PCUT_TEST(get_cursor)
 {
@@ -1320,6 +1364,16 @@ static void test_file_list_selected(ui_file_list_t *flist, void *arg,
 	resp->selected = true;
 	resp->selected_file_list = flist;
 	resp->selected_fname = fname;
+}
+
+static void test_file_list_dir_selected(ui_file_list_t *flist, void *arg,
+    const char *dname)
+{
+	test_resp_t *resp = (test_resp_t *)arg;
+
+	resp->dir_selected = true;
+	resp->dir_selected_file_list = flist;
+	resp->dir_selected_dname = dname;
 }
 
 PCUT_EXPORT(file_list);
