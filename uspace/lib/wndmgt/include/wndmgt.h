@@ -47,6 +47,7 @@ extern errno_t wndmgt_get_window_info(wndmgt_t *, sysarg_t,
     wndmgt_window_info_t **);
 extern void wndmgt_free_window_info(wndmgt_window_info_t *);
 extern errno_t wndmgt_activate_window(wndmgt_t *, sysarg_t, sysarg_t);
+extern errno_t wndmgt_deactivate_window(wndmgt_t *, sysarg_t, sysarg_t);
 extern errno_t wndmgt_close_window(wndmgt_t *, sysarg_t);
 
 #endif
