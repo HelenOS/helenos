@@ -324,8 +324,11 @@ out:
 /** Perform a path lookup.
  *
  * @param base    The file from which to perform the lookup.
- * @param path    Path to be resolved; it must be a NULL-terminated
- *                string.
+ * @param path    Path to be resolved; It must be an absolute path
+ *                which get resolved relatively to base; it must be a
+ *                NULL-terminated string. Example: If /foo is parent
+ *                and path is "/bar/baz", the result would be /foo/bar/baz.
+ *                Just "bar/baz" is not valid.
  * @param lflag   Flags to be used during lookup.
  * @param result  Empty structure where the lookup result will be stored.
  *                Can be NULL.
