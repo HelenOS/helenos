@@ -32,6 +32,9 @@
 typedef enum {
 	TOKTYPE_TEXT,
 	TOKTYPE_PIPE,
+	TOKTYPE_RDIN,
+	TOKTYPE_RDOU,
+	TOKTYPE_RDAP,
 	TOKTYPE_SPACE
 } token_type_t;
 
