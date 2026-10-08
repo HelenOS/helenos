@@ -50,6 +50,10 @@ struct ui_file_dialog {
 	struct ui_entry *ename;
 	/** File list */
 	struct ui_file_list *flist;
+	/** Directory label */
+	struct ui_label *ldir;
+	/** Directory entry */
+	struct ui_entry *edir;
 	/** OK button */
 	struct ui_pbutton *bok;
 	/** Cancel button */
@@ -68,14 +72,18 @@ typedef struct {
 	/** File name label rectangle */
 	gfx_rect_t fname_label_rect;
 	/** File name entry rectangle */
-	gfx_rect_t entry_rect;
+	gfx_rect_t fname_entry_rect;
 	/** Files label rectangle */
 	gfx_rect_t files_label_rect;
 	/** File list rectangle */
 	gfx_rect_t flist_rect;
-	/** File list rectangle */
+	/** Directory label rectangle */
+	gfx_rect_t dir_label_rect;
+	/** Directory entry rectangle */
+	gfx_rect_t dir_entry_rect;
+	/** OK button rectangle */
 	gfx_rect_t bok_rect;
-	/** File list rectangle */
+	/** Cancle button rectangle */
 	gfx_rect_t bcancel_rect;
 } ui_file_dialog_geom_t;
 

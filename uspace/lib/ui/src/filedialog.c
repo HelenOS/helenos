@@ -119,15 +119,15 @@ static void ui_file_dialog_get_geom(ui_t *ui, gfx_rect_t *wrect,
 
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
-		geom->entry_rect.p0.x = 3;
-		geom->entry_rect.p0.y = 3;
-		geom->entry_rect.p1.x = wrect->p1.x - 3;
-		geom->entry_rect.p1.y = 4;
+		geom->fname_entry_rect.p0.x = 3;
+		geom->fname_entry_rect.p0.y = 3;
+		geom->fname_entry_rect.p1.x = wrect->p1.x - 3;
+		geom->fname_entry_rect.p1.y = 4;
 	} else {
-		geom->entry_rect.p0.x = 10;
-		geom->entry_rect.p0.y = 55;
-		geom->entry_rect.p1.x = wrect->p1.x - 10;
-		geom->entry_rect.p1.y = 80;
+		geom->fname_entry_rect.p0.x = 10;
+		geom->fname_entry_rect.p0.y = 55;
+		geom->fname_entry_rect.p1.x = wrect->p1.x - 10;
+		geom->fname_entry_rect.p1.y = 80;
 	}
 
 	/* FIXME: Auto layout */
@@ -148,12 +148,38 @@ static void ui_file_dialog_get_geom(ui_t *ui, gfx_rect_t *wrect,
 		geom->flist_rect.p0.x = 3;
 		geom->flist_rect.p0.y = 6;
 		geom->flist_rect.p1.x = wrect->p1.x - 3;
-		geom->flist_rect.p1.y = wrect->p1.y - 4;
+		geom->flist_rect.p1.y = wrect->p1.y - 6;
 	} else {
 		geom->flist_rect.p0.x = 10;
 		geom->flist_rect.p0.y = 110;
 		geom->flist_rect.p1.x = wrect->p1.x - 10;
-		geom->flist_rect.p1.y = wrect->p1.y - 55;
+		geom->flist_rect.p1.y = wrect->p1.y - 105;
+	}
+
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(ui)) {
+		geom->dir_label_rect.p0.x = 3;
+		geom->dir_label_rect.p0.y = wrect->p1.y - 5;
+		geom->dir_label_rect.p1.x = 17;
+		geom->dir_label_rect.p1.y = wrect->p1.y - 4;
+	} else {
+		geom->dir_label_rect.p0.x = 10;
+		geom->dir_label_rect.p0.y = wrect->p1.y - 95;
+		geom->dir_label_rect.p1.x = 190;
+		geom->dir_label_rect.p1.y = wrect->p1.y - 80;
+	}
+
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(ui)) {
+		geom->dir_entry_rect.p0.x = 3;
+		geom->dir_entry_rect.p0.y = wrect->p1.y - 4;
+		geom->dir_entry_rect.p1.x = wrect->p1.x - 3;
+		geom->dir_entry_rect.p1.y = wrect->p1.y - 3;
+	} else {
+		geom->dir_entry_rect.p0.x = 10;
+		geom->dir_entry_rect.p0.y = wrect->p1.y - 75;
+		geom->dir_entry_rect.p1.x = wrect->p1.x - 10;
+		geom->dir_entry_rect.p1.y = wrect->p1.y - 50;
 	}
 
 	cx = (wrect->p0.x + wrect->p1.x) / 2;
@@ -161,27 +187,27 @@ static void ui_file_dialog_get_geom(ui_t *ui, gfx_rect_t *wrect,
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
 		geom->bok_rect.p0.x = cx - 10;
-		geom->bok_rect.p0.y = wrect->p1.y - 3;
+		geom->bok_rect.p0.y = wrect->p1.y - 2;
 		geom->bok_rect.p1.x = cx;
-		geom->bok_rect.p1.y = wrect->p1.y - 2;
+		geom->bok_rect.p1.y = wrect->p1.y - 1;
 	} else {
 		geom->bok_rect.p0.x = cx - 95;
-		geom->bok_rect.p0.y = wrect->p1.y - 45;
+		geom->bok_rect.p0.y = wrect->p1.y - 40;
 		geom->bok_rect.p1.x = cx - 5;
-		geom->bok_rect.p1.y = wrect->p1.y - 17;
+		geom->bok_rect.p1.y = wrect->p1.y - 12;
 	}
 
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
 		geom->bcancel_rect.p0.x = cx + 2;
-		geom->bcancel_rect.p0.y = wrect->p1.y - 3;
+		geom->bcancel_rect.p0.y = wrect->p1.y - 2;
 		geom->bcancel_rect.p1.x = cx + 12;
-		geom->bcancel_rect.p1.y = wrect->p1.y - 2;
+		geom->bcancel_rect.p1.y = wrect->p1.y - 1;
 	} else {
 		geom->bcancel_rect.p0.x = cx + 5;
-		geom->bcancel_rect.p0.y = wrect->p1.y - 45;
+		geom->bcancel_rect.p0.y = wrect->p1.y - 40;
 		geom->bcancel_rect.p1.x = cx + 95;
-		geom->bcancel_rect.p1.y = wrect->p1.y - 17;
+		geom->bcancel_rect.p1.y = wrect->p1.y - 12;
 	}
 }
 
@@ -202,6 +228,7 @@ errno_t ui_file_dialog_create(ui_t *ui, ui_file_dialog_params_t *params,
 	ui_fixed_t *fixed = NULL;
 	ui_label_t *label = NULL;
 	ui_entry_t *entry = NULL;
+	char *dirname = NULL;
 	ui_file_list_t *flist = NULL;
 	ui_pbutton_t *bok = NULL;
 	ui_pbutton_t *bcancel = NULL;
@@ -223,16 +250,16 @@ errno_t ui_file_dialog_create(ui_t *ui, ui_file_dialog_params_t *params,
 	if (ui_is_textmode(ui)) {
 		wparams.rect.p0.x = 0;
 		wparams.rect.p0.y = 0;
-		wparams.rect.p1.x = 40;
-		wparams.rect.p1.y = 20;
+		wparams.rect.p1.x = 45;
+		wparams.rect.p1.y = 21;
 
 		wparams.min_size.x = 30;
-		wparams.min_size.y = 10;
+		wparams.min_size.y = 18;
 	} else {
 		wparams.rect.p0.x = 0;
 		wparams.rect.p0.y = 0;
-		wparams.rect.p1.x = 300;
-		wparams.rect.p1.y = 335;
+		wparams.rect.p1.x = 340;
+		wparams.rect.p1.y = 375;
 
 		wparams.min_size.x = 240;
 		wparams.min_size.y = 260;
@@ -254,6 +281,8 @@ errno_t ui_file_dialog_create(ui_t *ui, ui_file_dialog_params_t *params,
 	if (rc != EOK)
 		goto error;
 
+	/* File name label */
+
 	rc = ui_label_create(ui_res, "File Name:", &label);
 	if (rc != EOK)
 		goto error;
@@ -266,11 +295,13 @@ errno_t ui_file_dialog_create(ui_t *ui, ui_file_dialog_params_t *params,
 
 	label = NULL;
 
+	/* File name entry */
+
 	rc = ui_entry_create(window, params->ifname, &entry);
 	if (rc != EOK)
 		goto error;
 
-	ui_entry_set_rect(entry, &geom.entry_rect);
+	ui_entry_set_rect(entry, &geom.fname_entry_rect);
 
 	rc = ui_fixed_add(fixed, ui_entry_ctl(entry));
 	if (rc != EOK)
@@ -286,6 +317,7 @@ errno_t ui_file_dialog_create(ui_t *ui, ui_file_dialog_params_t *params,
 	entry = NULL;
 
 	/* Files label */
+
 	rc = ui_label_create(ui_res, "Files:", &label);
 	if (rc != EOK)
 		goto error;
@@ -317,6 +349,50 @@ errno_t ui_file_dialog_create(ui_t *ui, ui_file_dialog_params_t *params,
 	rc = ui_file_list_read_dir(dialog->flist, ".");
 	if (rc != EOK)
 		goto error;
+
+	/* Directory label */
+
+	rc = ui_label_create(ui_res, "Directory:", &label);
+	if (rc != EOK)
+		goto error;
+
+	ui_label_set_rect(label, &geom.dir_label_rect);
+
+	rc = ui_fixed_add(fixed, ui_label_ctl(label));
+	if (rc != EOK)
+		goto error;
+
+	dialog->ldir = label;
+	label = NULL;
+
+	/* Directory entry */
+
+	rc = ui_entry_create(window, params->ifname, &entry);
+	if (rc != EOK)
+		goto error;
+
+	ui_entry_set_rect(entry, &geom.dir_entry_rect);
+	ui_entry_set_read_only(entry, true);
+
+	rc = ui_fixed_add(fixed, ui_entry_ctl(entry));
+	if (rc != EOK)
+		goto error;
+
+	dialog->edir = entry;
+	entry = NULL;
+
+	dirname = ui_file_list_get_dir(dialog->flist);
+	if (dirname == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	rc = ui_entry_set_text(dialog->edir, dirname);
+	if (rc != EOK)
+		goto error;
+
+	free(dirname);
+	dirname = NULL;
 
 	/* OK button */
 
@@ -362,6 +438,8 @@ errno_t ui_file_dialog_create(ui_t *ui, ui_file_dialog_params_t *params,
 	*rdialog = dialog;
 	return EOK;
 error:
+	if (dirname != NULL)
+		free(dirname);
 	if (entry != NULL)
 		ui_entry_destroy(entry);
 	if (flist != NULL)
@@ -424,10 +502,12 @@ static void ui_file_dialog_wnd_resize(ui_window_t *window, void *arg)
 	/* Compute geometry. */
 	ui_file_dialog_get_geom(ui_window_get_ui(window), &arect, &geom);
 
-	ui_entry_set_rect(dialog->ename, &geom.entry_rect);
+	ui_entry_set_rect(dialog->ename, &geom.fname_entry_rect);
 	ui_file_list_set_rect(dialog->flist, &geom.flist_rect);
 	ui_pbutton_set_rect(dialog->bok, &geom.bok_rect);
 	ui_pbutton_set_rect(dialog->bcancel, &geom.bcancel_rect);
+	ui_label_set_rect(dialog->ldir, &geom.dir_label_rect);
+	ui_entry_set_rect(dialog->edir, &geom.dir_entry_rect);
 
 	(void)ui_window_paint(window);
 }
@@ -501,8 +581,16 @@ static void ui_file_dialog_flist_dir_selected(ui_file_list_t *flist, void *arg,
     const char *dname)
 {
 	ui_file_dialog_t *dialog = (ui_file_dialog_t *) arg;
+	char *dirname;
 
 	(void)ui_file_list_read_dir(flist, dname);
+
+	dirname = ui_file_list_get_dir(flist);
+	if (dirname != NULL) {
+		(void)ui_entry_set_text(dialog->edir, dirname);
+		free(dirname);
+	}
+
 	(void)ui_window_paint(dialog->window);
 }
 
