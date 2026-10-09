@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * Copyright (c) 2012 Vojtech Horky
  * All rights reserved.
  *
@@ -451,7 +451,7 @@ errno_t telnet_user_recv(telnet_user_t *user, void *buf, size_t size,
 			++*nread;
 			--size;
 		}
-	} while (size > 0 && (telnet_user_byte_avail(user) || *nread == 0));
+	} while (size > 0 && telnet_user_byte_avail(user));
 
 	fibril_mutex_unlock(&user->recv_lock);
 	return EOK;

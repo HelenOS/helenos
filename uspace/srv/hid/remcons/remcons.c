@@ -198,9 +198,11 @@ static errno_t remcons_read(con_srv_t *srv, void *data, size_t size,
 	telnet_user_t *user = srv_to_user(srv);
 	errno_t rc;
 
-	rc = telnet_user_recv(user, data, size, nread);
-	if (rc != EOK)
-		return rc;
+	do {
+		rc = telnet_user_recv(user, data, size, nread);
+		if (rc != EOK)
+			return rc;
+	} while (*nread == 0);
 
 	return EOK;
 }
@@ -440,7 +442,8 @@ static errno_t remcons_get_event(con_srv_t *srv, cons_event_t *event)
 		if (rc != EOK)
 			return rc;
 
-		vt100_rcvd_char(remcons->vt, next_byte);
+		if (nread > 0)
+			vt100_rcvd_char(remcons->vt, next_byte);
 	}
 
 	link_t *link = list_first(&remcons->in_events);
