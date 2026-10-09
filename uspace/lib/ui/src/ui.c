@@ -334,6 +334,10 @@ static void ui_resize(ui_t *ui, gfx_rect_t *rect)
 {
 	ui_window_t *wnd;
 
+	if (rect->p1.x == ui->rect.p1.x &&
+	    rect->p1.y == ui->rect.p1.y)
+		return;
+
 	ui->rect = *rect;
 
 	/* Reposition/resize windows */
