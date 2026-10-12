@@ -886,14 +886,14 @@ static void terminal_resize_event(ui_window_t *window, void *arg)
 
 static void terminal_maximize_event(ui_window_t *window, void *arg)
 {
+	/* This will also call terminal_resize_event(). */
 	ui_window_def_maximize(window);
-	terminal_resize_handler(window, arg);
 }
 
 static void terminal_unmaximize_event(ui_window_t *window, void *arg)
 {
+	/* This will also call terminal_resize_event(). */
 	ui_window_def_unmaximize(window);
-	terminal_resize_handler(window, arg);
 }
 
 /** Handle window keyboard event */
