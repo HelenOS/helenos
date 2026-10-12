@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * Copyright (c) 2012 Petr Koupy
  * All rights reserved.
  *
@@ -864,9 +864,30 @@ static void terminal_resize_handler(ui_window_t *window, void *arg)
 
 	fibril_mutex_lock(&term->mtx);
 
+	int old_cols = termui_get_cols(term->termui);
+	int old_rows = termui_get_rows(term->termui);
+
+	gfx_rect_t rect;
+	ui_window_get_app_rect(term->window, &rect);
+
+	int width = rect.p1.x - rect.p0.x;
+	int height = rect.p1.y - rect.p0.y;
+
+	int new_cols = width / FONT_WIDTH;
+	int new_rows = height / FONT_SCANLINES;
+
+	if (new_cols == old_cols && new_rows == old_rows) {
+		term_update_region(term, 0, 0, width, height);
+		term_render(term);
+		gfx_update(term->gc);
+		fibril_mutex_unlock(&term->mtx);
+		return;
+	}
+
 	errno_t rc = terminal_window_resize(term);
 	if (rc == EOK) {
-		(void) termui_resize(term->termui, term->w / FONT_WIDTH, term->h / FONT_SCANLINES, SCROLLBACK_MAX_LINES);
+		(void) termui_resize(term->termui, new_cols, new_rows,
+		    SCROLLBACK_MAX_LINES);
 		termui_refresh_cb(term);
 		term_render(term);
 		gfx_update(term->gc);
