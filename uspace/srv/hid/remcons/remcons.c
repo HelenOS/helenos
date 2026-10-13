@@ -771,14 +771,16 @@ static void remcons_telnet_ws_update(void *arg, unsigned cols, unsigned rows)
 {
 	remcons_t *remcons = (remcons_t *)arg;
 
-	vt100_resize(remcons->vt, cols, rows);
-	telnet_user_resize(remcons->user, cols, rows);
+	if (remcons->enable_ctl) {
+		vt100_resize(remcons->vt, cols, rows);
+		telnet_user_resize(remcons->user, cols, rows);
 
-	remcons_event_t *resize = new_resize_event();
-	if (resize == NULL)
-		return;
+		remcons_event_t *resize = new_resize_event();
+		if (resize == NULL)
+			return;
 
-	list_append(&resize->link, &remcons->in_events);
+		list_append(&resize->link, &remcons->in_events);
+	}
 }
 
 /** Handle network connection.
