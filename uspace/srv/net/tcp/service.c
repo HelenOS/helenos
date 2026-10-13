@@ -135,15 +135,15 @@ static void tcp_service_lst_cstate_change(tcp_conn_t *conn, void *arg,
 	errno_t rc;
 	tcp_error_t trc;
 
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_service_lst_cstate_change()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_service_lst_cstate_change()"
+	    " conn=%p old_state=%d nstate=%d",
+	    (void *)conn, (int)old_state, (int)conn->cstate);
 	nstate = conn->cstate;
 	clst = tcp_uc_get_userptr(conn);
 
 	if ((old_state == st_syn_sent || old_state == st_syn_received) &&
 	    (nstate == st_established)) {
 		/* Connection established */
-		clst->conn = NULL;
-
 		rc = tcp_cconn_create(clst->client, conn, &cconn);
 		if (rc != EOK) {
 			/* XXX Could not create client connection */
@@ -167,23 +167,29 @@ static void tcp_service_lst_cstate_change(tcp_conn_t *conn, void *arg,
 		/* XXX */
 	}
 
-	/* Replenish sentinel connection */
+	if (old_state == st_listen && nstate == st_syn_received) {
+		/* Replenish sentinel connection */
+		log_msg(LOG_DEFAULT, LVL_DEBUG2,
+		    "tcp_service_lst_cstate_change(): replenish sentinel conn");
 
-	inet_ep2_init(&epp);
-	epp.local = clst->elocal;
+		inet_ep2_init(&epp);
+		epp.local = clst->elocal;
 
-	trc = tcp_uc_open(&epp, ap_passive, tcp_open_nonblock,
-	    &conn);
-	if (trc != TCP_EOK) {
-		/* XXX Could not replenish connection */
-		return;
+		trc = tcp_uc_open(&epp, ap_passive, tcp_open_nonblock,
+		    &conn);
+		if (trc != TCP_EOK) {
+			/* XXX Could not replenish connection */
+			log_msg(LOG_DEFAULT, LVL_WARN,
+			    "Failed to replenish sentinel connection");
+			return;
+		}
+
+		conn->name = (char *) "s";
+		clst->conn = conn;
+
+		/* XXX Is there a race here (i.e. the connection is already active)? */
+		tcp_uc_set_cb(conn, &tcp_service_lst_cb, clst);
 	}
-
-	conn->name = (char *) "s";
-	clst->conn = conn;
-
-	/* XXX Is there a race here (i.e. the connection is already active)? */
-	tcp_uc_set_cb(conn, &tcp_service_lst_cb, clst);
 }
 
 /** Received data became available on connection.
@@ -566,9 +572,8 @@ static errno_t tcp_listener_destroy_impl(tcp_client_t *client, sysarg_t lst_id)
 		return ENOENT;
 	}
 
-#if 0
-	tcp_uc_close(cconn->conn);
-#endif
+	tcp_uc_close(clst->conn);
+	tcp_uc_delete(clst->conn);
 	tcp_clistener_destroy(clst);
 	return EOK;
 }
@@ -1130,6 +1135,7 @@ static void tcp_client_init(tcp_client_t *client)
 static void tcp_client_fini(tcp_client_t *client)
 {
 	tcp_cconn_t *cconn;
+	tcp_clst_t *clst;
 	unsigned long n;
 
 	n = list_count(&client->cconn);
@@ -1150,7 +1156,17 @@ static void tcp_client_fini(tcp_client_t *client)
 	if (n != 0) {
 		log_msg(LOG_DEFAULT, LVL_WARN, "Client with %lu active "
 		    "listeners closed session", n);
-		/* XXX Destroy listeners */
+		/* Destroy listeners */
+		while (!list_empty(&client->clst)) {
+			clst = list_get_instance(list_first(&client->clst),
+			    tcp_clst_t, lclient);
+			log_msg(LOG_DEFAULT, LVL_NOTE,
+			    "Cleanup clst=%p conn=%p", (void *)clst,
+			    (void *)clst->conn);
+			tcp_uc_close(clst->conn);
+			tcp_uc_delete(clst->conn);
+			tcp_clistener_destroy(clst);
+		}
 	}
 
 	if (client->sess != NULL)
