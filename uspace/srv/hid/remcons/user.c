@@ -596,7 +596,8 @@ void telnet_user_update_cursor_x(telnet_user_t *user, int new_x)
 	if (user->cursor_x - 1 == new_x) {
 		char data = '\b';
 		/* Ignore errors. */
-		telnet_user_send_data_locked(user, &data, 1);
+		(void)telnet_user_send_data_locked(user, &data, 1);
+		(void)telnet_user_flush_locked(user);
 	}
 	user->cursor_x = new_x;
 	fibril_mutex_unlock(&user->send_lock);
