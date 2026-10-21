@@ -197,7 +197,7 @@ static errno_t panel_paint_dirname(panel_t *panel)
 	fmt.halign = gfx_halign_left;
 	fmt.valign = gfx_valign_top;
 	fmt.width = rect.p1.x - rect.p0.x - 2;
-	fmt.abbreviate = true;
+	fmt.abbreviate = gfx_abbrev_begin;
 
 	pos.x = rect.p0.x + 1;
 	pos.y = rect.p0.y;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -64,6 +64,16 @@ typedef enum {
 	gfx_valign_baseline
 } gfx_valign_t;
 
+/** Text abbreviation */
+typedef enum {
+	/** Do not abbreviate text */
+	gfx_abbrev_none,
+	/** Abbreviate by dropping the end */
+	gfx_abbrev_end,
+	/** Abbreviate by dropping the beginning */
+	gfx_abbrev_begin
+} gfx_abbrev_t;
+
 /** Text formatting */
 typedef struct {
 	/** Text font */
@@ -77,7 +87,7 @@ typedef struct {
 	/** Vertical alignment */
 	gfx_valign_t valign;
 	/** Abbreviate the text with ellipsis if it does not fit @c width */
-	bool abbreviate;
+	gfx_abbrev_t abbreviate;
 	/** Underline */
 	bool underline;
 } gfx_text_fmt_t;

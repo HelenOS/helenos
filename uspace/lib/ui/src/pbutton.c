@@ -394,7 +394,7 @@ static errno_t ui_pbutton_paint_gfx(ui_pbutton_t *pbutton)
 		fmt.color = pbutton->res->btn_text_color;
 		fmt.halign = gfx_halign_center;
 		fmt.valign = gfx_valign_center;
-		fmt.abbreviate = true;
+		fmt.abbreviate = gfx_abbrev_end;
 		fmt.width = irect.p1.x - irect.p0.x - 2 * ui_pb_pad_x;
 
 		rc = gfx_puttext(&pos, &fmt, pbutton->caption);
@@ -473,7 +473,7 @@ static errno_t ui_pbutton_paint_text(ui_pbutton_t *pbutton)
 	fmt.color = pbutton->res->btn_text_color;
 	fmt.halign = gfx_halign_center;
 	fmt.valign = gfx_valign_center;
-	fmt.abbreviate = true;
+	fmt.abbreviate = gfx_abbrev_end;
 	fmt.width = rect.p1.x - rect.p0.x - 2 * ui_pb_pad_x_text;
 	if (fmt.width < 1)
 		fmt.width = 1;

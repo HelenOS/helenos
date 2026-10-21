@@ -878,6 +878,8 @@ static errno_t demo_text_abbr(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 
 	for (i = 0; i < 11; i++) {
 
+		/* Abbreviate end of text */
+
 		rc = gfx_color_new_rgb_i16(0, 0, 0x8000, &color);
 		if (rc != EOK)
 			goto error;
@@ -888,7 +890,7 @@ static errno_t demo_text_abbr(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 
 		rect.p0.x = w / 20;
 		rect.p0.y = (2 + 2 * i) * h / 25;
-		rect.p1.x = w - w / 20 - w * i / 12;
+		rect.p1.x = w - 2 * w / 20 - w * i / 12;
 		rect.p1.y = (3 + 2 * i) * h / 25;
 
 		rc = gfx_fill_rect(gc, &rect);
@@ -911,13 +913,61 @@ static errno_t demo_text_abbr(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 		gfx_text_fmt_init(&fmt);
 		fmt.font = font;
 		fmt.color = color;
-		fmt.abbreviate = true;
+		fmt.abbreviate = gfx_abbrev_end;
 		fmt.width = rect.p1.x - rect.p0.x;
 
 		pos.x = rect.p0.x;
 		pos.y = rect.p0.y;
 		rc = gfx_puttext(&pos, &fmt,
 		    "The quick brow fox jumps over the lazy dog!");
+		if (rc != EOK) {
+			printf("Error rendering text.\n");
+			goto error;
+		}
+
+		/* Abbreviate beginning of text */
+
+		rc = gfx_color_new_rgb_i16(0, 0x8000, 0, &color);
+		if (rc != EOK)
+			goto error;
+
+		rc = gfx_set_color(gc, color);
+		if (rc != EOK)
+			goto error;
+
+		rect.p0.x = w - w / 20 - w * i / 12;
+		rect.p0.y = (2 + 2 * i) * h / 25;
+		rect.p1.x = w - w / 20;
+		rect.p1.y = (3 + 2 * i) * h / 25;
+
+		rc = gfx_fill_rect(gc, &rect);
+		if (rc != EOK)
+			goto error;
+
+		gfx_color_delete(color);
+
+		if (demo_is_text()) {
+			rc = gfx_color_new_ega(0x2f, &color);
+			if (rc != EOK)
+				goto error;
+		} else {
+			rc = gfx_color_new_rgb_i16(0xffff, 0xffff, 0xffff,
+			    &color);
+			if (rc != EOK)
+				goto error;
+		}
+
+		gfx_text_fmt_init(&fmt);
+		fmt.font = font;
+		fmt.color = color;
+		fmt.abbreviate = gfx_abbrev_begin;
+		fmt.width = rect.p1.x - rect.p0.x;
+		fmt.halign = gfx_halign_right;
+
+		pos.x = rect.p1.x;
+		pos.y = rect.p0.y;
+		rc = gfx_puttext(&pos, &fmt,
+		    "Sphinx of black quartz, judge my vow!");
 		if (rc != EOK) {
 			printf("Error rendering text.\n");
 			goto error;

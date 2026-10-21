@@ -510,7 +510,7 @@ errno_t ui_wdecor_paint(ui_wdecor_t *wdecor)
 		    wdecor->res->tbar_inact_text_color;
 		fmt.halign = gfx_halign_center;
 		fmt.valign = gfx_valign_center;
-		fmt.abbreviate = true;
+		fmt.abbreviate = gfx_abbrev_end;
 		fmt.width = geom.caption_rect.p1.x -
 		    geom.caption_rect.p0.x;
 

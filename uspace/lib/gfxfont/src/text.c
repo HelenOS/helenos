@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -116,20 +116,34 @@ static errno_t gfx_puttext_textmode(gfx_coord2_t *pos, gfx_text_fmt_t *fmt,
 	pixel_t pixel;
 	char32_t c;
 	size_t off;
+	size_t skip;
+	size_t i;
 	bool ellipsis;
 	errno_t rc;
 
 	width = str_width(str);
-	if (fmt->abbreviate && width > fmt->width) {
+	if (fmt->abbreviate != gfx_abbrev_none && width > fmt->width) {
 		ellipsis = true;
+		if (fmt->abbreviate == gfx_abbrev_end) {
+			if (fmt->width > 3)
+				rmargin = fmt->width - 3;
+			else
+				rmargin = 0;
+
+			skip = 0;
+		} else {
+			rmargin = fmt->width;
+			if (width > fmt->width - 3)
+				skip = width - (fmt->width - 3);
+			else
+				skip = 0;
+		}
+
 		width = fmt->width;
-		if (width > 3)
-			rmargin = width - 3;
-		else
-			rmargin = width;
 	} else {
 		ellipsis = false;
 		rmargin = width;
+		skip = 0;
 	}
 
 	/*
@@ -164,8 +178,24 @@ static errno_t gfx_puttext_textmode(gfx_coord2_t *pos, gfx_text_fmt_t *fmt,
 	pmap.height = 1;
 	pmap.data = alloc.pixels;
 
+	x = 0;
+	if (ellipsis && fmt->abbreviate == gfx_abbrev_begin) {
+		for (; x < 3 && x < params.rect.p1.x; x++) {
+			c = '.';
+			pixel = PIXEL(attr,
+			    (c >> 16) & 0xff,
+			    (c >> 8) & 0xff,
+			    c & 0xff);
+			pixelmap_put_pixel(&pmap, x, 0, pixel);
+		}
+	}
+
 	off = 0;
-	for (x = 0; x < rmargin; x++) {
+
+	for (i = 0; i < skip; i++)
+		c = str_decode(str, &off, STR_NO_LIMIT);
+
+	for (; x < rmargin; x++) {
 		c = str_decode(str, &off, STR_NO_LIMIT);
 		pixel = PIXEL(attr,
 		    (c >> 16) & 0xff,
@@ -174,8 +204,8 @@ static errno_t gfx_puttext_textmode(gfx_coord2_t *pos, gfx_text_fmt_t *fmt,
 		pixelmap_put_pixel(&pmap, x, 0, pixel);
 	}
 
-	if (ellipsis) {
-		for (x = rmargin; x < params.rect.p1.x; x++) {
+	if (ellipsis && fmt->abbreviate == gfx_abbrev_end) {
+		for (; x < params.rect.p1.x; x++) {
 			c = '.';
 			pixel = PIXEL(attr,
 			    (c >> 16) & 0xff,
@@ -210,7 +240,7 @@ void gfx_text_start_pos(gfx_coord2_t *pos, gfx_text_fmt_t *fmt,
 	if (fmt->halign != gfx_halign_left) {
 		/* Compute text width */
 		width = gfx_text_width(fmt->font, str);
-		if (fmt->abbreviate && width > fmt->width)
+		if (fmt->abbreviate != gfx_abbrev_none && width > fmt->width)
 			width = fmt->width;
 
 		switch (fmt->halign) {
@@ -243,6 +273,78 @@ void gfx_text_start_pos(gfx_coord2_t *pos, gfx_text_fmt_t *fmt,
 			break;
 		}
 	}
+}
+
+/** Render text ellipsis.
+ *
+ * @param fmt Text formatting
+ * @param cpos Pointer to current position
+ * @return EOK on success or an error code
+ */
+static errno_t gfx_put_ellipsis(gfx_text_fmt_t *fmt, gfx_coord2_t *cpos)
+{
+	gfx_glyph_metrics_t gmetrics;
+	gfx_glyph_t *glyph;
+	size_t stradv;
+	unsigned i;
+	errno_t rc;
+
+	if (fmt->width < gfx_text_width(fmt->font, "..."))
+		return EOK;
+
+	rc = gfx_font_search_glyph(fmt->font, ".", &glyph, &stradv);
+	if (rc != EOK)
+		return rc;
+
+	gfx_glyph_get_metrics(glyph, &gmetrics);
+
+	for (i = 0; i < 3; i++) {
+		rc = gfx_glyph_render(glyph, cpos);
+		if (rc != EOK)
+			return rc;
+
+		cpos->x += gmetrics.advance;
+
+	}
+
+	return EOK;
+}
+
+/** Skip an initial segment of text of at least the specified width.
+ *
+ * @param fmt Text formatting
+ * @param str String
+ * @param skip_width Minimum width of text to skip
+ * @return Pointer to first character after the skipped initial segment.
+ */
+static const char *gfx_text_get_skip(gfx_text_fmt_t *fmt, const char *str,
+    gfx_coord_t skip_width)
+{
+	const char *cp;
+	gfx_glyph_t *glyph;
+	gfx_glyph_metrics_t gmetrics;
+	gfx_coord_t w;
+	size_t stradv;
+	errno_t rc;
+
+	cp = str;
+	w = 0;
+
+	/* Render characters. */
+	while (*cp != '\0' && w < skip_width) {
+		rc = gfx_font_search_glyph(fmt->font, cp, &glyph, &stradv);
+		if (rc != EOK) {
+			++cp;
+			continue;
+		}
+
+		gfx_glyph_get_metrics(glyph, &gmetrics);
+
+		cp += stradv;
+		w += gmetrics.advance;
+	}
+
+	return cp;
 }
 
 /** Render text.
@@ -279,17 +381,35 @@ errno_t gfx_puttext(gfx_coord2_t *pos, gfx_text_fmt_t *fmt, const char *str)
 
 	width = gfx_text_width(fmt->font, str);
 
-	if (fmt->abbreviate && width > fmt->width) {
+	if (fmt->abbreviate != gfx_abbrev_none && width > fmt->width) {
 		/* Need to append ellipsis */
 		ellipsis = true;
-		rmargin = spos.x + fmt->width - gfx_text_width(fmt->font, "...");
+		if (fmt->abbreviate == gfx_abbrev_end) {
+			rmargin = spos.x + fmt->width -
+			    gfx_text_width(fmt->font, "...");
+			cp = str;
+		} else {
+			rmargin = spos.x + fmt->width;
+			cp = gfx_text_get_skip(fmt, str,
+			    width - (fmt->width -
+			    gfx_text_width(fmt->font, "...")));
+		}
 	} else {
 		ellipsis = false;
 		rmargin = spos.x + width;
+		cp = str;
 	}
 
 	cpos = spos;
-	cp = str;
+
+	/* Render heading ellipsis, if required */
+	if (ellipsis && fmt->abbreviate == gfx_abbrev_begin) {
+		rc = gfx_put_ellipsis(fmt, &cpos);
+		if (rc != EOK)
+			return rc;
+	}
+
+	/* Render characters. */
 	while (*cp != '\0') {
 		rc = gfx_font_search_glyph(fmt->font, cp, &glyph, &stradv);
 		if (rc != EOK) {
@@ -300,7 +420,8 @@ errno_t gfx_puttext(gfx_coord2_t *pos, gfx_text_fmt_t *fmt, const char *str)
 		gfx_glyph_get_metrics(glyph, &gmetrics);
 
 		/* Stop if we would run over the right margin */
-		if (fmt->abbreviate && cpos.x + gmetrics.advance > rmargin)
+		if (fmt->abbreviate != gfx_abbrev_none &&
+		    cpos.x + gmetrics.advance > rmargin)
 			break;
 
 		rc = gfx_glyph_render(glyph, &cpos);
@@ -325,27 +446,9 @@ errno_t gfx_puttext(gfx_coord2_t *pos, gfx_text_fmt_t *fmt, const char *str)
 			return rc;
 	}
 
-	/* Render ellipsis, if required */
-	if (ellipsis) {
-		rc = gfx_font_search_glyph(fmt->font, ".", &glyph, &stradv);
-		if (rc != EOK)
-			return EOK;
-
-		gfx_glyph_get_metrics(glyph, &gmetrics);
-
-		rc = gfx_glyph_render(glyph, &cpos);
-		if (rc != EOK)
-			return rc;
-
-		cpos.x += gmetrics.advance;
-
-		rc = gfx_glyph_render(glyph, &cpos);
-		if (rc != EOK)
-			return rc;
-
-		cpos.x += gmetrics.advance;
-
-		rc = gfx_glyph_render(glyph, &cpos);
+	/* Render trailing ellipsis, if required */
+	if (ellipsis && fmt->abbreviate == gfx_abbrev_end) {
+		rc = gfx_put_ellipsis(fmt, &cpos);
 		if (rc != EOK)
 			return rc;
 	}
@@ -469,7 +572,7 @@ void gfx_text_rect(gfx_coord2_t *pos, gfx_text_fmt_t *fmt, const char *str,
 
 	gfx_text_start_pos(pos, fmt, str, &spos);
 	width = gfx_text_width(fmt->font, str);
-	if (fmt->abbreviate && width > fmt->width)
+	if (fmt->abbreviate != gfx_abbrev_none && width > fmt->width)
 		width = fmt->width;
 
 	rect->p0.x = spos.x;
