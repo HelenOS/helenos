@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2008 Jakub Jermar
+ * Copyright (c) 2026 Vít Skalický
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,6 +46,7 @@ struct dirent {
 
 typedef struct __dirstream DIR;
 
+extern DIR *opendir_handle(int handle);
 extern DIR *opendir(const char *);
 extern struct dirent *readdir(DIR *);
 extern void rewinddir(DIR *);

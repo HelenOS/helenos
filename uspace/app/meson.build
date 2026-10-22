@@ -34,6 +34,7 @@ apps = [
 	'bithenge',
 	'blkdump',
 	'calculator',
+	'cmpdirs',
 	'copy',
 	'corecfg',
 	'cpptest',
