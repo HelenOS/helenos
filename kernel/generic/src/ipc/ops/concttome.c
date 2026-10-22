@@ -48,7 +48,7 @@ static int request_process(call_t *call, answerbox_t *box)
 		/*
 		 * Set the sender-assigned label to the new phone.
 		 */
-		pobj->phone->label = ipc_get_arg5(&call->data);
+		phone_from_kobject(pobj)->label = ipc_get_arg5(&call->data);
 	}
 	call->priv = (sysarg_t) pobj;
 	ipc_set_arg5(&call->data, cap_handle_raw(phandle));
@@ -87,7 +87,7 @@ static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		 */
 		kobject_add_ref(pobj);
 
-		if (ipc_phone_connect(pobj->phone,
+		if (ipc_phone_connect(phone_from_kobject(pobj),
 		    &answer->sender->answerbox)) {
 			/* Pass the reference to the capability */
 			cap_publish(TASK, phandle, pobj);

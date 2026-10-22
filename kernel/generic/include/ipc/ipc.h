@@ -73,7 +73,7 @@ typedef struct phone {
 	atomic_size_t active_calls;
 	/** User-defined label */
 	sysarg_t label;
-	kobject_t *kobject;
+	kobject_t kobject;
 } phone_t;
 
 typedef struct answerbox {
@@ -107,7 +107,7 @@ typedef struct answerbox {
 } answerbox_t;
 
 typedef struct call {
-	kobject_t *kobject;
+	kobject_t kobject;
 
 	/**
 	 * Task link.
@@ -168,10 +168,27 @@ typedef struct call {
 } call_t;
 
 extern slab_cache_t *phone_cache;
+extern slab_cache_t *irq_cache;
 
 extern answerbox_t *ipc_box_0;
 
 extern kobject_ops_t call_kobject_ops;
+
+static inline phone_t *phone_from_kobject(kobject_t *kobject)
+{
+	if (kobject)
+		return ((void *) kobject) - offsetof(phone_t, kobject);
+	else
+		return NULL;
+}
+
+static inline call_t *call_from_kobject(kobject_t *kobject)
+{
+	if (kobject)
+		return ((void *) kobject) - offsetof(call_t, kobject);
+	else
+		return NULL;
+}
 
 extern void ipc_init(void);
 
