@@ -38,6 +38,7 @@
 #include <io/keycode.h>
 #include <io/pos_event.h>
 #include <ipc/common.h>
+#include <time.h>
 #include <uchar.h>
 
 /** Buffer size when creating actual VT100 commands.
@@ -162,6 +163,11 @@ typedef struct {
 	uint16_t innum[INNUM_MAX];
 	/** Index of current numeric parameter */
 	unsigned inncnt;
+
+	/** Last pressed button number. */
+	int last_pressed_btn;
+	/** Last pressed button time. */
+	struct timespec last_pressed_time;
 } vt100_t;
 
 extern sgr_color_index_t color_map[];

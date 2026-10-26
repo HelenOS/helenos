@@ -51,6 +51,11 @@ sgr_color_index_t color_map[] = {
 	[COLOR_WHITE]   = CI_WHITE
 };
 
+enum {
+	/** Maximum delay between clicks of a doubleclick in ms. */
+	dclick_delay_ms = 500
+};
+
 /** Clear screen.
  *
  * @param vt VT instance
@@ -205,6 +210,8 @@ vt100_t *vt100_create(void *arg, sysarg_t cols, sysarg_t rows, vt100_cb_t *cb)
 
 	vt->state = vts_base;
 	vt->inncnt = 0;
+
+	vt->last_pressed_btn = -1;
 
 	return vt;
 }
@@ -1064,6 +1071,8 @@ static void vt100_rcvd_1b5b36(vt100_t *vt, char c)
 static void vt100_rcvd_1b5b3c(vt100_t *vt, char c)
 {
 	pos_event_t ev;
+	struct timespec now;
+	nsec_t ms_delay;
 
 	if (isdigit(c)) {
 		/* Decode next base-10 digit */
@@ -1101,9 +1110,28 @@ static void vt100_rcvd_1b5b3c(vt100_t *vt, char c)
 				ev.btn_num = 1 + vt->innum[0];
 				break;
 			}
+
+			if (ev.type == POS_PRESS &&
+			    (int)ev.btn_num == vt->last_pressed_btn) {
+				getuptime(&now);
+				ms_delay = ts_sub_diff(&now,
+				    &vt->last_pressed_time) / 1000000;
+				if (ms_delay <= dclick_delay_ms) {
+					ev.type = POS_DCLICK;
+					vt->last_pressed_btn = -1;
+				}
+			}
+
 			ev.hpos = vt->innum[1] - 1;
 			ev.vpos = vt->innum[2] - 1;
 			vt100_pos_event(vt, &ev);
+
+			if (ev.type == POS_PRESS) {
+				vt->last_pressed_btn = ev.btn_num;
+				getuptime(&vt->last_pressed_time);
+			}
+
+			vt->last_pressed_btn = ev.btn_num;
 			break;
 		}
 		vt100_clear_innum(vt);
