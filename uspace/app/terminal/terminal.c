@@ -1059,13 +1059,7 @@ static errno_t term_init_window(terminal_t *term, const char *display_spec,
 	ui_wdecor_rect_from_app(term->ui, wparams.style, &rect, &rect);
 	term->off.x = -rect.p0.x;
 	term->off.y = -rect.p0.y;
-	printf("off=%d,%d\n", term->off.x, term->off.y);
 	gfx_rect_translate(&term->off, &rect, &wparams.rect);
-	printf("wparams.rect=%d,%d,%d,%d\n",
-	    wparams.rect.p0.x,
-	    wparams.rect.p1.x,
-	    wparams.rect.p0.y,
-	    wparams.rect.p1.y);
 
 	rc = ui_window_create(term->ui, &wparams, &term->window);
 	if (rc != EOK)
