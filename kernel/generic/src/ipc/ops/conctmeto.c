@@ -87,7 +87,7 @@ static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 	kobject_add_ref(pobj);
 
 	/* Set the recipient-assigned label */
-	pobj->phone->label = ipc_get_arg5(&answer->data);
+	phone_from_kobject(pobj)->label = ipc_get_arg5(&answer->data);
 
 	/* Restore phone handle in answer's ARG5 */
 	ipc_set_arg5(&answer->data, ipc_get_arg5(olddata));
@@ -95,7 +95,7 @@ static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 	/* If the user accepted the call, connect */
 	if (ipc_get_retval(&answer->data) == EOK) {
 		/* Hand over reference from pobj to the answerbox */
-		(void) ipc_phone_connect(pobj->phone, &TASK->answerbox);
+		(void) ipc_phone_connect(phone_from_kobject(pobj), &TASK->answerbox);
 	} else {
 		/* Drop the extra reference */
 		kobject_put(pobj);

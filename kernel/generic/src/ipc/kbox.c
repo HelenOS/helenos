@@ -241,11 +241,11 @@ errno_t ipc_connect_kbox(task_id_t taskid, cap_phone_handle_t *out_phone)
 		return rc;
 	}
 
-	kobject_t *phone_obj = kobject_get(TASK, phone_handle,
-	    KOBJECT_TYPE_PHONE);
+	phone_t *phone = phone_from_kobject(
+	    kobject_get(TASK, phone_handle, KOBJECT_TYPE_PHONE));
 	/* Connect the newly allocated phone to the kbox */
 	/* Hand over phone_obj's reference to ipc_phone_connect() */
-	(void) ipc_phone_connect(phone_obj->phone, &task->kb.box);
+	(void) ipc_phone_connect(phone, &task->kb.box);
 
 	mutex_unlock(&task->kb.cleanup_lock);
 	task_release(task);
