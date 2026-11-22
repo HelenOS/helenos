@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2008 Jakub Jermar
+ * Copyright (c) 2026 Vít Skalický
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,13 +47,8 @@ struct __dirstream {
 	aoff64_t pos;
 };
 
-/** Open directory.
- *
- * @param dirname Directory pathname
- *
- * @return Non-NULL pointer on success. On error returns @c NULL and sets errno.
- */
-DIR *opendir(const char *dirname)
+/** Like opendir_handle, but takes ownership of the handle if successful. */
+static DIR *opendir_internal(int handle)
 {
 	DIR *dirp = malloc(sizeof(DIR));
 	if (!dirp) {
@@ -60,28 +56,70 @@ DIR *opendir(const char *dirname)
 		return NULL;
 	}
 
-	int fd;
-	errno_t rc = vfs_lookup(dirname, WALK_DIRECTORY, &fd);
+	errno_t rc = vfs_open(handle, MODE_READ);
 	if (rc != EOK) {
 		free(dirp);
 		errno = rc;
 		return NULL;
 	}
 
-	rc = vfs_open(fd, MODE_READ);
-	if (rc != EOK) {
-		free(dirp);
-		vfs_put(fd);
-		errno = rc;
-		return NULL;
-	}
-
-	dirp->fd = fd;
+	dirp->fd = handle;
 	dirp->pos = 0;
 	return dirp;
 }
 
-/** Read directory entry.
+/** Open directory by its handle (a.k.a. file descriptor).
+ *
+ * @param handle Directory handle
+ * @return Non-NULL pointer on success. On error returns @c NULL and sets errno.
+ */
+DIR *opendir_handle(int handle)
+{
+	int my_handle;
+	// Clone the file handle, otherwise closedir would put the
+	// handle that was passed to us here by the caller and that we don't own.
+	errno_t rc = vfs_clone(handle, -1, false, &my_handle);
+	if (rc != EOK) {
+		errno = rc;
+		return NULL;
+	}
+
+	DIR *dirp = opendir_internal(my_handle);
+	if (!dirp) {
+		rc = errno;
+		vfs_put(my_handle);
+		errno = rc;
+		return NULL;
+	}
+	return dirp;
+}
+
+/** Open directory by its pathname.
+ *
+ * @param dirname Directory pathname
+ *
+ * @return Non-NULL pointer on success. On error returns @c NULL and sets errno.
+ */
+DIR *opendir(const char *dirname)
+{
+	int fd;
+	errno_t rc = vfs_lookup(dirname, WALK_DIRECTORY, &fd);
+	if (rc != EOK) {
+		errno = rc;
+		return NULL;
+	}
+
+	DIR *dirp = opendir_internal(fd);
+	if (!dirp) {
+		rc = errno;
+		vfs_put(fd);
+		errno = rc;
+		return NULL;
+	}
+	return dirp;
+}
+
+/** Read current directory entry and advance to the next one.
  *
  * @param dirp Open directory
  * @return Non-NULL pointer to directory entry on success. On error returns
