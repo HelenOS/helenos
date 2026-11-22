@@ -221,6 +221,24 @@ static void wndmgt_activate_window_srv(wndmgt_srv_t *srv, ipc_call_t *icall)
 	async_answer_0(icall, rc);
 }
 
+static void wndmgt_deactivate_window_srv(wndmgt_srv_t *srv, ipc_call_t *icall)
+{
+	sysarg_t dev_id;
+	sysarg_t wnd_id;
+	errno_t rc;
+
+	dev_id = ipc_get_arg1(icall);
+	wnd_id = ipc_get_arg2(icall);
+
+	if (srv->ops->deactivate_window == NULL) {
+		async_answer_0(icall, ENOTSUP);
+		return;
+	}
+
+	rc = srv->ops->deactivate_window(srv->arg, dev_id, wnd_id);
+	async_answer_0(icall, rc);
+}
+
 static void wndmgt_close_window_srv(wndmgt_srv_t *srv, ipc_call_t *icall)
 {
 	sysarg_t wnd_id;
@@ -307,6 +325,9 @@ void wndmgt_conn(ipc_call_t *icall, wndmgt_srv_t *srv)
 			break;
 		case WNDMGT_ACTIVATE_WINDOW:
 			wndmgt_activate_window_srv(srv, &call);
+			break;
+		case WNDMGT_DEACTIVATE_WINDOW:
+			wndmgt_deactivate_window_srv(srv, &call);
 			break;
 		case WNDMGT_CLOSE_WINDOW:
 			wndmgt_close_window_srv(srv, &call);

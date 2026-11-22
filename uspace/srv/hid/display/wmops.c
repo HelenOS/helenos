@@ -46,6 +46,7 @@
 static errno_t dispwm_get_window_list(void *, wndmgt_window_list_t **);
 static errno_t dispwm_get_window_info(void *, sysarg_t, wndmgt_window_info_t **);
 static errno_t dispwm_activate_window(void *, sysarg_t, sysarg_t);
+static errno_t dispwm_deactivate_window(void *, sysarg_t, sysarg_t);
 static errno_t dispwm_close_window(void *, sysarg_t);
 static errno_t dispwm_get_event(void *, wndmgt_ev_t *);
 
@@ -53,6 +54,7 @@ wndmgt_ops_t wndmgt_srv_ops = {
 	.get_window_list = dispwm_get_window_list,
 	.get_window_info = dispwm_get_window_info,
 	.activate_window = dispwm_activate_window,
+	.deactivate_window = dispwm_deactivate_window,
 	.close_window = dispwm_close_window,
 	.get_event = dispwm_get_event,
 };
@@ -183,6 +185,34 @@ static errno_t dispwm_activate_window(void *arg, sysarg_t dev_id,
 
 	/* Switch focus */
 	ds_seat_set_focus(seat, wnd);
+
+	ds_display_unlock(wmclient->display);
+	return EOK;
+}
+
+/** Deactivate (minimize) window.
+ *
+ * @param arg Argument (WM client)
+ * @param dev_id Input device ID
+ * @param wnd_id Window ID
+ * @return EOK on success or an error code
+ */
+static errno_t dispwm_deactivate_window(void *arg, sysarg_t dev_id,
+    sysarg_t wnd_id)
+{
+	ds_wmclient_t *wmclient = (ds_wmclient_t *)arg;
+	ds_window_t *wnd;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "dispwm_deactivate_window()");
+
+	ds_display_lock(wmclient->display);
+	wnd = ds_display_find_window(wmclient->display, wnd_id);
+	if (wnd == NULL) {
+		ds_display_unlock(wmclient->display);
+		return ENOENT;
+	}
+
+	ds_window_minimize(wnd);
 
 	ds_display_unlock(wmclient->display);
 	return EOK;
