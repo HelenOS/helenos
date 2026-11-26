@@ -100,7 +100,12 @@ void arm64_post_mm_init(void)
 	interrupt_init();
 
 	/* Merge all memory zones to 1 big zone. */
+#ifndef MACHINE_quartz64a
 	zone_merge_all();
+#else
+	/* The Quartz64A fails at merging memory zones. The reason is unknown. */
+	/* We can skip it as it is only a matter of speed. */
+#endif
 
 	/* Initialize output device. */
 	machine_output_init();

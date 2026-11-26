@@ -160,6 +160,8 @@ void interrupt_init(void)
 	inr_t timer_inr = machine_enable_vtimer_irq();
 
 	irq_initialize(&timer_irq);
+	/* Timer interrupts need to be ended before context switch. */
+	timer_irq.preack = true;
 	timer_irq.inr = timer_inr;
 	timer_irq.claim = timer_claim;
 	timer_irq.handler = timer_irq_handler;

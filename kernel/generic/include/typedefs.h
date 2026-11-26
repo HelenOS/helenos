@@ -47,6 +47,7 @@ typedef int32_t inr_t;
 typedef volatile uint8_t ioport8_t;
 typedef volatile uint16_t ioport16_t;
 typedef volatile uint32_t ioport32_t;
+typedef volatile uint64_t ioport64_t;
 
 #ifdef __32_BITS__
 

@@ -222,6 +222,23 @@ extern uintptr_t physmem_base;
 /** Shift to access the resulting address in a page table entry. */
 #define PTE_OUTPUT_ADDRESS_SHIFT  12
 
+/** Mask the output address in a page table entry. */
+#ifndef __ASSEMBLER__
+
+#define PTE_ADDRESS_MASK UINT64_C(0x0000FFFFFFFFF000)
+
+#define PTE_L1_BLOCK_OUTPUT_ADDRESS_MASK UINT64_C(0x0000FFFFC0000000)
+#define PTE_L2_BLOCK_OUTPUT_ADDRESS_MASK UINT64_C(0x0000FFFFFFE00000)
+
+#else /* __ASSEMBLER__ */
+
+#define PTE_ADDRESS_MASK 0x0000FFFFFFFFF000
+
+#define PTE_L1_BLOCK_OUTPUT_ADDRESS_MASK 0x0000FFFFC0000000
+#define PTE_L2_BLOCK_OUTPUT_ADDRESS_MASK 0x0000FFFFFFE00000
+
+#endif /* __ASSEMBLER__ */
+
 /** Shift to access the access bit in a page table entry. */
 #define PTE_ACCESS_SHIFT  10
 

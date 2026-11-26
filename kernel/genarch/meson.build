@@ -80,6 +80,10 @@ if CONFIG_NS16550
 	_src += [ 'drivers/ns16550/ns16550.c' ]
 endif
 
+if CONFIG_DWAPB
+	_src += [ 'drivers/dwapb/dwapb.c' ]
+endif
+
 if CONFIG_PL011_UART
 	_src += [ 'drivers/pl011/pl011.c' ]
 endif
@@ -110,6 +114,11 @@ endif
 
 if CONFIG_GICV2
 	_src += [ 'drivers/gicv2/gicv2.c' ]
+endif
+
+if CONFIG_GICV3
+	_src += [ 'drivers/gicv3/gicv3.c', 'drivers/gicv3/tfa/gic-x00.c', 'drivers/gicv3/tfa/gicv3_helpers.c', \
+	'drivers/gicv3/tfa/gicrv3_helpers.c', 'drivers/gicv3/tfa/gicdv3_helpers.c', 'drivers/gicv3/tfa/gicv3_main.c' ]
 endif
 
 if CONFIG_VIA_CUDA

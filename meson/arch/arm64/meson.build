@@ -65,4 +65,12 @@ if MACHINE == 'hikey960'
 	]
 endif
 
+if MACHINE == 'quartz64a'
+	rd_essential_drv += [
+		'drv/char/dwapb',
+		'drv/intctl/gicv3',
+		'drv/platform/quartz64a',
+	]
+endif
+
 rd_drv += rd_essential_drv

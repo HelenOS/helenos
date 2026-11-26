@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2015 Petr Pavlu
+ * Copyright (c) 2026 Jakub Kodym
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -50,6 +51,38 @@
 	isb
 .endm
 
+.macro add_L2_table phys virt l1addr l2addr l1mem_attr l2mem_attr temp0 temp1 temp2 temp3 temp4 temp5 temp6
+	/* Add entry to L1 table pointing at L2 table. */
+	mov \temp0, \l1addr
+	lsr \temp1, \virt, #PTL1_VA_SHIFT
+	and \temp1, \temp1, #PTL1_VA_MASK
+	add \temp0, \temp0, \temp1, lsl #PTL_ENTRY_SIZE_SHIFT
+	mov \temp1, \l1mem_attr
+	mov \temp2, \l2addr
+	ldr \temp3, =PTE_ADDRESS_MASK
+	and \temp2, \temp2, \temp3
+	orr \temp1, \temp1, \temp2
+	str \temp1, [\temp0]
+
+	/* Fill the L2 table. */
+	mov \temp0, \l2addr
+	mov \temp2, \l2mem_attr
+	ldr \temp3, =PTE_L2_BLOCK_OUTPUT_ADDRESS_MASK
+	mov \temp4, #PTL2_ENTRIES_ARCH /* Iterations */
+	mov \temp5, #0 /* Index */
+1:
+	add \temp1, \temp0, \temp5, lsl #PTL_ENTRY_SIZE_SHIFT /* Calculate the next address. */
+	lsl \temp6, \temp5, #PTL2_VA_SHIFT
+	add \temp6, \temp6, \phys
+	and \temp6, \temp6, \temp3
+	orr \temp6, \temp6, \temp2
+	str \temp6, [\temp1] /* Store the calculated entry. */
+
+	add \temp5, \temp5, #1 /* Increment the index. */
+	cmp \temp5, \temp4
+	b.lt 1b
+.endm
+
 /** Kernel entry
  *
  * MMU must be disabled at this point.
@@ -65,8 +98,8 @@ SYMBOL(kernel_image_start)
 	str x20, [x2]
 
 	/* Flush the data cache of physmem_base. */
-	mov x28, #8
-	dcache_flush x2 x28 x29 x30
+	mov x25, #8
+	dcache_flush x2 x25 x26 x27
 
 	/*
 	 * Set up address translation that identity maps the 1 GiB area that
@@ -108,7 +141,7 @@ SYMBOL(kernel_image_start)
 	 */
 
 	mov x21, #KM_ARM64_IDENTITY_START
-	ldr x22, =(1024 * 1024 * 1024)
+	ldr x19, =(1024 * 1024 * 1024)
 
 	/* Prepare the level 0 page table. */
 	adrp x2, upper_page_table_level0
@@ -120,91 +153,101 @@ SYMBOL(kernel_image_start)
 	    PTE_L012_TYPE_TABLE << PTE_TYPE_SHIFT | \
 	    1 << PTE_PRESENT_SHIFT)
 	adrp x4, upper_page_table_level1
-	lsr x4, x4, #FRAME_WIDTH
-	orr x3, x3, x4, lsl #PTE_NEXT_LEVEL_ADDRESS_SHIFT
+	ldr x5, =PTE_ADDRESS_MASK
+	and x4, x4, x5
+	orr x3, x3, x4
 	str x3, [x2]
 
-	/* Prepare the level 1 page table. */
-	adrp x2, upper_page_table_level1
-	lsr x3, x21, #PTL1_VA_SHIFT
-	and x3, x3, #PTL1_VA_MASK
-	add x2, x2, x3, lsl #PTL_ENTRY_SIZE_SHIFT
-	mov x3, #( \
+	/* Prepare the level 1 page table and level 2 page tables. */
+
+	/* 1st GiB */
+	mov x22, x20  /* Physical address */
+	mov x23, x21 /* Virtual address */
+	adrp x24, upper_page_table_level1 /* Level 1 page table */
+	adrp x25, upper_page_table_level2_first1G /* Level 2 page table */
+	mov x26, #( \
+	    1 << PTE_ACCESS_SHIFT | \
+	    PTE_L012_TYPE_TABLE << PTE_TYPE_SHIFT | \
+	    1 << PTE_PRESENT_SHIFT) /* Level 1 block entries memory attributes */
+	mov x27, #( \
 	    1 << PTE_ACCESS_SHIFT | \
 	    MAIR_EL1_NORMAL_MEMORY_INDEX << PTE_ATTR_INDEX_SHIFT | \
 	    PTE_L012_TYPE_BLOCK << PTE_TYPE_SHIFT | \
-	    1 << PTE_PRESENT_SHIFT)
-	lsr x4, x20, #FRAME_WIDTH
-	orr x3, x3, x4, lsl #PTE_OUTPUT_ADDRESS_SHIFT
-	str x3, [x2]
+	    1 << PTE_PRESENT_SHIFT) /* Level 2 block entries memory attributes */
+
+	add_L2_table x22 x23 x24 x25 x26 x27 /* temp */ x9 x10 x11 x12 x13 x14 x15
 
 	/* 2nd GiB */
-	add x23, x20, x22
-	add x24, x21, x22
+	add x22, x22, x19
+	add x23, x23, x19
+	/* L1 address stays the same. */
+	adrp x25, upper_page_table_level2_second1G
+	/* L1 memory attributes stay the same. */
+	/* L2 memory attributes stay the same. */
 
-	adrp x2, upper_page_table_level1
-	lsr x3, x24, #PTL1_VA_SHIFT
-	and x3, x3, #PTL1_VA_MASK
-	add x2, x2, x3, lsl #PTL_ENTRY_SIZE_SHIFT
-	mov x3, #( \
-	    1 << PTE_ACCESS_SHIFT | \
-	    MAIR_EL1_NORMAL_MEMORY_INDEX << PTE_ATTR_INDEX_SHIFT | \
-	    PTE_L012_TYPE_BLOCK << PTE_TYPE_SHIFT | \
-	    1 << PTE_PRESENT_SHIFT)
-	lsr x4, x23, #FRAME_WIDTH
-	orr x3, x3, x4, lsl #PTE_OUTPUT_ADDRESS_SHIFT
-	str x3, [x2]
+	add_L2_table x22 x23 x24 x25 x26 x27 /* temp */ x9 x10 x11 x12 x13 x14 x15
 
 	/* 3rd GiB */
-	add x23, x23, x22
-	add x24, x24, x22
+	add x22, x22, x19
+	add x23, x23, x19
+	/* L1 address stays the same. */
+	adrp x25, upper_page_table_level2_third1G
+	/* L1 memory attributes stay the same. */
+	/* L2 memory attributes stay the same. */
 
-	adrp x2, upper_page_table_level1
-	lsr x3, x24, #PTL1_VA_SHIFT
-	and x3, x3, #PTL1_VA_MASK
-	add x2, x2, x3, lsl #PTL_ENTRY_SIZE_SHIFT
-	mov x3, #( \
-	    1 << PTE_ACCESS_SHIFT | \
-	    MAIR_EL1_NORMAL_MEMORY_INDEX << PTE_ATTR_INDEX_SHIFT | \
-	    PTE_L012_TYPE_BLOCK << PTE_TYPE_SHIFT | \
-	    1 << PTE_PRESENT_SHIFT)
-	lsr x4, x23, #FRAME_WIDTH
-	orr x3, x3, x4, lsl #PTE_OUTPUT_ADDRESS_SHIFT
-	str x3, [x2]
+	add_L2_table x22 x23 x24 x25 x26 x27 /* temp */ x9 x10 x11 x12 x13 x14 x15
 
 	/* 4th GiB */
-	add x23, x23, x22
-	add x24, x24, x22
-
-	adrp x2, upper_page_table_level1
-	lsr x3, x24, #PTL1_VA_SHIFT
-	and x3, x3, #PTL1_VA_MASK
-	add x2, x2, x3, lsl #PTL_ENTRY_SIZE_SHIFT
-	mov x3, #( \
+	add x22, x22, x19
+	add x23, x23, x19
+	/* L1 address stays the same. */
+	adrp x25, upper_page_table_level2_fourth1G
+	/* L1 memory attributes stay the same. */
+	mov x27,  #( \
 	    1 << PTE_ACCESS_SHIFT | \
 	    MAIR_EL1_DEVICE_MEMORY_INDEX << PTE_ATTR_INDEX_SHIFT | \
 	    PTE_L012_TYPE_BLOCK << PTE_TYPE_SHIFT | \
-	    1 << PTE_PRESENT_SHIFT)
-	lsr x4, x23, #FRAME_WIDTH
-	orr x3, x3, x4, lsl #PTE_OUTPUT_ADDRESS_SHIFT
-	str x3, [x2]
+	    1 << PTE_PRESENT_SHIFT) /* Level 2 block entries memory attributes */
+
+	/* The whole 4th GiB is marked as device memory. */
+	add_L2_table x22 x23 x24 x25 x26 x27 /* temp */ x9 x10 x11 x12 x13 x14 x15
 
 	/* Flush the data cache of page tables. */
-	adrp x27, lower_page_table_level0
-	mov x28, #4096
-	dcache_flush x27 x28 x29 x30
+	adrp x24, lower_page_table_level0
+	mov x25, #4096
+	dcache_flush x24 x25 x26 x27
 
-	adrp x27, lower_page_table_level1
-	mov x28, #4096
-	dcache_flush x27 x28 x29 x30
+	adrp x24, lower_page_table_level1
+	mov x25, #4096
+	dcache_flush x24 x25 x26 x27
 
-	adrp x27, upper_page_table_level0
-	mov x28, #4096
-	dcache_flush x27 x28 x29 x30
+	adrp x24, lower_page_table_level2
+	mov x25, #4096
+	dcache_flush x24 x25 x26 x27
 
-	adrp x27, upper_page_table_level1
-	mov x28, #4096
-	dcache_flush x27 x28 x29 x30
+	adrp x24, upper_page_table_level0
+	mov x25, #4096
+	dcache_flush x24 x25 x26 x27
+
+	adrp x24, upper_page_table_level1
+	mov x25, #4096
+	dcache_flush x24 x25 x26 x27
+
+	adrp x24, upper_page_table_level2_first1G
+	mov x25, #4096
+	dcache_flush x24 x25 x26 x27
+
+	adrp x24, upper_page_table_level2_second1G
+	mov x25, #4096
+	dcache_flush x24 x25 x26 x27
+
+	adrp x24, upper_page_table_level2_third1G
+	mov x25, #4096
+	dcache_flush x24 x25 x26 x27
+
+	adrp x24, upper_page_table_level2_fourth1G
+	mov x25, #4096
+	dcache_flush x24 x25 x26 x27
 
 	/* Make sure there are not any stale TLB entries. */
 	tlbi vmalle1is
@@ -351,8 +394,9 @@ SYMBOL(kernel_image_start)
 
 	bl arm64_pre_main
 	bl main_bsp
+	/* Not reached */
 
-.section K_DATA_START, "ax"
+.section K_DATA_START, "aw"
 
 	/* Page tables. */
 .align 12
@@ -362,10 +406,25 @@ lower_page_table_level0:
 lower_page_table_level1:
 	.space 4096
 
+lower_page_table_level2:
+	.space 4096
+
 upper_page_table_level0:
 	.space 4096
 
 upper_page_table_level1:
+	.space 4096
+
+upper_page_table_level2_first1G:
+	.space 4096
+
+upper_page_table_level2_second1G:
+	.space 4096
+
+upper_page_table_level2_third1G:
+	.space 4096
+
+upper_page_table_level2_fourth1G:
 	.space 4096
 
 	/* Physical memory base address. */
